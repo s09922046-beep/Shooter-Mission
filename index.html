@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.5.1 火焰遮蔽修正(敵彈移到泛光之後並加深色描邊/火焰外層半透明 0.55、發光只留槍口三分之一段、火星不發光/燃燒敵人改深色剪影加火焰對比色外框,Lv1~3 在火焰下層、Lv4 在火焰上層;子彈命中閃白不變;判定與機制不變) -->
-<!-- 前版:v0.5 武器效果(深灰槍身+武器色條/菱形彈頭+長漸細拖尾+深色描邊/火焰連續火舌+火星+尾端煙,Lv4 冷色層次/槍口十字星火光/命中白閃+武器色碎片回彈;判定與機制不變) -->
+<!-- VERSION: v0.5.2 敵彈拿掉深色描邊(仍畫在泛光之後;描邊只留在主角衝鋒槍與散彈彈頭);其餘同 v0.5.1 -->
+<!-- 前版:v0.5.1 火焰遮蔽修正(敵彈移到泛光之後並加深色描邊/火焰外層半透明 0.55、發光只留槍口三分之一段、火星不發光/燃燒敵人改深色剪影加火焰對比色外框,Lv1~3 在火焰下層、Lv4 在火焰上層;子彈命中閃白不變;判定與機制不變) -->
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -2076,14 +2076,13 @@ function drawMisc(){
     for(let i=0;i<5;i++)px(x+13-i,y-12+i*2,2+i*2,2,'#7affd0'); // 箭頭改像素三角形(v0.3):寬 2~10、高 10,位置同原 ▲ 字元
   }
 }
-/* v0.5.1 敵彈(火焰遮蔽修正 A):在泛光之後直接畫在輸出畫布,外加 1 個邏輯像素的深色描邊(TOUT)。
+/* v0.5.1 敵彈(火焰遮蔽修正 A):在泛光之後直接畫在輸出畫布。v0.5.2 依使用者指示拿掉深色描邊(描邊只留給主角子彈)。
    座標換算與遊戲畫面相同(世界座標 − 鏡頭 + 震動,再乘輸出倍率);形狀、大小、顏色與 v0.5 相同,判定未改。
    發光仍由 drawMisc 照常登記,所以光暈保留,只是本體不再被加亮洗白。HUD 與疊層之後才畫,仍蓋在敵彈上。 */
 function drawEBulTop(ox,oy){
   if(!ebul.length)return;
   const k=PW/W,kh=PH/H,dx=ox-cam.x,dy=oy-cam.y;
   for(const b of ebul){const X=Math.round(b.x-b.r)+dx,Y=Math.round(b.y-b.r)+dy,D=Math.round(b.r*2);
-    octx.fillStyle=TOUT;octx.fillRect(Math.round((X-1)*k),Math.round((Y-1)*kh),Math.round((D+2)*k),Math.round((D+2)*kh));
     octx.fillStyle=b.c;octx.fillRect(Math.round(X*k),Math.round(Y*kh),Math.round(D*k),Math.round(D*kh));
     const cx=Math.round(b.x-1)+dx,cy=Math.round(b.y-1)+dy;
     octx.fillStyle='#fff';octx.fillRect(Math.round(cx*k),Math.round(cy*kh),Math.round(2*k),Math.round(2*kh));}
