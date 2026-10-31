@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.5.2 敵彈拿掉深色描邊(仍畫在泛光之後;描邊只留在主角衝鋒槍與散彈彈頭);其餘同 v0.5.1 -->
+<!-- VERSION: v0.6 特攻機制改版(使用者授權):轟炸機 P2 自畫面左緣飛入、鎖定標記 L2 琥珀、左下通訊字幕 T3、機腹投放追蹤飛彈 M2(尾跡 R3、爆炸 X1)命中才結算;魔王 4 枚各扣總血量 2%(最高優先級)、6 王目標選單、魔王登場期間不能施放 -->
+<!-- 前版:v0.5.2 敵彈拿掉深色描邊(仍畫在泛光之後;描邊只留在主角衝鋒槍與散彈彈頭);其餘同 v0.5.1 -->
 <!-- 前版:v0.5.1 火焰遮蔽修正(敵彈移到泛光之後並加深色描邊/火焰外層半透明 0.55、發光只留槍口三分之一段、火星不發光/燃燒敵人改深色剪影加火焰對比色外框,Lv1~3 在火焰下層、Lv4 在火焰上層;子彈命中閃白不變;判定與機制不變) -->
 
 <meta charset="utf-8">
@@ -143,6 +144,11 @@ const KM={ArrowLeft:'l',ArrowRight:'r',ArrowUp:'u',ArrowDown:'d',KeyA:'l',KeyD:'
 addEventListener('keydown',e=>{
   if(e.code==='F2'){e.preventDefault();if(!e.repeat)toggleQuality();return;}   // 畫質 高/低 切換
   if(e.code==='F3'){e.preventDefault();if(!e.repeat)togglePerf();return;}      // 效能面板(同時擋掉瀏覽器的「尋找下一個」)
+  if(G.modal&&G.modal.spPick&&G.state==='play'){                                 // v0.6:6 王特攻目標選單,1/2/3 選擇、Esc 取消
+    const k={Digit1:'k',Digit2:'c',Digit3:'avg',Numpad1:'k',Numpad2:'c',Numpad3:'avg'}[e.code];
+    if(k){e.preventDefault();spPick(k);return;}
+    if(e.code==='Escape'){e.preventDefault();G.modal=null;return;}
+  }
   if(KM[e.code]){K[KM[e.code]]=1;e.preventDefault();}if(e.code==='Enter')anyTap=true;
   if((e.code==='Escape'||e.code==='KeyP')&&G.state!=='title'&&G.state!=='levelselect'&&!G.modal)G.paused=!G.paused;});
 addEventListener('keyup',e=>{if(KM[e.code])K[KM[e.code]]=0;});
@@ -193,6 +199,15 @@ document.getElementById('wrap').addEventListener('pointerdown',e=>{
         if(gx>=W/2-92&&gx<=W/2-8){wep=a;wlvl=2;G.msg=WNAME[wep]+' Lv2';G.msgT=70;G.modal=null;return;}
         if(gx>=W/2+8&&gx<=W/2+92){wep=b;wlvl=2;G.msg=WNAME[wep]+' Lv2';G.msgT=70;G.modal=null;return;}
       }
+      return;
+    }
+    if(G.modal.spPick){ // v0.6:6 王特攻目標
+      if(gy>=H/2-8&&gy<=H/2+14){
+        if(gx>=W/2-100&&gx<=W/2-40){spPick('k');return;}
+        if(gx>=W/2-30&&gx<=W/2+30){spPick('c');return;}
+        if(gx>=W/2+40&&gx<=W/2+100){spPick('avg');return;}
+      }
+      if(gy>=H/2+20&&gy<=H/2+38&&gx>=W/2-32&&gx<=W/2+32){G.modal=null;return;}
       return;
     }
     const by=H/2+6,bw=64,bh=22,yesX=W/2-80,noX=W/2+16;
@@ -254,7 +269,7 @@ const G={
   paused:false, modal:null, overBoss:false
 };
 const BASE_DMG=12;                 // 初始單排衝鋒槍每發傷害(原10 x1.2)
-const SP_MULT_MOB=20, SP_MULT_BOSS=5;
+const SP_MULT_MOB=20, SP_MULT_BOSS=5;  // v0.6 特攻改版後已不使用(魔王改為每枚扣總血量 2%、雜兵保證擊殺)
 
 const P={x:48,y:120,vx:0,vy:0,w:10,h:14,face:1,onG:false,climb:false,inv:0,lives:5,
   fireCd:0,flameT:0,safeX:48,safeY:120,dead:false,anim:0};
@@ -699,45 +714,126 @@ function updateBullets(){
     if(p.t>p.life)parts.splice(i,1);
   }
 }
-/* ========== 特殊攻擊 ========== */
+/* ========== 特殊攻擊(v0.6 改版,使用者 10/31 授權修改機制) ==========
+   流程:按下 → 轟炸機 P2 從畫面左緣飛入(相對鏡頭,固定約 3.5 秒)、畫面內目標掛鎖定標記(L2 琥珀)、左下通訊字幕(T3)
+   → 第 30 幀起每 4 幀從機腹投放一枚追蹤飛彈(S1:滯空 15 幀後點火)→ 命中才爆炸、才結算。
+   一般關:畫面內雜兵各一枚,命中即擊殺(保證);畫面外雜兵在第 30 幀直接結算;另放最多 4 枚示意飛彈飛出畫面右緣即移除。
+   魔王關:魔王 4 枚,每枚扣總血量 2%,無視裝甲、命匣、無敵與登場以外的一切規則(最高優先級);召喚物照雜兵規則。
+   6 王兩隻都活著時先跳選單(騎士/詠嘆者/平均/取消);7 王 4 枚分給本體與每顆假結晶(各至少 1 枚),
+   打到假結晶照觸發原懲罰,傷害仍算本體;4 王隱身時飛彈盤旋等待;魔王登場動畫期間不能施放。 */
+const SP_PCT=0.02,SP_SPD=5,SP_TXT=170,SP_LC='#ffb02e';
+let spp=[];                                      // 特攻專用視覺粒子(火球、煙、塵浪),不影響任何判定
+function spAdd(x,y,vx,vy,life,c,sz,g,gw){if(spp.length<420)spp.push({x,y,vx,vy,life,t:0,c,sz,g,gw});}
+function spIntro(){return !!(boss&&boss.alive&&boss.introT>0);}
+function spReady(){return G.charge>=100&&!plane&&!G.noSpecial&&!spIntro();}
 function fireSpecial(){
-  if(G.charge<100||plane||G.noSpecial)return;
-  G.charge=0;plane={x:-60,y:26,t:0,bombT:0};
-  shake(3,20);
-  // 傷害由底層代碼直接作用於全圖小怪血量(含魔王召喚的小怪),不受鏡頭範圍/動畫彈道限制;
-  // 魔王本體傷害仍維持原本轟炸機爆炸範圍判定,動畫僅為視覺特效
-  for(let j=ens.length-1;j>=0;j--)killEnemy(ens[j],j);
+  if(!spReady())return;
+  if(boss&&boss.alive&&G.world===6&&boss.kh>0&&boss.ch>0){G.modal={spPick:1};return;} // 6 王:先選目標
+  launchSpecial(null);
+}
+function spPick(p){G.modal=null;if(spReady())launchSpecial(p);}
+function onScr(x,y,w,h){return x+w>cam.x&&x<cam.x+W&&y+h>cam.y&&y<cam.y+H;}
+function launchSpecial(pick){
+  G.charge=0;shake(3,20);
+  plane={sx:-70,y:26,t:0,txt:'',txtT:0,off:[],bk:null};
+  bombs=[];
+  for(const e of ens){if(onScr(e.x,e.y,e.w,e.h)){e.spLock=G.t;bombs.push({e,lx:e.x+e.w/2,ly:e.y+e.h/2});}else plane.off.push(e);}
+  if(boss&&boss.alive){
+    const b=boss;b.spLock=G.t;let keys;
+    if(G.world===6){
+      if(b.kh>0&&b.ch>0)keys=pick==='k'?['k','k','k','k']:(pick==='c'?['c','c','c','c']:['k','c','k','c']);
+      else keys=Array(4).fill(b.kh>0?'k':'c');
+    }else if(G.world===7){                       // 本體與每顆假結晶至少各 1 枚,其餘隨機,外觀上看不出真假
+      const pool=['core'];for(let i=0;i<b.decoys.length;i++)pool.push('f'+i);
+      for(let i=pool.length-1;i>0;i--){const j=ri(0,i);[pool[i],pool[j]]=[pool[j],pool[i]];}
+      keys=[0,1,2,3].map(i=>i<pool.length?pool[i]:pool[ri(0,pool.length-1)]);
+      b.spKeys=pool.slice();
+    }else keys=Array(4).fill('core');
+    if(G.world!==7)b.spKeys=[...new Set(keys)];
+    for(const k of keys)bombs.push({boss:1,key:k,lx:b.x+b.w/2,ly:b.y+b.h/2});
+    plane.txt='偵測到敵人：'+b.def.name+'，已瞄準。';
+  }else plane.txt='偵測到敵人：'+ens.length+'名，已全數瞄準。';
+  for(let k=0;k<Math.min(4,plane.off.length);k++)bombs.push({dummy:1,ty:cam.y+40+k*50});
+  bombs.forEach((m,i)=>{m.ph=0;m.at=30+i*4;m.t=0;m.tr=[];});
 }
 function updatePlane(){
   if(!plane)return;
-  plane.x+=3.2;plane.t++;
-  if(plane.t%9===0&&plane.x>cam.x-20&&plane.x<cam.x+W+20){
-
-    bombs.push({x:plane.x,y:plane.y+8,vy:1.2});
-  }
-  if(plane.x>cam.x+W+80)plane=null;
+  plane.sx+=3.2;plane.t++;plane.txtT++;
+  if(plane.t===30){for(const e of plane.off){const j=ens.indexOf(e);if(j>=0)killEnemy(e,j);}plane.off=[];} // 畫面外:不演出,直接結算
+  if(plane.sx>W+80&&!bombs.some(m=>m.ph===0))plane=null;
 }
-let bombs=[];
+let bombs=[];                                    // v0.6 起為追蹤飛彈清單(沿用變數名,各處重置照舊)
+function spTarget(m){                            // 回傳 [x,y];null = 魔王隱身中(盤旋等待)
+  if(m.dummy)return [cam.x+W+60,m.ty];
+  if(m.e){const e=m.e;if(ens.includes(e)){m.lx=e.x+e.w/2;m.ly=e.y+e.h/2;}return [m.lx,m.ly];} // 目標已死:飛到最後位置自爆
+  const b=boss;if(!b||!b.alive)return [m.lx,m.ly];
+  if(b.hidden)return null;
+  if(G.world===6){if(m.key==='k'&&b.kh<=0)m.key='c';else if(m.key==='c'&&b.ch<=0)m.key='k';}
+  const ps=bossParts();let hb=ps.find(p=>p.key===m.key);
+  if(!hb&&G.world===7&&m.key!=='core'&&!m.fx){m.fx=1;}       // 假結晶已消失:改飛本體,不再觸發懲罰
+  if(!hb)hb=ps.find(p=>p.key==='core')||{x:b.x,y:b.y,w:b.w,h:b.h};
+  m.lx=hb.x+hb.w/2;m.ly=hb.y+hb.h/2;return [m.lx,m.ly];
+}
+function spBossHit(m){
+  const b=boss;if(!b||!b.alive)return;
+  const d=b.max*SP_PCT;
+  if(G.world===6){
+    let k=m.key;if(k==='k'&&b.kh<=0)k='c';if(k==='c'&&b.ch<=0)k='k';
+    if(k==='k'&&b.kh>0){b.kh=Math.max(0,b.kh-d);if(b.kh<=0)burst(b.x+11,b.y+15,'#ffb03c',20,3);}
+    else if(k==='c'&&b.ch>0){b.ch=Math.max(0,b.ch-d);if(b.ch<=0)burst(b.cx+9,b.cy+13,'#8affd0',20,3);}
+    b.hp=b.kh+b.ch;
+  }else{
+    if(G.world===7&&m.key!=='core'&&!m.fx){const hb=bossParts().find(p=>p.key===m.key);if(hb)b.def.dmg(b,hb,0);} // 原懲罰照舊
+    b.hp-=d;
+  }
+  b.fx=4;
+  if(b.hp<=0){b.hp=0;bossDie();}
+}
+function spBoom(x,y,gnd){                        // X1:火球 + 貼地時左右塵浪
+  spAdd(x-4,y-4,0,0,4,'#ffffff',8,0,1);
+  for(let i=0;i<10;i++){const a=rnd(0,6.283),s=rnd(0.6,2.2);
+    spAdd(x,y,Math.cos(a)*s,Math.sin(a)*s-0.4,rnd(14,24),i<4?'#fff1b0':(i<7?'#ffb02e':'#ff6a2a'),i<4?3:2,0.03,1);}
+  if(gnd)for(const d of[-1,1])for(let k=0;k<3;k++)spAdd(x+d*k*3,y+6,d*(1.1+k*0.35),-0.05,18+k*4,k?'#6a5a48':'#8a7a62',k?2:3,0,0);
+  for(let i=0;i<3;i++)spAdd(x+rnd(-2,2),y-2,rnd(-0.15,0.15),-0.35,30,'#3a3640',3,-0.002,0);
+  shake(2,8);
+}
+function spHit(m){
+  if(m.e){const e=m.e,j=ens.indexOf(e);
+    if(j>=0){const g=hitSolid(e.x+2,e.y+e.h+1,e.w-4,2)||tileKind(e.x+2,e.y+e.h+1,e.w-4,2,3);
+      spBoom(e.x+e.w/2,e.y+e.h/2,g);killEnemy(e,j);}            // 保證擊殺
+    else spBoom(m.x,m.y,false);
+    return;}
+  spBoom(m.x,m.y,false);
+  if(m.boss)spBossHit(m);
+}
 function updateBombs(){
   for(let i=bombs.length-1;i>=0;i--){
-    const b=bombs[i];b.vy+=0.14;b.y+=b.vy;
-    if(b.y>map.h*TS||hitSolid(b.x,b.y,3,3)||b.y>H-8){
-      explode(b.x,b.y);bombs.splice(i,1);
-    }
+    const m=bombs[i];
+    if(m.ph===0){                                // 等待投放
+      if(!plane||plane.t<m.at)continue;
+      m.ph=1;m.t=0;m.x=cam.x+plane.sx+18;m.y=cam.y+plane.y+10;m.vx=1.2;m.vy=0.3;m.a=0.6;continue;}
+    m.t++;
+    if(m.ph===1){                                // S1:機腹投放,滯空 15 幀後點火
+      m.vy+=0.08;m.vx*=0.96;m.x+=m.vx;m.y+=m.vy;m.a=Math.atan2(m.vy,m.vx);
+      if(m.t>=15){m.ph=2;m.t=0;m.sp=1.2;spAdd(m.x-1,m.y-1,0,0,3,'#fff1b0',3,0,1);}
+      continue;}
+    const tg=spTarget(m);
+    let want;
+    if(tg)want=Math.atan2(tg[1]-m.y,tg[0]-m.x);
+    else{want=m.a+0.12;m.t=Math.min(m.t,40);}    // 4 王隱身:原地繞圈,保底計時不累積
+    let d=want-m.a;while(d>Math.PI)d-=6.283;while(d<-Math.PI)d+=6.283;
+    const tr=tg?(m.t>70?1:0.10+m.t*0.006):0.12;   // 超過 70 幀直接對準,保證命中
+    m.a+=clamp(d,-tr,tr);
+    m.sp=Math.min(tg?SP_SPD:3,m.sp+0.38);
+    m.vx=Math.cos(m.a)*m.sp;m.vy=Math.sin(m.a)*m.sp;m.x+=m.vx;m.y+=m.vy;
+    const bx=m.x-Math.cos(m.a)*5,by=m.y-Math.sin(m.a)*5;     // R3:尾焰 + 煙
+    if(m.t%2===0)spAdd(bx-1,by-1,rnd(-0.1,0.1),-0.12,18,'#6a6870',2,-0.003,0);
+    m.tr.unshift(bx,by);if(m.tr.length>10)m.tr.length=10;
+    if(m.dummy){if(m.x>cam.x+W+16)bombs.splice(i,1);continue;}
+    if(tg&&Math.hypot(tg[0]-m.x,tg[1]-m.y)<Math.max(6,m.sp+1)){spHit(m);bombs.splice(i,1);}
+    else if(m.t>600)bombs.splice(i,1);           // 安全上限
   }
-}
-function explode(x,y){
-  burst(x,y,'#ffd27a',22,3.6);shake(3,14);
-  const R=46;
-  for(let j=ens.length-1;j>=0;j--){
-    const e=ens[j];
-    if(Math.hypot(e.x+6-x,e.y+7-y)<R){e.hp-=BASE_DMG*SP_MULT_MOB;e.fx=6;if(e.hp<=0)killEnemy(e,j);}
-  }
-  if(boss&&boss.alive){
-    for(const hb of bossParts()){
-      if(Math.hypot(hb.x+hb.w/2-x,hb.y+hb.h/2-y)<R+16){bossDamage(hb,BASE_DMG*SP_MULT_BOSS);break;}
-    }
-  }
+  for(let i=spp.length-1;i>=0;i--){const p=spp[i];p.x+=p.vx;p.y+=p.vy;p.vy+=p.g;p.t++;if(p.t>=p.life)spp.splice(i,1);}
 }
 /* ========== 傳送點 ========== */
 function spawnPortal(){
@@ -836,7 +932,7 @@ function genLevel(world,sub){
   fillR(wTiles-1,0,wTiles-1,GH-1,1);
 
   // 敵人
-  ens=[];items=[];bul=[];ebul=[];hazs=[];parts=[];bombs=[];portal=null;boss=null;plane=null;
+  ens=[];items=[];bul=[];ebul=[];hazs=[];parts=[];bombs=[];spp=[];portal=null;boss=null;plane=null;
   const n=Math.min(16,3+sub*2+Math.floor(world*0.8));
   const spots=groundCols.filter(c=>c.x>16&&c.x<wTiles-8);
   const used={};
@@ -866,7 +962,7 @@ let endT=0;
 /* ========== 魔王框架 ========== */
 function bossArena(f){
   newMap(32);
-  ens=[];items=[];bul=[];ebul=[];hazs=[];parts=[];bombs=[];portal=null;plane=null;
+  ens=[];items=[];bul=[];ebul=[];hazs=[];parts=[];bombs=[];spp=[];portal=null;plane=null;
   G.conveyor=0;G.noSpecial=false;
   fillR(0,0,0,GH-1,1);fillR(31,0,31,GH-1,1);
   f();
@@ -1681,12 +1777,12 @@ function debugStartWorld(n){
   startLevel();
 }
 function toTitle(){G.state='title';G.sT=0;hudEl.style.display='none';boss=null;
-  ens=[];ebul=[];bul=[];hazs=[];items=[];parts=[];bombs=[];plane=null;portal=null;}
+  ens=[];ebul=[];bul=[];hazs=[];items=[];parts=[];bombs=[];spp=[];plane=null;portal=null;}
 let hudLast='';
 function updateHudDom(){
   const life=P.lives<0?0:P.lives;
   let lh='';for(let i=0;i<8;i++)lh+='<b'+(i<life?'':' class="off"')+'>♥</b>';
-  const rdy=G.charge>=100&&!G.noSpecial;
+  const rdy=G.charge>=100&&!G.noSpecial&&!spIntro(); // v0.6:魔王登場動畫期間不能施放
   const sig=G.score+'|'+life+'|'+wep+wlvl+'|'+Math.floor(G.charge)+'|'+G.world+'-'+G.sub+'|'+rdy;
   if(sig===hudLast)return; hudLast=sig;
   hScore.textContent='SCORE '+String(G.score).padStart(7,'0');
@@ -1713,7 +1809,7 @@ function update(){
   if(G.state==='over'){hudEl.style.display='none';if(G.sT<91)G.sT++;return;}
   if(G.state==='finish'){hudEl.style.display='none';G.sT++;if(G.sT>260)toTitle();return;}
   if(G.state==='win'){
-    G.sT++;updateParticles();
+    G.sT++;updateParticles();updatePlane();updateBombs();
     if(G.sT>170){G.state='play';spawnPortal();}
     return;
   }
@@ -2064,17 +2160,49 @@ function drawMisc(){
   for(const p of parts){const a=Math.max(0,1-p.t/p.life);
     ctx.globalAlpha=a;px(p.x,p.y,p.sz,p.sz,p.c);ctx.globalAlpha=1;
     gl(p.x-2,p.y-2,p.sz+4,p.sz+4,p.c,a*FX.core);} // 發光層:爆炸、火花、餘燼粒子
-  for(const b of bombs){px(b.x-2,b.y-3,4,6,'#e0e4ee');px(b.x-2,b.y+3,4,2,'#ffbe3c');
-    gl(b.x-4,b.y+1,8,6,'#ffbe3c',FX.core);}        // 發光層:特攻炸彈尾焰
-  if(plane){const x=plane.x,y=plane.y;
-    px(x,y,34,7,'#c8d0e0');px(x+10,y-4,12,4,'#8a94aa');px(x-6,y+2,8,3,'#8a94aa');
-    px(x+30,y+1,6,4,'#ffbe3c');}
+  drawSpecial();                                 // v0.6 特攻:鎖定標記、飛彈、爆炸粒子、轟炸機
   if(portal){const x=portal.x,y=portal.y,s=Math.sin(portal.t*0.08);
     for(let i=0;i<5;i++){ctx.globalAlpha=.25+i*0.12;
       px(x+8-i*2,y+6+i*4+s*2,12+i*4,4,'#7affd0');ctx.globalAlpha=1;}
     px(x+10,y+2,10,28,'#d0fff0');
     for(let i=0;i<5;i++)px(x+13-i,y-12+i*2,2+i*2,2,'#7affd0'); // 箭頭改像素三角形(v0.3):寬 2~10、高 10,位置同原 ▲ 字元
   }
+}
+/* v0.6 特攻繪製(使用者選定:標記 L2 琥珀、飛彈 M2、尾跡 R3、爆炸 X1、轟炸機 P2)。鎖定標記不登記發光。 */
+const SP_MC=['#c8ccd4','#3a3e48','#8e1c2c','#8e1c2c','#3a3e48','#3a3e48','#2c3038']; // M2 由彈頭往後
+function spLockMark(x,y,w,h,t0){
+  const age=G.t-t0;if(age>10&&((G.t>>2)&3)===0)return;               // 收合後微閃
+  const pad=3+Math.round(Math.max(0,1-age/10)*10),c=SP_LC;
+  const cx=Math.round(x+w/2),cy=Math.round(y+h/2),r=Math.round(w/2)+pad+2;
+  for(let i=0;i<r;i++){px(cx-r+i,cy-i,1,1,c);px(cx+r-i,cy-i,1,1,c);px(cx-r+i,cy+i,1,1,c);px(cx+r-i,cy+i,1,1,c);}
+  px(cx-r-3,cy,3,1,c);px(cx+r+1,cy,3,1,c);px(cx,cy-r-3,1,3,c);px(cx,cy+r+1,1,3,c);px(cx,cy,1,1,c);
+}
+function drawSpecial(){
+  if(bombs.length){
+    for(const e of ens)if(e.spLock!=null&&bombs.some(m=>m.e===e))spLockMark(e.x,e.y,e.w,e.h,e.spLock);
+    const b=boss;
+    if(b&&b.alive&&b.spKeys&&!b.hidden&&bombs.some(m=>m.boss)){
+      const ps=bossParts();
+      for(const k of b.spKeys){const hb=ps.find(p=>p.key===k)||(k==='core'?{x:b.x,y:b.y,w:b.w,h:b.h}:null);
+        if(hb)spLockMark(hb.x,hb.y,hb.w,hb.h,b.spLock);}
+    }
+  }
+  for(const p of spp){const a=Math.max(0,1-p.t/p.life);ctx.globalAlpha=a;px(p.x,p.y,p.sz,p.sz,p.c);ctx.globalAlpha=1;
+    if(p.gw)gl(p.x-2,p.y-2,p.sz+4,p.sz+4,p.c,a*FX.core);}           // 煙與塵浪不發光
+  for(const m of bombs){if(m.ph===0)continue;
+    const ca=Math.cos(m.a),sa=Math.sin(m.a);
+    for(let i=0;i<m.tr.length;i+=2){const k=i>>1,s=k<2?2:1;
+      px(m.tr[i]-s/2,m.tr[i+1]-s/2,s,s,k<1?'#fff1b0':(k<3?'#ffb02e':'#ff6a2a'));
+      if(k<2)gl(m.tr[i]-2,m.tr[i+1]-2,4,4,'#ffb02e',FX.core);}
+    for(let i=0;i<SP_MC.length;i++){const x=m.x-ca*i,y=m.y-sa*i;px(x,y,1,1,SP_MC[i]);px(x-sa,y+ca,1,1,SP_MC[i]);}
+  }
+  if(plane){const x=Math.round(cam.x+plane.sx),y=Math.round(cam.y+plane.y),f=(G.t>>1)&1;
+    px(x+2,y+3,40,8,'#3a3e48');px(x+4,y+2,34,1,'#5a606c');px(x+6,y+6,30,2,'#8e1c2c');
+    px(x+38,y+4,6,6,'#2c3038');px(x+42,y+6,3,3,'#7ab8ff');
+    px(x+12,y-3,14,4,'#2c3038');px(x+14,y-4,8,1,'#4a505c');px(x+12,y+11,16,3,'#2c3038');
+    px(x-2,y-2,6,6,'#2c3038');px(x-2,y-3,3,1,'#4a505c');px(x+16,y+11,6,2,'#22252c');
+    px(x-6-f*2,y+4,6+f*2,4,'#ff8a2a');px(x-3,y+5,3,2,'#fff1b0');
+    gl(x-10,y+2,12,8,'#ff8a2a',FX.core);}                             // 發光層:引擎火
 }
 /* v0.5.1 敵彈(火焰遮蔽修正 A):在泛光之後直接畫在輸出畫布。v0.5.2 依使用者指示拿掉深色描邊(描邊只留給主角子彈)。
    座標換算與遊戲畫面相同(世界座標 − 鏡頭 + 震動,再乘輸出倍率);形狀、大小、顏色與 v0.5 相同,判定未改。
@@ -2101,6 +2229,11 @@ function drawHUD(){
     }
   }
   if(G.msgT>0){txt(G.msg,W/2,30,'#ffe9a0',10,'center',1);}
+  if(plane&&plane.txtT<SP_TXT){                 // v0.6 特攻字幕 T3:左下通訊框,逐字打出(每 2 幀 1 字),最後 30 幀淡出
+    const t=plane.txtT,a=t>SP_TXT-30?(SP_TXT-t)/30:1,s=plane.txt,n=Math.min(s.length,t>>1);
+    ctx.globalAlpha=0.55*a;px(10,248,s.length*9+40,26,'#000');ctx.globalAlpha=a;
+    txt('BOMBER-02 ▸',16,251,SP_LC,7,'left');
+    txt(s.slice(0,n)+(n<s.length&&((t>>2)&1)?'_':''),16,261,'#e6f0ff',9,'left');ctx.globalAlpha=1;}
 }
 function drawOverlays(){
   if(G.state==='title'){
@@ -2185,6 +2318,15 @@ function drawOverlays(){
         txt(WNAME[a],W/2-50,H/2-1,WCOL[a],10,'center');
         px(W/2+8,H/2-8,84,26,'#12202e');ctx.strokeStyle=WCOL[b];ctx.strokeRect(W/2+8,H/2-8,84,26);
         txt(WNAME[b],W/2+50,H/2-1,WCOL[b],10,'center');
+      }else if(G.modal.spPick){                 // v0.6:6 王特攻目標選單
+        px(W/2-110,H/2-44,220,90,'#0d1626');
+        ctx.strokeStyle='#7affd0';ctx.lineWidth=2;ctx.strokeRect(W/2-110,H/2-44,220,90);
+        txt('選擇特攻目標',W/2,H/2-34,'#ffffff',10,'center');
+        const B=[[W/2-100,'1 騎士','#ffb03c'],[W/2-30,'2 詠嘆者','#8affd0'],[W/2+40,'3 平均打擊','#ffe9a0']];
+        for(const [bx,lb,c] of B){px(bx,H/2-8,60,22,'#12202e');ctx.strokeStyle=c;ctx.strokeRect(bx,H/2-8,60,22);
+          txt(lb,bx+30,H/2-2,c,9,'center');}
+        px(W/2-32,H/2+20,64,18,'#3a1720');ctx.strokeStyle='#ff8a9a';ctx.strokeRect(W/2-32,H/2+20,64,18);
+        txt('Esc 取消',W/2,H/2+24,'#ffb0bc',9,'center');
       }else{
         px(W/2-92,H/2-40,184,80,'#0d1626');
         ctx.strokeStyle='#7affd0';ctx.lineWidth=2;ctx.strokeRect(W/2-92,H/2-40,184,80);
