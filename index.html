@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.8 地面材質依大關區隔:實心地面、單向平台、攀爬物、灼燒面逐關換材質(預先烘焙快取),本體明度壓低;第 1~6、8、9 關地面色改建議色 -->
+<!-- VERSION: v0.8.1 地面烘焙跳過空白格(修 10 王第三型態換圖時的單幀尖峰);移除從未使用的圖磚類型 6;其餘同 v0.8 -->
+<!-- 前版:v0.8 地面材質依大關區隔:實心地面、單向平台、攀爬物、灼燒面逐關換材質(預先烘焙快取),本體明度壓低;第 1~6、8、9 關地面色改建議色 -->
 <!-- 前版:v0.7.2 F3 效能面板加「特攻粒子」欄(本秒與本場峰值);其餘同 v0.7.1 -->
 <!-- 前版:v0.7.1 F3 效能面板「本秒」加「環境粒子」欄(共用光影的背景粒子數);其餘同 v0.7 -->
 <!-- 前版:v0.7 各關主題色套用共用光影:天空 8 階抖色漸層、主題光源(與星點同層視差 0.15,登記淡泛光)、背景霧兩條、地形後方環境粒子(每大關一種)、前景薄霧與暈影(像素畫法,高低畫質皆開);第 7 大關主題色改破曉前藍調晨霧;判定與機制不變 -->
@@ -228,14 +229,14 @@ document.getElementById('wrap').addEventListener('pointerdown',e=>{
 });
 
 /* ========== 地圖 ========== */
-// 0 空 / 1 實心 / 2 藤蔓 / 3 單向平台 / 4 水(減速) / 5 灼燒面 / 6 可消失平台
+// 0 空 / 1 實心 / 2 藤蔓 / 3 單向平台 / 4 水(減速) / 5 灼燒面(v0.8.1 移除從未使用的 6 可消失平台;7 王的「消失」是改成 0)
 let map={w:32,h:GH,d:new Int8Array(32*GH)};
 function T(x,y){if(y<0)return 0;if(y>=map.h)return 0;if(x<0||x>=map.w)return 1;return map.d[y*map.w+x];}
 function setT(x,y,v){if(x<0||y<0||x>=map.w||y>=map.h)return;const i=y*map.w+x;if(map.d[i]!==v){map.d[i]=v;matDirty(x);}} // v0.8:改動的格子通知地面材質快取重烘焙
 function newMap(w){map={w:w,h:GH,d:new Int8Array(w*GH)};}
 function fillR(x0,y0,x1,y1,v){for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)setT(x,y,v);}
 function vineAt(x,y0,y1){for(let y=y0;y<=y1;y++)if(T(x,y)===0)setT(x,y,2);}
-function isSolid(t){return t===1||t===6;}
+function isSolid(t){return t===1;}
 function hitSolid(x,y,w,h){
   const x0=Math.floor(x/TS),x1=Math.floor((x+w-1)/TS),y0=Math.floor(y/TS),y1=Math.floor((y+h-1)/TS);
   for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++)if(isSolid(T(tx,ty)))return true;
@@ -2241,13 +2242,14 @@ function mVine(s,wx,wy,lx){
 }
 /* ---- 烘焙一欄(16 像素寬 × 整張地圖高)---- */
 function matCol(tx){
-  const c=MAT.cfg,P=MAT.col,img=MAT.img,u=new Uint32Array(img.data.buffer),Hh=GH*TS;
+  const c=MAT.cfg,P=MAT.col,img=MAT.img,u=new Uint32Array(img.data.buffer),deco=c.top==='E1'||c.top==='E6'||c.top==='E7';
   u.fill(0);
   let run=0;                                        // 上方連續實心格數
   for(let ty=0;ty<GH;ty++){
     const v=T(tx,ty),solid=isSolid(v);
     const below=ty+1<GH?T(tx,ty+1):1,surfBelow=isSolid(below)&&!solid,L=!isSolid(T(tx-1,ty)),R=!isSolid(T(tx+1,ty)),Le=T(tx-1,ty)!==3,Re=T(tx+1,ty)!==3;
-    for(let ly=0;ly<16;ly++){const wy=ty*16+ly;
+    if(!solid&&v!==2&&v!==3&&!(surfBelow&&deco)){run=0;continue;} // v0.8.1:空白格(及水、灼燒面)沒有東西要烘焙,整格跳過
+    for(let ly=(!solid&&v!==2&&v!==3)?11:0;ly<16;ly++){const wy=ty*16+ly; // 只有地表裝飾的空白格從第 11 列開始
       for(let lx=0;lx<16;lx++){const wx=tx*16+lx;let k=0,lv=0;
         if(solid&&v===1){
           const dp=run*16+ly;
@@ -2258,8 +2260,7 @@ function matCol(tx){
             else if(c.top==='E2'&&((L&&lx===1)||(R&&lx===14))&&mh(wy>>1,tx,37)<0.25)k=0;
             else{k=mBody(c.body,wx,wy,lx,ly,dp,c.acc);lv=mLv(c.strata,wx,wy,dp);}
           }
-        }else if(v===6){k=7;}
-        else{
+        }else{
           if(surfBelow&&ly>=11&&v!==3){const d=mDeco(c.top,wx,15-ly);if(d>0)k=d;}
           if(v===3){const p=mPlat(c.plat,wx,lx,ly,Le,Re);if(p)k=p;}
           else if(v===2){const p=mVine(c.vine,wx,wy,lx);if(p)k=p;}
@@ -2279,7 +2280,8 @@ function matSync(x0,x1){
     if(!MAT.img)MAT.img=MAT.cx.createImageData(16,GH*TS);
   }
   if(G.state==='intro'){let n=0;for(let x=x0;x<Math.min(map.w,x1+24)&&n<MAT_INTRO;x++)if(!MAT.done[x]){matCol(x);n++;}return;} // 暗幕下分幀烘焙(先可見、再前方)
-  for(let x=x0;x<=x1;x++)if(!MAT.done[x])matCol(x);   // 可見欄位立刻補齊
+  const t0=performance.now();                          // v0.8.1:可見欄位立刻補齊,但單幀最多約 3 ms,其餘留到下一幀(只在遊玩中整張換圖時發生,如 10 王第三型態)
+  for(let x=x0;x<=x1;x++)if(!MAT.done[x]){matCol(x);if(performance.now()-t0>3)return;}
   let n=0;for(let x=x1+1;x<Math.min(map.w,x1+24)&&n<MAT_STEP;x++)if(!MAT.done[x]){matCol(x);n++;} // 前方預烘焙
 }
 function matDirty(x){if(MAT.map===map&&MAT.done)for(let i=x-1;i<=x+1;i++)if(i>=0&&i<map.w)MAT.done[i]=0;}
