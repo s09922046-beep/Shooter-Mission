@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
+<!-- VERSION: v0.5 武器效果(深灰槍身+武器色條/菱形彈頭+長漸細拖尾+深色描邊/火焰連續火舌+火星+尾端煙,Lv4 冷色層次/槍口十字星火光/命中白閃+武器色碎片回彈;判定與機制不變) -->
+<!-- 前版:v0.4 主角精靈(12×18 像素精靈,判定框 10×14 不變/銀白髮+瀏海+耳側感應器+深色布面罩/深緋紅長圍巾/待機·跑步4格·跳躍·攀爬·受擊/正上射與攀爬背面視角,攀爬背槍、射擊時單手持槍並側臉/冷白發光線條) -->
+
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PIXEL STRIKE FORCE (PC)</title>
@@ -15,7 +18,7 @@ canvas{image-rendering:-webkit-optimize-contrast;image-rendering:-moz-crisp-edge
 #hud{position:absolute;left:0;top:0;width:100%;display:flex;align-items:center;justify-content:space-between;
  gap:1.1vmin;padding:calc(.8vmin + env(safe-area-inset-top)) calc(1.3vmin + env(safe-area-inset-right)) .8vmin calc(1.3vmin + env(safe-area-inset-left));
  background:rgba(3,5,12,.94);border-bottom:1px solid rgba(150,180,255,.30);
- font-family:"Courier New",ui-monospace,monospace;font-weight:700;color:#f4f7ff;
+ font-family:"Consolas","Courier New","Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans CJK TC",monospace;font-weight:700;color:#f4f7ff; /* v0.3.1:與畫布文字 TFONT 同一組字型 */
  font-size:clamp(12px,2.8vmin,19px);letter-spacing:0;pointer-events:none;z-index:5;box-sizing:border-box;
  text-shadow:0 1px 2px rgba(0,0,0,.9);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 #hud .grp{display:flex;align-items:center;gap:.5em;white-space:nowrap}
@@ -28,6 +31,12 @@ canvas{image-rendering:-webkit-optimize-contrast;image-rendering:-moz-crisp-edge
 #hSpFill.rdy{background:#fff}
 #hStage{color:#dbe4f8}
 @media (max-width:640px){#hud{font-size:clamp(11px,3.1vmin,16px);gap:.7vmin}#hSpTrack{width:4em}}
+/* ===== F3 效能面板與畫質切換提示(DOM 疊層,不進入畫布與泛光) ===== */
+#perf{position:absolute;left:6px;bottom:6px;display:none;padding:4px 7px;background:rgba(0,0,0,.72);
+ color:#9fffdc;font:12px/1.35 "Consolas","Courier New","Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans CJK TC",monospace;white-space:pre;pointer-events:none;z-index:6;border-radius:3px}
+#fxToast{position:absolute;left:50%;top:16%;transform:translateX(-50%);display:none;padding:5px 12px;
+ background:rgba(3,5,12,.85);border:1px solid rgba(150,180,255,.35);color:#ffe9a0;
+ font:bold 14px "Consolas","Courier New","Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans CJK TC",monospace;pointer-events:none;z-index:6;border-radius:3px}
 </style>
 </head>
 <body>
@@ -41,15 +50,26 @@ canvas{image-rendering:-webkit-optimize-contrast;image-rendering:-moz-crisp-edge
    <div class="grp">SP <span id="hSpTrack"><span id="hSpFill"></span></span><span id="hSpPct">0%</span></div>
    <div class="grp" id="hStage">1-1</div>
   </div>
+  <div id="perf"></div>
+  <div id="fxToast"></div>
  </div>
 </div>
 <script>
 'use strict';
 /* ========== 基礎 ========== */
 const W=512,H=288,TS=16,GH=18;
-const cv=document.getElementById('c'),ctx=cv.getContext('2d');
-cv.width=W;cv.height=H;ctx.imageSmoothingEnabled=false;
+/* 畫布分工(v0.2 起):
+   - gcv / ctx:遊戲邏輯畫面 512×288,所有既有繪圖程式照舊畫在這裡(座標、判定完全不變)
+   - glc / gctx:離屏發光層 512×288,只畫會發光的東西(透過 gl() 登記)
+   - cv / octx:螢幕上看得到的輸出畫布,後製流程在這裡合成(見「特效核心層」) */
+const cv=document.getElementById('c'),octx=cv.getContext('2d');
+const gcv=document.createElement('canvas');gcv.width=W;gcv.height=H;
+const ctx=gcv.getContext('2d');ctx.imageSmoothingEnabled=false;
+const glc=document.createElement('canvas');glc.width=W;glc.height=H;
+const gctx=glc.getContext('2d');
 const screenEl=document.getElementById('screen');
+const POST_MAX_W=2560;  // 輸出畫布寬度上限(超過時以整數倍交給 CSS 放大,例如 4K 螢幕)
+let PW=W,PH=H;          // 輸出畫布實際解析度
 function vpSize(){
   return[innerWidth,innerHeight];
 }
@@ -59,6 +79,12 @@ function fit(){
   const cw=Math.round(W*s),ch=Math.round(H*s);
   cv.style.width=cw+'px';cv.style.height=ch+'px';
   screenEl.style.width=cw+'px';screenEl.style.height=ch+'px';
+  // 輸出畫布對齊實體像素:遊戲畫面只做一次最近鄰放大(512→實體像素),像素格大小與 v0.1 交給瀏覽器放大時相同
+  const dpr=window.devicePixelRatio||1;
+  const physW=Math.max(1,Math.round(cw*dpr)),physH=Math.max(1,Math.round(ch*dpr));
+  const k=Math.max(1,Math.ceil(physW/POST_MAX_W));
+  const nw=Math.max(1,Math.round(physW/k)),nh=Math.max(1,Math.round(physH/k));
+  if(nw!==PW||nh!==PH||cv.width!==nw){PW=nw;PH=nh;cv.width=PW;cv.height=PH;}
 }
 addEventListener('resize',fit);
 fit();
@@ -67,9 +93,42 @@ const rnd=(a,b)=>a+Math.random()*(b-a);
 const ri=(a,b)=>Math.floor(a+Math.random()*(b-a+1));
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
-function px(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));}
-function txt(s,x,y,c,size,align){ctx.fillStyle=c;ctx.font='bold '+(size||8)+'px "Courier New",monospace';
-  ctx.textAlign=align||'left';ctx.textBaseline='top';ctx.fillText(s,Math.round(x),Math.round(y));ctx.textAlign='left';}
+let PXD=0; // 本段 gcv 是否有畫任何方塊(後製第二段:沒畫就省掉一次全畫面合成;文字不算,文字直接畫在輸出畫布)
+/* ===== 文字層(v0.3):文字改在輸出畫布以螢幕解析度畫,不再畫進 512×288 再放大 =====
+   - txt() 的參數與座標完全照舊(512×288 邏輯座標),第二段(HUD/疊層)呼叫時只排進佇列 TQ
+   - 佇列在 tFlush() 寫出:先把 gcv 上已畫的面板放大合成到輸出畫布,再以 PW/W 倍率直接畫字
+   - 之後若有方塊(px)會蓋到已排隊的文字,先自動 tFlush,保持與 v0.2 相同的上下順序(例:暫停暗幕蓋住遊戲訊息)
+   - 字型:英數用等寬粗體(Consolas,無則 Courier New),中文由瀏覽器逐字退回微軟正黑體(Mac 為蘋方)
+   - ol=1:加 1 個邏輯像素寬的深色描邊,用在直接浮在場景上的文字 */
+const TFONT='"Consolas","Courier New","Microsoft JhengHei","微軟正黑體","PingFang TC","Noto Sans CJK TC",monospace';
+const TOUT='#05060a';
+const TQ=[];let TPASS=0; // TPASS=1:目前在第二段(HUD/疊層),txt 走佇列
+function tHit(x,y,w,h){for(let i=0;i<TQ.length;i++){const t=TQ[i];if(x<t.x1&&x+w>t.x0&&y<t.y1&&y+h>t.y0)return true;}return false;}
+function px(x,y,w,h,c){if(TQ.length&&tHit(x,y,w,h))tFlush();
+  PXD=1;ctx.fillStyle=c;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));}
+function txt(s,x,y,c,size,align,ol){
+  size=size||8;align=align||'left';
+  if(!TPASS){ // 世界繪製階段(目前已無呼叫點)維持舊做法,畫在遊戲畫布上
+    PXD=1;ctx.fillStyle=c;ctx.font='bold '+size+'px '+TFONT;
+    ctx.textAlign=align;ctx.textBaseline='top';ctx.fillText(s,Math.round(x),Math.round(y));ctx.textAlign='left';return;}
+  const w=s.length*size;                      // 寬度以每字 1 個字級粗估(偏大,只用於重疊判斷)
+  const x0=align==='center'?x-w/2:(align==='right'?x-w:x);
+  TQ.push({s,x,y,c,size,align,ol:!!ol,a:ctx.globalAlpha,x0:x0,x1:x0+w,y0:y,y1:y+size*1.3});
+}
+function tFlush(){
+  if(PXD){octx.imageSmoothingEnabled=false;octx.drawImage(gcv,0,0,PW,PH);ctx.clearRect(0,0,W,H);PXD=0;}
+  if(!TQ.length)return;
+  const kx=PW/W,ky=PH/H;
+  octx.textBaseline='top';octx.lineJoin='round';
+  for(let i=0;i<TQ.length;i++){const t=TQ[i];
+    octx.font='bold '+Math.max(1,Math.round(t.size*ky))+'px '+TFONT;
+    octx.textAlign=t.align;octx.globalAlpha=t.a;
+    const X=Math.round(t.x*kx),Y=Math.round(t.y*ky);
+    if(t.ol){octx.strokeStyle=TOUT;octx.lineWidth=Math.max(2,Math.round(2*ky));octx.strokeText(t.s,X,Y);}
+    octx.fillStyle=t.c;octx.fillText(t.s,X,Y);
+  }
+  octx.globalAlpha=1;octx.textAlign='left';TQ.length=0;
+}
 function aabb(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;}
 
 /* ========== 輸入 ========== */
@@ -81,7 +140,10 @@ function edges(){jE=K.j&&!pj;sE=K.s&&!ps;uE=K.u&&!pu;pj=K.j;ps=K.s;pu=K.u;}
 
 const KM={ArrowLeft:'l',ArrowRight:'r',ArrowUp:'u',ArrowDown:'d',KeyA:'l',KeyD:'r',KeyW:'u',KeyS:'d',
   KeyZ:'f',KeyX:'j',KeyC:'s',Space:'j',KeyJ:'f',KeyK:'j',KeyL:'s'};
-addEventListener('keydown',e=>{if(KM[e.code]){K[KM[e.code]]=1;e.preventDefault();}if(e.code==='Enter')anyTap=true;
+addEventListener('keydown',e=>{
+  if(e.code==='F2'){e.preventDefault();if(!e.repeat)toggleQuality();return;}   // 畫質 高/低 切換
+  if(e.code==='F3'){e.preventDefault();if(!e.repeat)togglePerf();return;}      // 效能面板(同時擋掉瀏覽器的「尋找下一個」)
+  if(KM[e.code]){K[KM[e.code]]=1;e.preventDefault();}if(e.code==='Enter')anyTap=true;
   if((e.code==='Escape'||e.code==='KeyP')&&G.state!=='title'&&G.state!=='levelselect'&&!G.modal)G.paused=!G.paused;});
 addEventListener('keyup',e=>{if(KM[e.code])K[KM[e.code]]=0;});
 function toGameXY(clientX,clientY){
@@ -331,16 +393,99 @@ function flameHit(o){ // o:{x,y,w,h}
   return perp<10+d*0.34;
 }
 function flameDPS(){return BASE_DMG*6*(wlvl===4?6.75:(wlvl===3?4.5:2.4));}  // 每秒(4階:3階x1.5)
+/* ========== 武器視覺(v0.5,純視覺:不改判定、射程、傷害與子彈出生點) ==========
+   - 彈頭:菱形+深色描邊,依 32 個方向預先畫成小圖快取(HEADC),每顆子彈每幀只貼一張圖;拖尾 4 段漸細,只畫在彈頭後方
+   - 火焰:連續火舌(外層破碎交錯)+火星+尾端煙;視覺寬約為判定錐一半(判定照舊為 flameHit 的錐形)
+   - 槍口:前長後短十字星,3 幀遞減;命中:白閃 2 幀+3 片武器色碎片向後回彈(走既有粒子系統) */
+function vHash(a,b){let h=(a*374761393+b*668265263)|0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296;}
+function vRgb(c){const n=parseInt(c.slice(1),16);return[n>>16,n>>8&255,n&255];}
+function vHex(r,g,b){return'#'+((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1);}
+function vMix(c,k,t){const[r,g,b]=vRgb(c);return vHex(Math.round(r+(t-r)*k),Math.round(g+(t-g)*k),Math.round(b+(t-b)*k));}
+const HEADC=new Map(),HR=6;
+function headSprite(col,r,ang){
+  const nb=32,bi=((Math.round(ang/(Math.PI*2)*nb)%nb)+nb)%nb,key=col+r+'|'+bi;
+  let s=HEADC.get(key);if(s)return s;
+  const a=bi/nb*Math.PI*2,ux=Math.cos(a),uy=Math.sin(a),L=r>3?4.5:3.5,Wd=r>3?2.2:1.6,N=HR*2+1;
+  const inside=(al,pe,k)=>Math.abs(al)/(L*k)+Math.abs(pe)/(Wd*k)<=1;
+  const m=new Uint8Array(N*N);
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const dx=i-HR,dy=j-HR,al=dx*ux+dy*uy,pe=-dx*uy+dy*ux;
+    if(inside(al,pe,1))m[j*N+i]=inside(al-L*0.25,pe,0.55)?2:1;}
+  s=document.createElement('canvas');s.width=N;s.height=N;const x=s.getContext('2d');
+  const core=vMix(col,0.7,255),dark=vMix(col,0.6,0);
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const v=m[j*N+i];let c=null;
+    if(v===2)c=core;else if(v===1)c=col;
+    else if((i>0&&m[j*N+i-1])||(i<N-1&&m[j*N+i+1])||(j>0&&m[(j-1)*N+i])||(j<N-1&&m[(j+1)*N+i]))c=dark;
+    if(c){x.fillStyle=c;x.fillRect(i,j,1,1);}}
+  HEADC.set(key,s);return s;
+}
+const TRAIL_B=[[3,0.6],[2,0.45],[2,0.3],[1,0.18]],TRAIL_S=[[2,0.6],[2,0.4],[1,0.28],[1,0.16]];
+function drawBulletV(b){
+  if(b.a0===undefined)b.a0=G.t;                       // 只供視覺:出現的時間,用來限制拖尾不畫到槍口後方
+  const sp=Math.hypot(b.vx,b.vy)||1,ux=b.vx/sp,uy=b.vy/sp,big=b.r>3,L=big?4.5:3.5,trav=(G.t-b.a0+1)*sp;
+  const T=big?TRAIL_B:TRAIL_S;
+  for(let k=0;k<4;k++){const d=L+(k+0.6)*2.3;if(d>trav)break;const s=T[k][0];
+    ctx.globalAlpha=T[k][1];px(b.x-ux*d-s/2,b.y-uy*d-s/2,s,s,b.c);}
+  ctx.globalAlpha=1;
+  ctx.drawImage(headSprite(b.c,b.r,Math.atan2(b.vy,b.vx)),Math.round(b.x)-HR,Math.round(b.y)-HR);
+}
+function hitFx(b){                                     // 命中:白閃 2 幀+3 片武器色碎片向後回彈(只新增粒子,不影響判定)
+  const sp=Math.hypot(b.vx,b.vy)||1,ux=b.vx/sp,uy=b.vy/sp;
+  addPart(b.x-1,b.y-1,0,0,'#ffffff',2,3);
+  for(let i=0;i<3;i++){const v=rnd(0.6,2);
+    addPart(b.x,b.y,-ux*v+rnd(-0.8,0.8),-uy*v+rnd(-1.6,0.4),b.c,14,ri(1,2));}
+}
+/* 火焰:HOT[等級]=[白熱、主色、外色、尾端暗色] */
+const HOT={1:['#fff0a0','#ff9a2a','#ff3a10','#7a1a08'],3:['#9fd8ff','#5aa8ff','#2a5cff','#142a7a'],4:['#ffffff','#cfeaff','#7ab8ff','#3a5a9a']};
+const FLV={sp:[],sm:[]};                               // 火星與煙(純視覺,只在遊玩中推進)
+function fSq(x,y,h,c){h=Math.max(1,h);px(x-h,y-h,h*2,h*2,c);}
 function drawFlame(){
-  if(P.flameT<=0)return;
-  const a=aimVec(),m=muzzle(),L=flameRange();
-  const hot=wlvl===4?['#ffffff','#eaf6ff','#cfe8ff']:(wlvl===3?['#9fd8ff','#5aa8ff','#2a5cff']:['#fff0a0','#ff9a2a','#ff3a10']);
-  for(let i=0;i<22;i++){
-    const d=rnd(0,L),sp=rnd(-1,1)*(3+d*0.28);
-    const x=m[0]+a[0]*d-a[1]*sp, y=m[1]+a[1]*d+a[0]*sp;
-    const c=hot[d<L*0.35?0:(d<L*0.72?1:2)];
-    px(x,y,rnd(2,4),rnd(2,4),c);
+  const run=G.state==='play'&&!G.paused&&!G.modal;
+  const on=P.flameT>0,lv=wlvl===4?4:(wlvl===3?3:1),H_=HOT[lv];
+  let a=null,m=null,L=0;
+  if(on){a=aimVec();m=muzzle();L=flameRange();}
+  if(run){
+    if(on){const n=Math.random()<0.5?2:1;
+      for(let i=0;i<n;i++){const d=rnd(0.2,0.95)*L,sd=rnd(-1,1)*(2.5+d*0.15);
+        FLV.sp.push({x:m[0]+a[0]*d-a[1]*sd,y:m[1]+a[1]*d+a[0]*sd,vx:a[0]*rnd(0.8,1.8)-a[1]*sd*0.05,vy:a[1]*rnd(0.8,1.8)+a[0]*sd*0.05-0.3,t:0,life:ri(10,20),c:H_[0]});}
+      if((G.t&1)===0){const d=rnd(0.75,1)*L;
+        FLV.sm.push({x:m[0]+a[0]*d,y:m[1]+a[1]*d,vx:a[0]*0.5,vy:a[1]*0.5-0.35,t:0,life:ri(24,40),c:lv===1?'#2c2630':'#3a4258'});}}
+    for(let i=FLV.sp.length-1;i>=0;i--){const q=FLV.sp[i];q.x+=q.vx;q.y+=q.vy;q.vy-=0.02;if(++q.t>=q.life)FLV.sp.splice(i,1);}
+    for(let i=FLV.sm.length-1;i>=0;i--){const q=FLV.sm[i];q.x+=q.vx;q.y+=q.vy;if(++q.t>=q.life)FLV.sm.splice(i,1);}
   }
+  for(const q of FLV.sm){const k=q.t/q.life,z=3+k*5;ctx.globalAlpha=0.45*(1-k);px(q.x-z/2,q.y-z/2,z,z,q.c);}
+  ctx.globalAlpha=1;
+  if(on){
+    const a0=a[0],a1=a[1],st=3,n=Math.floor(L/st),t=G.t,pts=[];
+    for(let k=0;k<=n;k++){const d=k*st,f=d/L,fl=vHash(k*7+lv,t/3|0);
+      if(f>0.82&&fl<0.35)continue;
+      let hw=(2.5+d*0.15)*(0.78+0.4*fl);if(f>0.85)hw*=1-(f-0.85)/0.15*0.55;
+      const wob=Math.sin(t*0.25-d*0.09)*Math.min(d,60)*0.06;
+      pts.push({x:m[0]+a0*d-a1*wob,y:m[1]+a1*d+a0*wob,hw,f,k});}
+    for(let i=pts.length-1;i>=0;i--){const q=pts[i];if(q.f>0.3&&(q.k+(t>>2))%2)continue; // 外層:上下兩團交錯跳格,邊緣破碎
+      const c=q.f<0.35?H_[1]:(q.f<0.72?H_[2]:H_[3]),o=q.hw*0.5,j=(vHash(q.k,t>>2)-0.5)*q.hw*0.4;
+      ctx.globalAlpha=0.95-0.45*q.f;fSq(q.x-a1*(o+j),q.y+a0*(o+j),q.hw*0.5,c);fSq(q.x+a1*(o-j),q.y-a0*(o-j),q.hw*0.5,c);}
+    ctx.globalAlpha=1;
+    for(let i=pts.length-1;i>=0;i--){const q=pts[i];if(q.f<=0.75)fSq(q.x,q.y,q.hw*0.45,q.f<0.4?H_[0]:H_[1]);}
+    for(const q of pts)if(q.f<=0.3)fSq(q.x,q.y,q.hw*0.2,'#ffffff');
+    for(const q of pts)if(q.k%3===0)gl(q.x-q.hw-2,q.y-q.hw-2,q.hw*2+4,q.hw*2+4,q.f<0.5?H_[1]:H_[2],FX.core*0.7); // 發光層:火焰
+  }
+  for(const q of FLV.sp){const k=1-q.t/q.life;ctx.globalAlpha=k;px(q.x,q.y,q.t<4?2:1,1,q.c);gl(q.x-1,q.y-1,3,3,q.c,FX.core*k);}
+  ctx.globalAlpha=1;
+}
+/* 槍口火光(v0.5 改為前長後短十字星):衝鋒槍/散彈槍開火後 3 幀遞減、火焰槍噴射期間小幅閃爍,顏色跟武器 */
+function drawMuzzle(){
+  let c=null,age=0;
+  if(wep==='smg'&&P.fireCd>11){c=wlvl===4?'#ffd700':'#ffe9a0';age=14-P.fireCd;}
+  else if(wep==='shot'&&P.fireCd>17){c=wlvl===4?'#ff0033':'#e0b6ff';age=20-P.fireCd;}
+  else if(wep==='flame'&&P.flameT>0){c=wlvl===4?'#ffffff':(wlvl===3?'#9fd8ff':'#ff9a2a');age=1+((G.t>>1)&1);}
+  if(!c)return;
+  age=clamp(age,0,2);
+  const a=aimVec(),m=muzzle(),mx=Math.round(m[0]),my=Math.round(m[1]),A=[[6,3],[4,2],[2,1]][age],nx=-a[1],ny=a[0];
+  for(let k=2;k<2+A[0];k++)px(mx+a[0]*k,my+a[1]*k,1,1,c);           // 前方長臂
+  px(mx-a[0]*2,my-a[1]*2,1,1,c);                                      // 後方短臂
+  for(let k=2;k<2+A[1];k++){px(mx+nx*k,my+ny*k,1,1,c);px(mx-nx*k,my-ny*k,1,1,c);} // 兩側
+  px(mx-1,my-1,3,3,age<2?'#fffbe8':c);
+  gl(mx-5+a[0]*A[0]/2,my-5+a[1]*A[0]/2,10,10,c,0.8);
 }
 /* ========== 危險區(通用攻擊判定) ========== */
 // {x,y,w,h,warn,live,c,t,follow}
@@ -516,7 +661,7 @@ function updateBullets(){
     for(let j=ens.length-1;j>=0;j--){
       const e=ens[j];
       if(aabb({x:b.x-b.r,y:b.y-b.r,w:b.r*2,h:b.r*2},{x:e.x-3,y:e.y-3,w:e.w+6,h:e.h+6})){
-        e.hp-=b.dmg;e.fx=4;addPart(b.x,b.y,rnd(-1,1),rnd(-1,1),'#fff',10);
+        e.hp-=b.dmg;e.fx=4;hitFx(b);
         if(e.hp<=0)killEnemy(e,j);
         gone=true;break;
       }
@@ -566,7 +711,7 @@ function updatePlane(){
   if(!plane)return;
   plane.x+=3.2;plane.t++;
   if(plane.t%9===0&&plane.x>cam.x-20&&plane.x<cam.x+W+20){
-    
+
     bombs.push({x:plane.x,y:plane.y+8,vy:1.2});
   }
   if(plane.x>cam.x+W+80)plane=null;
@@ -739,7 +884,7 @@ function bossHit(bul_){
   if(!boss||!boss.alive||boss.introT>0)return false;
   for(const hb of bossParts()){
     if(aabb({x:bul_.x-bul_.r,y:bul_.y-bul_.r,w:bul_.r*2,h:bul_.r*2},{x:hb.x-3,y:hb.y-3,w:hb.w+6,h:hb.h+6})){
-      bossDamage(hb,bul_.dmg);addPart(bul_.x,bul_.y,rnd(-1,1),rnd(-1,1),'#fff',10);return true;
+      bossDamage(hb,bul_.dmg);hitFx(bul_);return true;
     }
   }
   return false;
@@ -1602,6 +1747,128 @@ function updateParticles(){
   for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.t++;
     if(p.t>p.life)parts.splice(i,1);}
 }
+/* ========== 特效核心層(v0.2) ==========
+   後製流程(每幀):
+     1. 遊戲畫面畫進 gcv(512×288),會發光的東西同時用 gl() 登記到發光層 glc
+     2. gcv 以最近鄰放大到輸出畫布(像素保持銳利)
+     3. 倒影(預留,本版未實作)→ 泛光 → 霧(預留)→ 暈影(預留)
+     4. HUD 與各種疊層(暫停、過場、選單)最後才畫,不會被泛光影響;其中文字由 tFlush() 以螢幕解析度直接畫在輸出畫布(v0.3)
+   泛光做法:發光層連續縮半(1/2→1/4→1/8),小圖上合成後一次放大以「加亮」疊回。
+   不使用 ctx.filter 模糊,全解析度只付出一次加亮合成的成本。 */
+const FX={
+  q:'low',            // 畫質:'low'(預設)/'high'。每次開啟遊戲都從低開始,不記憶
+  n:0,                // 本幀發光登記數量(0 時整段泛光跳過)
+  gain:1.0,           // 泛光總強度(中等=1.0,之後調整只改這個數字)
+  core:0.45,          // 發光源本身的不透明度:越低越不會把彈幕顏色洗白,光暈越淡
+  wHi:[0.45,0.70,0.85],// 高畫質三層權重:1/2(近暈)、1/4(中暈)、1/8(遠暈)
+  wLo:1.0,            // 低畫質單層(1/4)權重
+  perfOn:false
+};
+function mkCv(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;
+  const x=c.getContext('2d');x.imageSmoothingEnabled=true;return [c,x];}
+const [bl1,bx1]=mkCv(W/2,H/2),[bl2,bx2]=mkCv(W/4,H/4),[bl3,bx3]=mkCv(W/8,H/8),[blA,bxA]=mkCv(W/2,H/2);
+/* 發光登記:座標系與遊戲畫面相同(世界座標,已含鏡頭與震動),只能在世界繪製階段呼叫 */
+function gl(x,y,w,h,c,a){
+  FX.n++;gctx.fillStyle=c;
+  if(a!==undefined)gctx.globalAlpha=a;
+  gctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));
+  if(a!==undefined)gctx.globalAlpha=1;
+}
+/* 圓形子彈的發光:比本體外擴 3px、降低不透明度,讓光暈往外擴散,避免把子彈本身的顏色洗成白色(維持攻擊顏色辨識) */
+function glBul(x,y,r,c){ // 中空外框:發光源只放在子彈外圍,本體上方疊加的光較少
+  const o=r+3,X=x-o,Y=y-o,S=o*2,t=3;
+  gl(X,Y,S,t,c,FX.core);gl(X,Y+S-t,S,t,c,FX.core);gl(X,Y+t,t,S-2*t,c,FX.core);gl(X+S-t,Y+t,t,S-2*t,c,FX.core);
+}
+function down(dstX,src,w,h){dstX.globalCompositeOperation='copy';dstX.drawImage(src,0,0,w,h);dstX.globalCompositeOperation='source-over';}
+function postReflect(){/* 預留:倒影層(冷月倒影,僅限指定魔王戰;高畫質才啟用) */}
+function postBloom(){
+  if(!FX.n)return;
+  down(bx1,glc,W/2,H/2);                        // 1/2
+  down(bx2,bl1,W/4,H/4);                        // 1/4
+  let src,a;
+  if(FX.q==='high'){
+    down(bx3,bl2,W/8,H/8);                      // 1/8
+    const w=FX.wHi;                             // 三層在 1/2 小圖上合成(成本極低),再一次放大
+    bxA.globalCompositeOperation='copy';bxA.globalAlpha=w[0];bxA.drawImage(bl1,0,0);
+    bxA.globalCompositeOperation='lighter';
+    bxA.globalAlpha=w[1];bxA.drawImage(bl2,0,0,W/2,H/2);
+    bxA.globalAlpha=w[2];bxA.drawImage(bl3,0,0,W/2,H/2);
+    bxA.globalAlpha=1;bxA.globalCompositeOperation='source-over';
+    src=blA;a=FX.gain;
+  }else{src=bl2;a=FX.wLo*FX.gain;}              // 低畫質:只用 1/4 一層
+  octx.imageSmoothingEnabled=true;
+  octx.globalCompositeOperation='lighter';
+  octx.globalAlpha=Math.min(1,a);
+  octx.drawImage(src,0,0,PW,PH);
+  if(a>1){octx.globalAlpha=a-1;octx.drawImage(src,0,0,PW,PH);} // 強度超過 1 時才多疊一次
+  octx.globalAlpha=1;octx.globalCompositeOperation='source-over';
+}
+function postFog(){/* 預留:霧層(高畫質才啟用) */}
+function postVignette(){/* 預留:暈影(高畫質才啟用) */}
+function postComposite(){
+  octx.imageSmoothingEnabled=false;
+  octx.globalCompositeOperation='copy';
+  octx.drawImage(gcv,0,0,PW,PH);
+  octx.globalCompositeOperation='source-over';
+  if(FX.q==='high')postReflect();
+  postBloom();
+  if(FX.q==='high'){postFog();postVignette();}
+}
+const fxToastEl=document.getElementById('fxToast');let fxToastTm=0;
+function fxToast(s){fxToastEl.textContent=s;fxToastEl.style.display='block';
+  clearTimeout(fxToastTm);fxToastTm=setTimeout(()=>{fxToastEl.style.display='none';},1200);}
+function toggleQuality(){FX.q=FX.q==='low'?'high':'low';fxToast('畫質:'+(FX.q==='high'?'高':'低'));}
+/* F3 效能面板:每秒更新一次。
+   幀間隔 = 相鄰兩次畫面更新的時間(反映實際 fps,包含顯示卡耗時);JS = 本幀 update+繪圖+後製指令的執行時間
+   上半「本秒」只看最近 1 秒;下半「本場」從按下 F3 起累計到關閉為止,用來記錄整段遊玩(例如連打 5 小關)的最壞情況:
+   - 1%低:最慢的 1% 幀的幀間隔(比單一最差值更能代表「常態卡頓」)
+   - 掉幀:幀間隔 > 25ms 的次數(60Hz 螢幕上代表至少漏掉一次畫面更新)
+   - 最差值與峰值都附上發生的關卡,方便回頭找原因
+   - 幀間隔 > 250ms 視為切換視窗或分頁暫停,不列入統計,另計「略過」次數 */
+const perfEl=document.getElementById('perf');
+const PERF={t0:0,n:0,fSum:0,fMax:0,jSum:0,jMax:0, S:null};
+function perfWhere(){return G.world+'-'+G.sub+(boss&&boss.alive?'王':'');}
+function perfNewSession(){return {start:0,n:0,fSum:0,fMax:0,fMaxAt:'',jMax:0,jMaxAt:'',drop:0,skip:0,
+  hist:new Uint32Array(401),q0:FX.q,qMixed:false,
+  pkG:0,pkGAt:'',pkB:0,pkBAt:'',pkP:0,pkPAt:''};}
+function togglePerf(){FX.perfOn=!FX.perfOn;perfEl.style.display=FX.perfOn?'block':'none';
+  PERF.t0=0;PERF.n=0;PERF.fSum=PERF.fMax=PERF.jSum=PERF.jMax=0;PERF.S=perfNewSession();
+  if(FX.perfOn)perfEl.textContent='量測中…';}
+function perfP99(S){ // 由直方圖(每格 0.25ms,上限 100ms)求第 99 百分位
+  let need=Math.ceil(S.n*0.01),acc=0;
+  for(let k=400;k>=0;k--){acc+=S.hist[k];if(acc>=need)return k*0.25;}
+  return 0;
+}
+function perfRec(ts,frameDt,jsMs){
+  if(!FX.perfOn)return;
+  if(!PERF.t0){PERF.t0=ts;if(!PERF.S.start)PERF.S.start=ts;return;} // 第一幀只當起點,不計入
+  const S=PERF.S,where=perfWhere();
+  if(frameDt>250){S.skip++;PERF.t0=ts;PERF.n=0;PERF.fSum=PERF.fMax=PERF.jSum=PERF.jMax=0;return;}
+  PERF.n++;PERF.fSum+=frameDt;if(frameDt>PERF.fMax)PERF.fMax=frameDt;
+  PERF.jSum+=jsMs;if(jsMs>PERF.jMax)PERF.jMax=jsMs;
+  // 本場累計
+  S.n++;S.fSum+=frameDt;S.hist[Math.min(400,Math.round(frameDt*4))]++;
+  if(frameDt>S.fMax){S.fMax=frameDt;S.fMaxAt=where;}
+  if(jsMs>S.jMax){S.jMax=jsMs;S.jMaxAt=where;}
+  if(frameDt>25)S.drop++;
+  if(FX.q!==S.q0)S.qMixed=true;
+  if(FX.n>S.pkG){S.pkG=FX.n;S.pkGAt=where;}
+  if(ebul.length>S.pkB){S.pkB=ebul.length;S.pkBAt=where;}
+  if(parts.length>S.pkP){S.pkP=parts.length;S.pkPAt=where;}
+  if(ts-PERF.t0>=1000){
+    const n=PERF.n,fa=PERF.fSum/n,ja=PERF.jSum/n;
+    const sec=Math.floor((ts-S.start)/1000),mm=String(Math.floor(sec/60)).padStart(2,'0'),ss=String(sec%60).padStart(2,'0');
+    perfEl.textContent=
+      'FPS '+(1000/fa).toFixed(0)+'   畫質 '+(FX.q==='high'?'高':'低')+'   輸出 '+PW+'×'+PH+'\n'+
+      '【本秒】幀間隔 平均 '+fa.toFixed(1)+' 最差 '+PERF.fMax.toFixed(1)+'  JS 平均 '+ja.toFixed(1)+' 最差 '+PERF.jMax.toFixed(1)+' ms\n'+
+      '        發光 '+FX.n+'  敵彈 '+ebul.length+'  粒子 '+parts.length+'\n'+
+      '【本場】'+mm+':'+ss+'  共 '+S.n+' 幀'+(S.qMixed?'  ※期間切換過畫質':'')+(S.skip?'  略過 '+S.skip:'')+'\n'+
+      '  幀間隔 平均 '+(S.fSum/S.n).toFixed(1)+'  1%低 '+perfP99(S).toFixed(1)+'  最差 '+S.fMax.toFixed(1)+' ms @'+S.fMaxAt+'\n'+
+      '  掉幀(>25ms) '+S.drop+' 次 ('+(S.drop/S.n*100).toFixed(2)+'%)  JS 最差 '+S.jMax.toFixed(1)+' ms @'+S.jMaxAt+'\n'+
+      '  峰值 發光 '+S.pkG+(S.pkG?'@'+S.pkGAt:'')+'  敵彈 '+S.pkB+(S.pkB?'@'+S.pkBAt:'')+'  粒子 '+S.pkP+(S.pkP?'@'+S.pkPAt:'');
+    PERF.t0=ts;PERF.n=0;PERF.fSum=PERF.fMax=PERF.jSum=PERF.jMax=0;
+  }
+}
 /* ========== 繪圖 ========== */
 function drawBG(){
   const t=th();
@@ -1630,20 +1897,128 @@ function drawTiles(){
     else if(v===6){px(sx,sy,TS,TS,'#5a4a7a');}
   }
 }
+/* ========== 主角精靈(v0.4,純視覺) ==========
+   - 精靈 12×18,判定框仍為 P 的 10×14:精靈第 1~10 欄、第 4~17 列 = 判定框,即精靈原點 (P.x-1, P.y-4)
+   - 身體各格在載入時預先畫成小圖(左右兩向各一張),遊戲中每幀只貼一張圖;圍巾、槍、發光線條才逐幀畫
+   - 姿勢只讀取既有狀態(P.climb / P.onG / P.vx / P.inv / aimVec / K.f),不寫回任何遊戲狀態
+   - 側面:待機 2 格、跑步 4 格、跳躍、受擊(無敵時間前 16 幀);斜上 45° 維持側面
+   - 背面:正上射(地面/空中)、攀爬 2 格(槍斜背身後);攀爬中射擊改為側臉、單手攀繩單手持槍,放開射擊後維持 20 幀才收槍
+   - 圍巾:側面在身後飄動(角度依動作),背面垂在背上;發光線條(耳側感應器、胸口或肩胛)登記發光層,強度 0.3 */
+const PSP={H:'#e6eaf2',h:'#9aa3b6',S:'#efd3bd',M:'#7d8aa3',L:'#dff4ff',K:'#1b1e28',k:'#394052',B:'#2b303d',
+  R:'#8e1c2c',r:'#5a1019',c:'#24272f',g:'#cfd6e6',G:'#9aa4b8',N:'#5b6476',n:'#2c323e'}; // N/n:v0.5 深灰槍身(亮/暗)
+const PS_HEAD=["....hHHh....","...hHHHHH...","..hHHHHHHH..","..hHHHhHhH..","..hMHSSSSS..","..hLHccccc..","...hHcccc..."];
+const PS_BODY=["...RRRRRR...","...rKKKKKk..","...kKLKKKkk.","...kKLKKKkk.","...kKKKKKk.."];
+const PS_LEG={
+  st:["....KkkkK...","....KK.KK...","....KK.KK...","....Kk.kK...","....BB.BB...","...BBB.BBB.."],
+  r1:["....KkkkK...","...KKK.KKK..","..KK....KK..","..Kk.....Kk.",".BB......BB.",".B........BB"],
+  r2:["....KkkkK...","....KK.KK...","....KK.KKk..","....Kk..KK..","....BB..BB..","...BBB......"],
+  r4:["....KkkkK...","....KK.KK...","...kKK.KK...","...KK..Kk...","...BB..BB...",".......BBB.."],
+  jp:["....KkkkK...","...KK..KK...","...KkKKKk...","....BB.KK...",".......BB...","............"],
+  hu:["....KkkkK...","...KK..KK...","..KK....KK..","..Kk.....K..",".BB......BB.","............"],
+  bs:["...KkkkkK...","...KK..KK...","...KK..KK...","...KK..KK...","...BB..BB...","...BB..BB..."],
+  bj:["...KkkkkK...","...KK..KK...","..KK....KK..","..BB....BB..","............","............"],
+  c1:["...KkkkkK...","...KK..KK...","...KK..KK...","...BB..KK...",".......BB...","............"],
+  c2:["...KkkkkK...","...KK..KK...","...KK..KK...","...KK..BB...","...BB.......","............"]
+};
+PS_LEG.r3=PS_LEG.r1.map(s=>s.replace(/K/g,'#').replace(/k/g,'K').replace(/#/g,'k')); // 跑3:跑1換腿(深淺對調)
+const PS_HEADB=["....hHHh....","...hHHHHh...","..hHHHHHHh..","..hHHHHHHh..","..MHHHHHHM..","..LhHHHHhL..","...hHHHHh..."];
+const PS_BODYB=["...rRRRRr...","..kKKKKKKk..","..kKKKKKKk..","..kKKKKKKk..","...KKKKKK..."];
+const PS_BLADE=[[3,9,'L'],[3,10,'L'],[8,9,'L'],[8,10,'L']];                    // 背面肩胛發光線
+const PS_SLING=[[9,6,'n'],[9,7,'n'],[8,8,'N'],[7,9,'N'],[6,10,'N'],[5,11,'N'],[4,12,'N']]; // 攀爬時斜背的槍(v0.5 改深灰)
+const PS_ARMUP=(()=>{const a=[];for(const [x,y] of [[2,8],[1,7],[1,6],[1,5],[1,4],[1,3],[2,2],[3,1]]){a.push([x,y,'k'],[11-x,y,'k']);}
+  a.push([4,0,'K'],[7,0,'K']);return a;})();                                  // 正上射:雙手舉槍過頭
+const PS_ARMC0=[[5,-2,'K'],[4,-1,'k'],[3,0,'k'],[10,7,'k'],[9,8,'k']];        // 攀爬 1:左手在上
+const PS_ARMC1=[[6,-2,'K'],[7,-1,'k'],[8,0,'k'],[1,7,'k'],[2,8,'k']];         // 攀爬 2:右手在上
+const PS_ARMCF=[[5,-2,'K'],[4,-1,'k'],[3,0,'k']];                             // 攀爬射擊:另一手攀繩
+function psBake(layers,mir){ // 預先把一格畫成 16×28 小圖,精靈原點在小圖 (2,8)
+  const c=document.createElement('canvas');c.width=16;c.height=28;const x=c.getContext('2d');
+  const put=(col,row,ch)=>{x.fillStyle=PSP[ch];x.fillRect(2+(mir?11-col:col),8+row,1,1);};
+  for(const L of layers){
+    if(L.m)L.m.forEach((s,y)=>{for(let i=0;i<12;i++)if(s[i]!=='.')put(i+(L.dx||0),y+(L.dy||0),s[i]);});
+    if(L.p)for(const q of L.p)put(q[0],q[1],q[2]);
+  }
+  return c;
+}
+const PSPR=(()=>{
+  const side=(leg,ub,hs)=>[{m:PS_LEG[leg],dy:12},{m:PS_HEAD,dy:ub,dx:hs},{m:PS_BODY,dy:7+ub}];
+  const two=l=>[psBake(l,0),psBake(l,1)];
+  const backUp=leg=>[{p:PS_ARMUP},{m:PS_HEADB},{m:PS_LEG[leg],dy:12},{m:PS_BODYB,dy:7},{p:PS_BLADE}];
+  const climb=(arm,leg)=>[{p:arm},{m:PS_HEADB},{m:PS_LEG[leg],dy:12},{m:PS_BODYB,dy:7},{p:PS_SLING},{p:PS_BLADE}];
+  return{
+    idle:[two(side('st',0,0)),two(side('st',1,0))],
+    run:['r1','r2','r3','r4'].map(k=>two(side(k,0,0))),
+    jp:two(side('jp',0,0)),
+    hu:two(side('hu',0,-1)),
+    ug:psBake(backUp('bs'),0),ua:psBake(backUp('bj'),0),
+    cl:[psBake(climb(PS_ARMC0,'c1'),0),psBake(climb(PS_ARMC1,'c2'),0)],
+    cf:two([{p:PS_ARMCF},{m:PS_LEG.c1,dy:12},{m:PS_BODYB,dy:7},{m:PS_HEAD},{p:PS_BLADE}])
+  };
+})();
+const PV={fireT:-99};                       // 攀爬中最後一次按住射擊的時間(G.t),只供視覺判斷
+function pPix(ox,oy,f,col,row,w,h,c){px(f>0?ox+col:ox+12-col-w,oy+row,w,h,c);} // 精靈座標→世界座標,朝左時鏡像
+function pGlow(ox,oy,f,list){for(const q of list)gl((f>0?ox+q[0]:ox+11-q[0])-1,oy+q[1]-1,3,3,'#dff4ff',0.3);}
+function pScarfSide(ox,oy,f,dy,amp,hs){       // 側面圍巾:9 段由頸後往後飄,前 6 段 2 格粗
+  for(let i=1;i<=9;i++){const y=Math.round(7.5+i*dy+Math.sin(G.t*0.12-i*0.7)*i*amp);
+    pPix(ox,oy,f,3+hs-i,y,1,i<7?2:1,i<5?'#8e1c2c':'#5a1019');}
+}
+/* v0.5 槍:深灰機身,上緣亮灰一列做輪廓,下緣一條當前武器色條(與 HUD 武器色 WCOL 相同) */
+function pGunH(ox,oy,f,c0,bw){                // 水平槍:機身 c0 起寬 bw,槍管 2 格,第 10~11 列
+  const wc=WCOL[wep];
+  pPix(ox,oy,f,c0,10,bw,1,'#5b6476');pPix(ox,oy,f,c0+bw,10,2,1,'#3a4150');
+  pPix(ox,oy,f,c0,11,1,1,'#2c323e');pPix(ox,oy,f,c0+1,11,bw-1,1,wc);pPix(ox,oy,f,c0+bw,11,2,1,'#2c323e');
+}
+function pGun45(ox,oy,f){                     // 斜上 45°:5 段階梯,中間 3 段下緣為武器色
+  const D=[[7,10],[8,9],[9,8],[10,7],[11,6]],wc=WCOL[wep];
+  for(let i=0;i<5;i++){pPix(ox,oy,f,D[i][0],D[i][1],2,1,'#5b6476');pPix(ox,oy,f,D[i][0],D[i][1]+1,1,1,(i>=1&&i<=3)?wc:'#2c323e');}
+}
+function pScarfBack(ox,oy){                  // 背面圍巾:垂在背上,下段輕微擺動
+  const sw=Math.round(Math.sin(G.t*0.06)*0.8);
+  for(let y=8;y<16;y++)px(ox+5+(y>12?sw:0),oy+y,2,1,y<12?'#8e1c2c':'#5a1019');
+}
 function drawPlayer(){
   if(P.inv>0&&((G.t>>1)&1))return;
-  const x=P.x,y=P.y,f=P.face;
-  const step=Math.floor(P.anim)%2;
-  px(x+1,y,8,6,'#e8b070');                 // 頭
-  px(x+1,y,8,2,'#d03a3a');                 // 頭帶
-  px(x+(f>0?6:1),y+2,2,2,'#221');
-  px(x+1,y+6,8,6,'#3c7a46');               // 身體
-  px(x+1,y+12,3,2,'#2a3a56');px(x+6,y+12,3,2,'#2a3a56');
-  if(step&&!P.climb){px(x+1,y+12,3,2,'#22304a');px(x+6,y+13,3,1,'#22304a');}
-  const a=aimVec();
-  const gx=x+4+a[0]*5,gy=y+7+a[1]*5;
-  px(gx,gy,4,2,'#cfd6e6');px(gx+a[0]*3,gy+a[1]*3,3,2,'#9aa4b8');
-  if(P.flameT>0&&(G.t&1))px(x+2,y+4,6,2,'#ffd27a');
+  const f=P.face,mi=f<0?1:0,ox=Math.round(P.x-1),oy=Math.round(P.y-4),a=aimVec(); // 取整:貼圖與逐格像素對齊
+  const GL_BACK=[[3,9],[3,10],[8,9],[8,10]];   // 背面只登記肩胛發光線(耳側也登記時,白髮整顆頭被泛光包住)
+  if(P.climb){                                // 攀爬:背面
+    if(K.f&&!G.paused)PV.fireT=G.t;
+    if(G.t-PV.fireT<20){                      // 射擊中:側臉、單手攀繩、單手持槍(槍不再背在背上)
+      ctx.drawImage(PSPR.cf[mi],ox-2,oy-8);
+      pScarfBack(ox,oy);
+      pPix(ox,oy,f,9,9,1,1,'#394052');pPix(ox,oy,f,10,10,1,1,'#394052');
+      pGunH(ox,oy,f,10,3);
+      pGlow(ox,oy,f,[[3,5],[3,9],[3,10],[8,9],[8,10]]);
+    }else{
+      ctx.drawImage(PSPR.cl[Math.floor(P.y/6)&1],ox-2,oy-8); // 依高度換格:停住時不擺動
+      pScarfBack(ox,oy);
+      pGlow(ox,oy,1,GL_BACK);
+    }
+    return;
+  }
+  if(P.inv>56){                               // 受擊:後仰(無敵時間前 16 幀)
+    pScarfSide(ox,oy,f,-0.4,0.35,-1);
+    ctx.drawImage(PSPR.hu[mi],ox-2,oy-8);
+    pGunH(ox,oy,f,9,4);
+    pGlow(ox,oy,f,[[2,5],[5,9],[5,10]]);
+    return;
+  }
+  if(a[0]===0){                               // 正上射:背面,槍在頭後方舉起(與子彈出生點對齊)
+    px(ox+5,oy-6,2,4,'#3a4150');px(ox+5,oy-2,1,4,'#5b6476');px(ox+6,oy-2,1,4,WCOL[wep]); // v0.5:槍管深灰、機身一側武器色條
+    ctx.drawImage(P.onG?PSPR.ug:PSPR.ua,ox-2,oy-8);
+    pScarfBack(ox,oy);
+    pGlow(ox,oy,1,GL_BACK);
+    return;
+  }
+  let spr,bob=0,ub=0,dy=0.55,amp=0.12;
+  if(!P.onG){spr=PSPR.jp[mi];dy=0.75;amp=0.2;}
+  else if(Math.abs(P.vx)>0.2){const n=Math.floor(P.anim)&3;spr=PSPR.run[n][mi];bob=(n&1)?-1:0;dy=0.12;amp=0.3;}
+  else{ub=(G.t>>5)&1;spr=PSPR.idle[ub][mi];}
+  const yo=oy+bob;
+  pScarfSide(ox,yo+ub,f,dy,amp,0);
+  ctx.drawImage(spr,ox-2,yo-8);
+  const gy=yo+ub;
+  if(a[1]<0)pGun45(ox,gy,f);                  // 斜上 45°
+  else pGunH(ox,gy,f,9,4);
+  pGlow(ox,gy,f,[[3,5],[5,9],[5,10]]);
 }
 function drawEnemies(){
   for(const e of ens){
@@ -1670,13 +2045,18 @@ function drawItems(){
   }
 }
 function drawPlayerBullets(){ // 己方子彈:須畫在危險區判定之前,確保不會蓋住敵方攻擊警示
-  for(const b of bul){px(b.x-b.r,b.y-b.r,b.r*2,b.r*2,b.c);}
+  for(const b of bul){drawBulletV(b);             // v0.5:菱形彈頭+長漸細拖尾(判定半徑 b.r 不變)
+    glBul(b.x,b.y,b.r,b.c);}                      // 發光層:己方子彈
 }
 function drawMisc(){
   for(const b of ebul){px(b.x-b.r,b.y-b.r,b.r*2,b.r*2,b.c);
-    px(b.x-1,b.y-1,2,2,'#fff');}
-  for(const p of parts){ctx.globalAlpha=Math.max(0,1-p.t/p.life);px(p.x,p.y,p.sz,p.sz,p.c);ctx.globalAlpha=1;}
-  for(const b of bombs){px(b.x-2,b.y-3,4,6,'#e0e4ee');px(b.x-2,b.y+3,4,2,'#ffbe3c');}
+    px(b.x-1,b.y-1,2,2,'#fff');
+    glBul(b.x,b.y,b.r,b.c);}                      // 發光層:敵方子彈
+  for(const p of parts){const a=Math.max(0,1-p.t/p.life);
+    ctx.globalAlpha=a;px(p.x,p.y,p.sz,p.sz,p.c);ctx.globalAlpha=1;
+    gl(p.x-2,p.y-2,p.sz+4,p.sz+4,p.c,a*FX.core);} // 發光層:爆炸、火花、餘燼粒子
+  for(const b of bombs){px(b.x-2,b.y-3,4,6,'#e0e4ee');px(b.x-2,b.y+3,4,2,'#ffbe3c');
+    gl(b.x-4,b.y+1,8,6,'#ffbe3c',FX.core);}        // 發光層:特攻炸彈尾焰
   if(plane){const x=plane.x,y=plane.y;
     px(x,y,34,7,'#c8d0e0');px(x+10,y-4,12,4,'#8a94aa');px(x-6,y+2,8,3,'#8a94aa');
     px(x+30,y+1,6,4,'#ffbe3c');}
@@ -1684,7 +2064,7 @@ function drawMisc(){
     for(let i=0;i<5;i++){ctx.globalAlpha=.25+i*0.12;
       px(x+8-i*2,y+6+i*4+s*2,12+i*4,4,'#7affd0');ctx.globalAlpha=1;}
     px(x+10,y+2,10,28,'#d0fff0');
-    txt('▲',x+9,y-12,'#7affd0',10);
+    for(let i=0;i<5;i++)px(x+13-i,y-12+i*2,2+i*2,2,'#7affd0'); // 箭頭改像素三角形(v0.3):寬 2~10、高 10,位置同原 ▲ 字元
   }
 }
 /* ========== HUD ========== */
@@ -1700,7 +2080,7 @@ function drawHUD(){
       px(bx,by+bh*(1-f),5,bh*f,'#ff4a5a');px(bx,by+bh*(1-f),5,2,'#ffd0d0');
     }
   }
-  if(G.msgT>0){txt(G.msg,W/2,30,'#ffe9a0',10,'center');}
+  if(G.msgT>0){txt(G.msg,W/2,30,'#ffe9a0',10,'center',1);}
 }
 function drawOverlays(){
   if(G.state==='title'){
@@ -1718,15 +2098,15 @@ function drawOverlays(){
     const lsShift=0; // 觸控裝置:整組往下移,避免「正常開局」被裝置頂部區域擋住點不到
     const nx=(W-200)/2,ny=34+lsShift,nw=200,nh=30;
     px(nx,ny,nw,nh,'#173a2a');ctx.strokeStyle='#7affd0';ctx.lineWidth=1;ctx.strokeRect(nx+.5,ny+.5,nw-1,nh-1);
-    txt('正常遊玩(從第1關開始)',W/2,ny+20,'#c8ffcf',10,'center');
+    txt('正常遊玩(從第1關開始)',W/2,ny+(nh-10)/2,'#c8ffcf',10,'center'); // v0.3.1:框內垂直置中(原 ny+20 貼底)
     txt('我想選關',W/2,ny+nh+30,'#ffe9a0',14,'center');
     const cols=5,bw=84,bh=46,gap=8,gwid=cols*bw+(cols-1)*gap,x0=(W-gwid)/2,y0=128+lsShift;
     for(let i=0;i<10;i++){
       const col=i%cols,row=Math.floor(i/cols);
       const bx=x0+col*(bw+gap),by=y0+row*(bh+gap);
       px(bx,by,bw,bh,'#152238');ctx.strokeStyle='#5a7aa8';ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);
-      txt('從 '+(i+1)+'-1',bx+bw/2,by+bh/2+2,'#ffffff',12,'center');
-      txt('開始',bx+bw/2,by+bh/2+16,'#9fb0d0',8,'center');
+      txt('從 '+(i+1)+'-1',bx+bw/2,by+11,'#ffffff',12,'center'); // v0.3.1:兩行合計高 23(12+3+8),框高 46 內垂直置中
+      txt('開始',bx+bw/2,by+26,'#9fb0d0',8,'center');
     }
   }
   if(G.state==='intro'){
@@ -1756,20 +2136,20 @@ function drawOverlays(){
   }
   if(G.state==='win'){
     if(G.sT<70){ctx.globalAlpha=.25+0.2*Math.sin(G.sT*0.4);px(0,0,W,H,'#ffffff');ctx.globalAlpha=1;}
-    txt('VICTORY',W/2,90,'#ffe9a0',30,'center');
-    txt(BOSSES[G.world-1].name+' 撃破',W/2,130,'#d8e2f4',12,'center');
+    txt('VICTORY',W/2,90,'#ffe9a0',30,'center',1);
+    txt(BOSSES[G.world-1].name+' 擊破',W/2,130,'#d8e2f4',12,'center',1);
   }
   // 魔王警示 / 登場
   if(boss&&boss.alive&&boss.introT>0){
     const t=300-boss.introT;
     if(t<120){ if(((t>>2)&1)){ctx.globalAlpha=.30;px(0,0,W,H,'#ff2a3a');ctx.globalAlpha=1;}
-      txt('WARNING',W/2,H/2-10,'#ff4a5a',26,'center');}
+      txt('WARNING',W/2,H/2-10,'#ff4a5a',26,'center',1);}
     else{
       const k=clamp((t-120)/60,0,1);
       ctx.globalAlpha=.55*(1-clamp((t-200)/80,0,1));px(0,H/2-34,W,58,'#05070e');ctx.globalAlpha=1;
-      txt(boss.def.name,W/2,H/2-26,'#ffffff',18,'center');
-      txt(boss.def.en,W/2,H/2-2,'#ff6a7a',10,'center');
-      txt(boss.def.tag,W/2,H/2+12,'#7a8aa8',8,'center');
+      txt(boss.def.name,W/2,H/2-26,'#ffffff',18,'center',1);   // 底板會淡出,登場名稱一律加描邊
+      txt(boss.def.en,W/2,H/2-2,'#ff6a7a',10,'center',1);
+      txt(boss.def.tag,W/2,H/2+12,'#7a8aa8',8,'center',1);
       ctx.globalAlpha=k;ctx.globalAlpha=1;
     }
   }
@@ -1806,34 +2186,47 @@ function render(){
   let sx=0,sy=0;
   if(G.shakeT>0){sx=rnd(-G.shakeM,G.shakeM);sy=rnd(-G.shakeM,G.shakeM);}
   ctx.clearRect(0,0,W,H);
+  // 發光層:上一幀有登記才需要清除;座標轉換與遊戲畫面一致(震動+鏡頭)
+  gctx.setTransform(1,0,0,1,0,0);
+  if(FX.n)gctx.clearRect(0,0,W,H);
+  FX.n=0;
   ctx.save();ctx.translate(Math.round(sx),Math.round(sy));
   if(G.state!=='title'&&G.state!=='finish'&&G.state!=='levelselect'){
     drawBG();                                  // 背景視差層維持不縮放、不跟隨鏡頭平移(用自己既有的慢速視差公式)
     const zoom=1; // 鏡頭不再縮放/跟隨,固定1倍,王關與小關行為一致
     ctx.save();ctx.scale(zoom,zoom);ctx.translate(-cam.x,-cam.y);
+    gctx.setTransform(zoom,0,0,zoom,Math.round(sx)-cam.x*zoom,Math.round(sy)-cam.y*zoom);
     drawTiles();
     if(boss&&boss.alive&&(boss.introT<=180))boss.def.draw(boss);
     drawItems();drawEnemies();
-    drawPlayer();drawFlame();drawPlayerBullets();  // 主角本體、火焰、己方子彈先畫
+    drawPlayer();drawFlame();drawMuzzle();drawPlayerBullets();  // 主角本體、火焰、槍口火光、己方子彈先畫
     if(boss&&boss.alive&&boss.introT<=0&&boss.def.fg)boss.def.fg(boss); // 魔王前景警示(需蓋在主角之上)
     drawHazards();                             // 危險區警示/判定一律蓋在主角攻擊特效之上,確保清晰可見
     drawMisc();                                // 子彈(敵彈最後畫,永遠可見)、粒子等
     ctx.restore();
   }
   ctx.restore();
+  postComposite();                             // 第一段:遊戲畫面放大 + 倒影/泛光/霧/暈影
+  // 第二段:HUD 與疊層(暫停、過場、選單)畫在泛光之上,沒畫任何方塊就不合成;文字以螢幕解析度畫在最上層(見「文字層」)
+  ctx.clearRect(0,0,W,H);PXD=0;TPASS=1;
   if(G.state!=='title'&&G.state!=='finish'&&G.state!=='over'&&G.state!=='levelselect')drawHUD();
   drawOverlays();
+  tFlush();TPASS=0;                            // 寫出剩下的面板與文字
 }
 /* ========== 迴圈 ========== */
 let last=0,acc=0;
 function loop(ts){
   requestAnimationFrame(loop);
+  const j0=performance.now();
   if(!last)last=ts;
-  let dt=ts-last;last=ts;if(dt>100)dt=100;
+  let dt=ts-last;last=ts;
+  const rawDt=dt;                               // F3 用:未截斷的實際幀間隔
+  if(dt>100)dt=100;
   acc+=dt;
   let guard=0;
   while(acc>=1000/60&&guard++<4){update();acc-=1000/60;}
   render();
+  perfRec(ts,rawDt,performance.now()-j0);
 }
 requestAnimationFrame(loop);
 </script>
