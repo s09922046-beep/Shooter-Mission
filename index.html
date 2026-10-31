@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.7.1 F3 效能面板「本秒」加「環境粒子」欄(共用光影的背景粒子數);其餘同 v0.7 -->
+<!-- VERSION: v0.7.2 F3 效能面板加「特攻粒子」欄(本秒與本場峰值);其餘同 v0.7.1 -->
+<!-- 前版:v0.7.1 F3 效能面板「本秒」加「環境粒子」欄(共用光影的背景粒子數);其餘同 v0.7 -->
 <!-- 前版:v0.7 各關主題色套用共用光影:天空 8 階抖色漸層、主題光源(與星點同層視差 0.15,登記淡泛光)、背景霧兩條、地形後方環境粒子(每大關一種)、前景薄霧與暈影(像素畫法,高低畫質皆開);第 7 大關主題色改破曉前藍調晨霧;判定與機制不變 -->
 <!-- 前版:v0.6 特攻機制改版(使用者授權):轟炸機 P2 自畫面左緣飛入、鎖定標記 L2 琥珀、左下通訊字幕 T3、機腹投放追蹤飛彈 M2(尾跡 R3、爆炸 X1)命中才結算;魔王 4 枚各扣總血量 2%(最高優先級)、6 王目標選單、魔王登場期間不能施放 -->
 <!-- 前版:v0.5.2 敵彈拿掉深色描邊(仍畫在泛光之後;描邊只留在主角衝鋒槍與散彈彈頭);其餘同 v0.5.1 -->
@@ -2025,7 +2026,7 @@ const PERF={t0:0,n:0,fSum:0,fMax:0,jSum:0,jMax:0, S:null};
 function perfWhere(){return G.world+'-'+G.sub+(boss&&boss.alive?'王':'');}
 function perfNewSession(){return {start:0,n:0,fSum:0,fMax:0,fMaxAt:'',jMax:0,jMaxAt:'',drop:0,skip:0,
   hist:new Uint32Array(401),q0:FX.q,qMixed:false,
-  pkG:0,pkGAt:'',pkB:0,pkBAt:'',pkP:0,pkPAt:''};}
+  pkG:0,pkGAt:'',pkB:0,pkBAt:'',pkP:0,pkPAt:'',pkS:0,pkSAt:''};}
 function togglePerf(){FX.perfOn=!FX.perfOn;perfEl.style.display=FX.perfOn?'block':'none';
   PERF.t0=0;PERF.n=0;PERF.fSum=PERF.fMax=PERF.jSum=PERF.jMax=0;PERF.S=perfNewSession();
   if(FX.perfOn)perfEl.textContent='量測中…';}
@@ -2050,17 +2051,18 @@ function perfRec(ts,frameDt,jsMs){
   if(FX.n>S.pkG){S.pkG=FX.n;S.pkGAt=where;}
   if(ebul.length>S.pkB){S.pkB=ebul.length;S.pkBAt=where;}
   if(parts.length>S.pkP){S.pkP=parts.length;S.pkPAt=where;}
+  if(spp.length>S.pkS){S.pkS=spp.length;S.pkSAt=where;}           // v0.7.2:特攻粒子峰值
   if(ts-PERF.t0>=1000){
     const n=PERF.n,fa=PERF.fSum/n,ja=PERF.jSum/n;
     const sec=Math.floor((ts-S.start)/1000),mm=String(Math.floor(sec/60)).padStart(2,'0'),ss=String(sec%60).padStart(2,'0');
     perfEl.textContent=
       'FPS '+(1000/fa).toFixed(0)+'   畫質 '+(FX.q==='high'?'高':'低')+'   輸出 '+PW+'×'+PH+'\n'+
       '【本秒】幀間隔 平均 '+fa.toFixed(1)+' 最差 '+PERF.fMax.toFixed(1)+'  JS 平均 '+ja.toFixed(1)+' 最差 '+PERF.jMax.toFixed(1)+' ms\n'+
-      '        發光 '+FX.n+'  敵彈 '+ebul.length+'  粒子 '+parts.length+'  環境粒子 '+LT.pts.length+'\n'+ // v0.7.1:環境粒子(共用光影,每大關固定數量)
+      '        發光 '+FX.n+'  敵彈 '+ebul.length+'  粒子 '+parts.length+'  環境粒子 '+LT.pts.length+'  特攻粒子 '+spp.length+'\n'+ // v0.7.1:環境粒子(共用光影,每大關固定數量);v0.7.2:特攻粒子(spp,上限 420)
       '【本場】'+mm+':'+ss+'  共 '+S.n+' 幀'+(S.qMixed?'  ※期間切換過畫質':'')+(S.skip?'  略過 '+S.skip:'')+'\n'+
       '  幀間隔 平均 '+(S.fSum/S.n).toFixed(1)+'  1%低 '+perfP99(S).toFixed(1)+'  最差 '+S.fMax.toFixed(1)+' ms @'+S.fMaxAt+'\n'+
       '  掉幀(>25ms) '+S.drop+' 次 ('+(S.drop/S.n*100).toFixed(2)+'%)  JS 最差 '+S.jMax.toFixed(1)+' ms @'+S.jMaxAt+'\n'+
-      '  峰值 發光 '+S.pkG+(S.pkG?'@'+S.pkGAt:'')+'  敵彈 '+S.pkB+(S.pkB?'@'+S.pkBAt:'')+'  粒子 '+S.pkP+(S.pkP?'@'+S.pkPAt:'');
+      '  峰值 發光 '+S.pkG+(S.pkG?'@'+S.pkGAt:'')+'  敵彈 '+S.pkB+(S.pkB?'@'+S.pkBAt:'')+'  粒子 '+S.pkP+(S.pkP?'@'+S.pkPAt:'')+'  特攻粒子 '+S.pkS+(S.pkS?'@'+S.pkSAt:'');
     PERF.t0=ts;PERF.n=0;PERF.fSum=PERF.fMax=PERF.jSum=PERF.jMax=0;
   }
 }
