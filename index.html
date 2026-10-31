@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.7.2 F3 效能面板加「特攻粒子」欄(本秒與本場峰值);其餘同 v0.7.1 -->
+<!-- VERSION: v0.8 地面材質依大關區隔:實心地面、單向平台、攀爬物、灼燒面逐關換材質(預先烘焙快取),本體明度壓低;第 1~6、8、9 關地面色改建議色 -->
+<!-- 前版:v0.7.2 F3 效能面板加「特攻粒子」欄(本秒與本場峰值);其餘同 v0.7.1 -->
 <!-- 前版:v0.7.1 F3 效能面板「本秒」加「環境粒子」欄(共用光影的背景粒子數);其餘同 v0.7 -->
 <!-- 前版:v0.7 各關主題色套用共用光影:天空 8 階抖色漸層、主題光源(與星點同層視差 0.15,登記淡泛光)、背景霧兩條、地形後方環境粒子(每大關一種)、前景薄霧與暈影(像素畫法,高低畫質皆開);第 7 大關主題色改破曉前藍調晨霧;判定與機制不變 -->
 <!-- 前版:v0.6 特攻機制改版(使用者授權):轟炸機 P2 自畫面左緣飛入、鎖定標記 L2 琥珀、左下通訊字幕 T3、機腹投放追蹤飛彈 M2(尾跡 R3、爆炸 X1)命中才結算;魔王 4 枚各扣總血量 2%(最高優先級)、6 王目標選單、魔王登場期間不能施放 -->
@@ -230,7 +231,7 @@ document.getElementById('wrap').addEventListener('pointerdown',e=>{
 // 0 空 / 1 實心 / 2 藤蔓 / 3 單向平台 / 4 水(減速) / 5 灼燒面 / 6 可消失平台
 let map={w:32,h:GH,d:new Int8Array(32*GH)};
 function T(x,y){if(y<0)return 0;if(y>=map.h)return 0;if(x<0||x>=map.w)return 1;return map.d[y*map.w+x];}
-function setT(x,y,v){if(x<0||y<0||x>=map.w||y>=map.h)return;map.d[y*map.w+x]=v;}
+function setT(x,y,v){if(x<0||y<0||x>=map.w||y>=map.h)return;const i=y*map.w+x;if(map.d[i]!==v){map.d[i]=v;matDirty(x);}} // v0.8:改動的格子通知地面材質快取重烘焙
 function newMap(w){map={w:w,h:GH,d:new Int8Array(w*GH)};}
 function fillR(x0,y0,x1,y1,v){for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)setT(x,y,v);}
 function vineAt(x,y0,y1){for(let y=y0;y<=y1;y++)if(T(x,y)===0)setT(x,y,2);}
@@ -1727,17 +1728,18 @@ function startBoss(){
 }
 /* ========== 主題色 ========== */
 const THEME=[
- {sky:'#0a1024',far:'#16204a',mid:'#1d2b5e',gr:'#3b5a7a',gr2:'#24384f'},
- {sky:'#140a12',far:'#2a1220',mid:'#3a1a2a',gr:'#6a4050',gr2:'#40232f'},
- {sky:'#05120f',far:'#0d2a24',mid:'#123a30',gr:'#2f6a58',gr2:'#1b4036'},
- {sky:'#120e06',far:'#2c2410',mid:'#3e3418',gr:'#7a6a3a',gr2:'#4a4022'},
- {sky:'#050814',far:'#101a34',mid:'#182448',gr:'#40507a',gr2:'#26304c'},
- {sky:'#0e0808',far:'#241414',mid:'#341c1c',gr:'#6a4a44',gr2:'#402c2a'},
+ {sky:'#0a1024',far:'#16204a',mid:'#1d2b5e',gr:'#5d6a7c',gr2:'#2a3444'},
+ {sky:'#140a12',far:'#2a1220',mid:'#3a1a2a',gr:'#a8845a',gr2:'#4e3030'},
+ {sky:'#05120f',far:'#0d2a24',mid:'#123a30',gr:'#3f8a5e',gr2:'#1f3a38'},
+ {sky:'#120e06',far:'#2c2410',mid:'#3e3418',gr:'#8a7a50',gr2:'#3e3420'},
+ {sky:'#050814',far:'#101a34',mid:'#182448',gr:'#6a7aa8',gr2:'#232c48'},
+ {sky:'#0e0808',far:'#241414',mid:'#341c1c',gr:'#7a6460',gr2:'#3a2a2a'},
  {sky:'#3e5a66',far:'#56717a',mid:'#47636a',gr:'#5d8a6a',gr2:'#34503e'}, // v0.7:第 7 關改破曉前藍調晨霧(原紫色系)
- {sky:'#060c08',far:'#0e2416',mid:'#153420',gr:'#3a6a48',gr2:'#24402c'},
- {sky:'#04060c',far:'#0c1626',mid:'#122034',gr:'#2e4a5e',gr2:'#1c2c3a'},
+ {sky:'#060c08',far:'#0e2416',mid:'#153420',gr:'#5a8a3a',gr2:'#3e3222'},
+ {sky:'#04060c',far:'#0c1626',mid:'#122034',gr:'#4a5a6a',gr2:'#161e28'},
  {sky:'#000000',far:'#100818',mid:'#1a0c26',gr:'#4a2a5a',gr2:'#2c1836'}
 ];
+// v0.8:gr/gr2 只用於地面材質;第 1~6、8、9 關改為使用者選定的建議色,第 7、10 關維持
 function th(){return THEME[clamp(G.world-1,0,9)];}
 /* ========== 共用光影(v0.7,純視覺:不參與任何判定) ==========
    天空漸層+主題光源、背景霧(遠景之間)、環境粒子(地形後方)、前景薄霧、暈影。
@@ -2084,22 +2086,226 @@ function drawBG(){
   ltBand(LT.fog,H-112,0.7,0.1);                  // 背景霧 2:中景與地形之間
   ltParticles();                                 // 環境粒子(地形後方,不擋角色)
 }
-function drawTiles(){
-  const t=th();
-  const x0=Math.max(0,Math.floor(cam.x/TS)-1),x1=Math.min(map.w-1,Math.floor((cam.x+W)/TS)+1);
-  for(let y=0;y<map.h;y++)for(let x=x0;x<=x1;x++){
-    const v=T(x,y);if(!v)continue;
-    const sx=x*TS,sy=y*TS;
-    if(v===1){px(sx,sy,TS,TS,t.gr2);
-      if(!isSolid(T(x,y-1))){px(sx,sy,TS,4,t.gr);px(sx,sy+4,TS,2,'#00000030');}
-      px(sx+2,sy+9,3,3,t.gr);px(sx+10,sy+12,3,3,t.gr);}
-    else if(v===2){px(sx+6,sy,4,TS,'#3f7a3a');px(sx+3,sy+4,4,3,'#57a04a');px(sx+9,sy+10,4,3,'#57a04a');}
-    else if(v===3){px(sx,sy,TS,5,t.gr);px(sx,sy+5,TS,2,'#00000040');}
-    else if(v===4){ctx.globalAlpha=.45;px(sx,sy,TS,TS,'#2a6acc');ctx.globalAlpha=1;px(sx,sy,TS,2,'#6aa8ff');}
-    else if(v===5){px(sx,sy,TS,5,'#ff6a2a');px(sx,sy+5,TS,2,'#802a10');
-      px(sx+((G.t>>2)%TS),sy-3,3,3,'#ffd27a');}
-    else if(v===6){px(sx,sy,TS,TS,'#5a4a7a');}
+/* ========== 地面材質(v0.8,純視覺)==========
+   - 實心(1)、藤蔓(2)、單向平台(3)以逐像素著色預先烘焙到與關卡同寬的快取畫布 MAT.cv,每幀只貼可見範圍一張圖(取代逐格繪製)
+   - 逐欄烘焙:遊玩中可見欄位未烘焙就立刻補,另往前預烘焙每幀 MAT_STEP 欄;開場畫面(intro,有 86% 暗幕,60 幀)每幀 MAT_INTRO 欄,把開場的烘焙分散到多幀
+   - setT 改到的格子所在欄與左右兩欄標記重新烘焙(7 王平台變色、3/6 王藤蔓消失、5 王加平台)
+   - 水(4)、灼燒面(5)有動畫,仍每幀畫
+   - 只讀 map、THEME、G.world,不寫入任何遊戲狀態;碰撞仍由 isSolid/hitSolid 決定,地表線位置不變
+     (草皮、雜草叢、結晶邊會往地表線上方畫 1~5 像素,純視覺,使用者 10/31 接受)
+   - 材質代號(使用者 10/31 在預覽頁逐關選定):
+     表層 E0 現行 E1 草皮垂邊 E2 岩石碎邊 E3 苔蘚斑塊 E4 金屬包邊 E5 沙土鬆邊 E6 雜草叢 E7 結晶邊
+     本體 B0 現行圓點 B1 石塊砌 B2 岩塊裂隙 B3 土壤顆粒 B4 合金板 B5 骨骸嵌土 B6 晶脈岩 B7 草根土
+     層理 S0 無 S1 水平 S2 斜向 S3 深度漸暗;平台 P0 現行 P1 木板 P2 石板 P3 金屬格柵 P4 骨板 P5 藤編
+     攀爬 V0 現行 V1 粗藤加葉 V2 鐵鍊 V3 繩梯 V4 能量纜線;灼燒面 K0 現行 K1 熔岩裂口 K2 尖刺列 K3 毒棘
+     dim=本體明度;表層色、本體色取 THEME 的 gr、gr2,acc=點綴色 */
+const MATW=[
+ {top:'E4',body:'B4',strata:'S3',plat:'P3',vine:'V2',haz:'K0',dim:0.85,acc:'#8a4a2a'}, // 1 飛艇墳場
+ {top:'E5',body:'B2',strata:'S3',plat:'P2',vine:'V3',haz:'K0',dim:0.85,acc:'#7a2a2a'}, // 2 競技場
+ {top:'E3',body:'B7',strata:'S3',plat:'P1',vine:'V1',haz:'K0',dim:0.85,acc:'#5fb0a0'}, // 3 淺水
+ {top:'E5',body:'B5',strata:'S1',plat:'P4',vine:'V3',haz:'K0',dim:0.85,acc:'#c8bc98'}, // 4 骨龍屍場
+ {top:'E4',body:'B4',strata:'S0',plat:'P3',vine:'V4',haz:'K0',dim:0.85,acc:'#3ac8e8'}, // 5 科技密室
+ {top:'E7',body:'B1',strata:'S3',plat:'P2',vine:'V2',haz:'K0',dim:0.85,acc:'#5a1a1e'}, // 6 古堡聖殿
+ {top:'E1',body:'B2',strata:'S2',plat:'P2',vine:'V1',haz:'K2',dim:0.85,acc:'#a8c8b0'}, // 7 山澗晨霧
+ {top:'E6',body:'B7',strata:'S2',plat:'P5',vine:'V3',haz:'K3',dim:0.85,acc:'#8aa850'}, // 8 荒煙蔓草
+ {top:'E4',body:'B4',strata:'S3',plat:'P3',vine:'V4',haz:'K2',dim:0.7, acc:'#3a7a9a'}, // 9 深邃太空
+ {top:'E7',body:'B6',strata:'S3',plat:'P2',vine:'V4',haz:'K1',dim:0.85,acc:'#b060e8'}  // 10 終末
+];
+const MAT_STEP=1,MAT_INTRO=2;                     // 每幀最多烘焙欄數(實測每欄約 0.4~1.7 ms,沙盒)
+const MAT={cv:document.createElement('canvas'),map:null,done:null,w:0,col:null,cfg:null,img:null,dirty:false};
+MAT.cx=MAT.cv.getContext('2d');
+function matCfg(){const w=clamp(G.world-1,0,9),t=THEME[w];return Object.assign({w,gr:t.gr,gr2:t.gr2},MATW[w]);}
+/* ---- 色彩 ---- */
+function mRGB(h){h=h.replace('#','');return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function mMix(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+function mU32(c,al){return(((al===undefined?255:al)<<24)|(Math.round(c[2])<<16)|(Math.round(c[1])<<8)|Math.round(c[0]))>>>0;}
+// 色號:1 表層 2 表層亮 3 表層暗 4 本體 5 本體暗 6 本體亮 7 最暗(縫) 8 點綴 | 9~11 木 12~14 金屬 15 半透明陰影 16~18 骨 19~21 藤 22 繩 23 纜線
+const MLV=[1,0.86,0.74,0.62];                      // 層理/漸暗 4 階(只作用於 4~8)
+function matPal(c){
+  const K=[0,0,0],Wt=[255,255,255],e=mRGB(c.gr),b=mRGB(c.gr2),a=mRGB(c.acc),d=+c.dim;
+  const sc=(v,k)=>[v[0]*k,v[1]*k,v[2]*k];
+  const base=[null,e,mMix(e,Wt,0.28),mMix(e,K,0.35),sc(b,d),sc(mMix(b,K,0.28),d),sc(mMix(b,e,0.35),d),sc(mMix(b,K,0.55),d),sc(a,d),
+    mRGB('#7a5636'),mRGB('#a07850'),mRGB('#432c1c'),
+    mMix(mRGB('#6a7486'),e,0.25),mMix(mRGB('#9aa4b6'),e,0.2),mMix(mRGB('#262c38'),b,0.2),
+    K,mRGB('#b8ac88'),mRGB('#ddd2b2'),mRGB('#665a42'),
+    mRGB('#3f7a3a'),mRGB('#57a04a'),mRGB('#24502a'),mRGB('#a88a5a'),mRGB('#262a36')];
+  const P=[];
+  for(let lv=0;lv<4;lv++){const u=new Uint32Array(24);
+    for(let i=1;i<24;i++)u[i]=i===15?mU32(K,64):mU32((i>=4&&i<=8)?sc(base[i],MLV[lv]):base[i]);P.push(u);}
+  return P;
+}
+/* ---- 雜湊與雜訊 ---- */
+function mh(x,y,s){let h=Math.imul(x|0,374761393)+Math.imul(y|0,668265263)+Math.imul(s|0,2246822519)|0;
+  h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967296;}
+function mn(x,s){const i=Math.floor(x),f=x-i,u=f*f*(3-2*f);return mh(i,0,s)*(1-u)+mh(i+1,0,s)*u;}
+const MB4=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+/* ---- 表層(dp=地表以下第幾像素)回傳色號;0=透明(缺口);-1=不屬於表層 ---- */
+function mTop(s,wx,dp){
+  switch(s){
+  case 'E0':return dp<4?1:dp<6?5:-1;
+  case 'E1':case 'E6':{const t=(s==='E6'?2+Math.round(2*mn(wx*0.2,11)):3+(mh(wx,0,11)<0.35?1:0));
+    if(dp===0)return mh(wx,0,12)<0.5?2:1;if(dp<t)return 1;
+    const dl=mh(wx>>1,0,13)<0.4?2+Math.floor(mh(wx>>1,0,14)*5):0;
+    if(dp<t+dl)return dp===t+dl-1?3:1;if(dp===t+dl)return 3;return -1;}
+  case 'E2':{const n=mh(wx>>1,0,21)<0.16?(mh(wx>>1,0,22)<0.5?1:2):0;
+    if(dp<n)return 0;if(dp===n)return 2;if(dp<4)return 1;
+    if(dp<7)return (wx&3)===0?7:(mh(wx>>2,0,25)<0.5?1:3);return -1;}
+  case 'E3':{const t=2+Math.round(3*mn(wx*0.15,31));
+    if(dp===0)return mh(wx,0,32)<0.4?2:1;if(dp<t)return mh(wx,dp,33)<0.15?2:1;
+    if(dp<t+10){const p=0.55*(1-(dp-t)/10);if(mh(wx>>1,dp>>1,34)<p)return mh(wx,dp,35)<0.3?3:1;}return -1;}
+  case 'E4':{if(dp===0)return 2;if(dp<3)return (wx%8===4)?(dp===1?2:7):1;if(dp===3)return 7;
+    if(dp===4&&((wx>>3)&3)===0)return 8;return -1;}
+  case 'E5':{const t=4+Math.round(1.5*Math.sin(wx*0.18)+mn(wx*0.3,51));
+    if(dp===0)return Math.sin(wx*0.5)>0.6?2:1;if(dp<t)return mh(wx,dp,52)<0.12?2:(mh(wx,dp,53)<0.1?3:1);
+    if(dp===t)return 3;return -1;}
+  case 'E7':return dp===0?1:dp<3?3:-1;
   }
+  return -1;
+}
+/* ---- 地表上方裝飾(du=地表以上第幾像素,0 為緊貼地表那列)---- */
+function mDeco(s,wx,du){
+  if(s==='E1'){if(mh(wx,0,15)<0.3){const h=1+(mh(wx,0,16)<0.35?1:0);if(du<h)return du===h-1?2:1;}return -1;}
+  if(s==='E6'){if(mh(wx,0,15)<0.55){const h=1+Math.floor(mh(wx,0,16)*4);if(du<h){const k=mh(wx,0,17);return k<0.33?3:k<0.66?1:2;}}return -1;}
+  if(s==='E7'){const c8=wx>>3;if(mh(c8,0,71)<0.45){const c=c8*8+2+Math.floor(mh(c8,0,72)*4),h=2+Math.floor(mh(c8,0,73)*4);
+      if(du<h){const hw=Math.floor((h-1-du)/2);if(Math.abs(wx-c)<=hw)return wx<c?2:8;}}return -1;}
+  return -1;
+}
+/* ---- 本體 ---- */
+function mVor(wx,wy,S,s){let d1=1e9,d2=1e9,bx=0,by=0;const gx=Math.floor(wx/S),gy=Math.floor(wy/S);
+  for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const cx=gx+i,cy=gy+j,ax=wx-(cx+mh(cx,cy,s))*S,ay=wy-(cy+mh(cx,cy,s+1))*S,
+    dd=ax*ax+ay*ay;if(dd<d1){d2=d1;d1=dd;bx=cx;by=cy;}else if(dd<d2)d2=dd;}
+  return [Math.sqrt(d2)-Math.sqrt(d1),mh(bx,by,s+2)];}       // 平方距離比較,最後只開兩次根號;只對最近的格子算色調雜湊
+function mSoil(wx,wy,peb){
+  if(peb){const cx=wx>>3,cy=wy>>3;if(mh(cx,cy,62)<0.18){const px=cx*8+2+mh(cx,cy,63)*4,py=cy*8+2+mh(cx,cy,64)*4,dx=wx-px,dy=wy-py;
+    if(dx*dx+dy*dy<2.4)return dy<0?6:5;if(dy>=1&&dy<2.2&&Math.abs(dx)<1.2)return 7;}}
+  const n=mh(wx,wy,61);return n<0.08?5:n<0.13?6:4;}
+function mBody(s,wx,wy,lx,ly,dp,acc){
+  switch(s){
+  case 'B0':return ((lx>=2&&lx<5&&ly>=9&&ly<12)||(lx>=10&&lx<13&&ly>=12&&ly<15))?1:4;
+  case 'B1':{const row=wy>>3,off=(row&1)*8,bx=(wx+off)>>4,x=(wx+off)&15,y=wy&7;
+    if(y===0||x===0)return 7;if(y===1||x===1)return 6;return mh(bx,row,41)<0.3?5:4;}
+  case 'B2':{const [e,id]=mVor(wx,wy,14,40);if(e<1.2)return 7;if(e<2.4)return 5;return id<0.35?5:id<0.5?6:4;}
+  case 'B3':return mSoil(wx,wy,1);
+  case 'B4':{const x=wx&15,y=wy&15,tx=wx>>4,ty=wy>>4,p=mh(tx,ty,44);
+    if(x===0||y===0)return 7;if(x===1||y===1)return 6;
+    if((x===3||x===12)&&(y===3||y===12))return 6;if((x===4||x===13)&&(y===4||y===13))return 7;
+    if(p<0.22&&x>=5&&x<=10&&y>=6&&y<=10)return (y&1)?7:5;
+    if(mh(tx,ty,45)<0.18&&y===14&&x>2&&x<13)return 8;return p<0.3?5:4;}
+  case 'B5':{const cx=Math.floor(wx/24),cy=wy>>4;if(mh(cx,cy,51)<0.22){const bx=cx*24+6+Math.floor(mh(cx,cy,52)*12),by=cy*16+4+Math.floor(mh(cx,cy,53)*8);
+      let dx=wx-bx,dy=wy-by;if(mh(cx,cy,54)<0.4){const t=dx;dx=dy;dy=t;}            // 部分骨頭直放
+      if(Math.abs(dx)<=4&&(dy===0||dy===1))return 8;if(Math.abs(dx)>=3&&Math.abs(dx)<=5&&dy>=-1&&dy<=2)return 8;
+      if(Math.abs(dx)<=5&&dy===2)return 7;}
+    return mSoil(wx,wy,0);}
+  case 'B6':{const j=Math.floor(wy/40),yc=j*40+20+18*(mn(wx*0.04,70+j)-0.5)+2*(mh(wx>>2,j,71)-0.5),dv=Math.abs(wy-yc);
+    if(mn(wx*0.03,80+j)>0.38){if(dv<0.7)return 8;if(dv<1.6)return 6;}const [e,id]=mVor(wx,wy,12,60);if(e<1.3)return 7;return id<0.5?5:4;}
+  case 'B7':{if(dp<22){const c=wx>>2;if(mh(c,0,81)<0.35){const rx=c*4+1+Math.round(1.2*Math.sin(wy*0.5+c));
+      if(wx===rx&&dp<6+mh(c,0,82)*16)return 6;}}return mSoil(wx,wy,1);}
+  }
+  return 4;
+}
+function mLv(s,wx,wy,dp){
+  if(s==='S1'){let lv=(Math.floor((wy+3*Math.sin(wx*0.045))/11)&1);if(dp>64)lv++;return lv;}
+  if(s==='S2'){const b=Math.floor((wy-wx*0.4+3*Math.sin(wx*0.06))/9);let lv=[0,1,0,2][((b%4)+4)%4];if(dp>80)lv++;return Math.min(3,lv);}
+  if(s==='S3'){const v=dp/28+(MB4[(wy&3)*4+(wx&3)]/16-0.5)*0.9;return Math.max(0,Math.min(3,Math.floor(v)));}
+  return 0;
+}
+/* ---- 單向平台(16×16 格內;碰撞面為格子頂端)---- */
+function mPlat(s,wx,lx,ly,Le,Re){
+  switch(s){
+  case 'P0':return ly<5?1:ly<7?15:0;
+  case 'P1':if(ly===0)return 10;if(ly<5)return (wx&7)===0?11:(ly===2&&(wx&7)===2?10:9);if(ly===5)return 11;
+    if(ly<9&&((Le&&(lx===2||lx===3))||(Re&&(lx===12||lx===13))))return 11;return 0;
+  case 'P2':if((Le&&lx===0||Re&&lx===15)&&(ly===0||ly===4))return 0;if(ly===0)return 2;
+    if(ly<4)return (mh(wx>>2,0,91)<0.15&&(wx&3)===1)?3:1;if(ly===4)return 3;if(ly===5)return 15;return 0;
+  case 'P3':if((Le&&lx===0||Re&&lx===15)&&ly<6)return 14;if(ly===0)return 13;if(ly<4)return wx%3===0?12:0;if(ly===4)return 12;if(ly===5)return 14;return 0;
+  case 'P4':if((Le&&lx<2||Re&&lx>13)&&ly<6)return 17;if(ly===0)return 17;if(ly<4)return wx%5===0?18:16;if(ly===4)return 18;if(ly===5)return 15;return 0;
+  case 'P5':if(ly<5)return ly===0&&mh(wx,0,96)<0.3?20:(((wx+ly)>>1)&1?19:21);
+    if(ly<10&&mh(wx>>1,0,95)<0.2&&ly<5+mh(wx>>1,0,97)*5)return 19;if(ly===5)return 15;return 0;
+  }
+  return 0;
+}
+/* ---- 藤蔓(可攀爬格)---- */
+function mVine(s,wx,wy,lx){
+  switch(s){
+  case 'V0':{const ly=wy&15;if(lx>=6&&lx<10)return 19;if((lx>=3&&lx<7&&ly>=4&&ly<7)||(lx>=9&&lx<13&&ly>=10&&ly<13))return 20;return 0;}
+  case 'V1':{const a=7+Math.round(1.4*Math.sin(wy*0.35)),b=7+Math.round(1.4*Math.sin(wy*0.35+3.14));
+    if(lx===a||lx===a+1)return 19;if(lx===b||lx===b+1)return 21;const k=wy%7,L=(Math.floor(wy/7)&1);
+    if(k<2&&(L?(lx>=3&&lx<6):(lx>=10&&lx<13)))return 20;return 0;}
+  case 'V2':{const k=wy%12;if(k<6){if(lx<6||lx>9)return 0;const edge=lx===6||lx===9||k===0||k===5;
+      if(!edge)return 0;if((lx===6||lx===9)&&(k===0||k===5))return 0;return lx===6?13:12;}
+    if(lx===7||lx===8)return k===6||k===11?14:12;return 0;}
+  case 'V3':if(lx===4||lx===11)return 22;if(wy%6===0&&lx>4&&lx<11)return 10;return 0;
+  case 'V4':{const k=wy%10;if(k<2&&lx>=5&&lx<=10)return 12;if(lx===6||lx===9)return 14;if(lx===7||lx===8)return k===5?8:23;return 0;}
+  }
+  return 0;
+}
+/* ---- 烘焙一欄(16 像素寬 × 整張地圖高)---- */
+function matCol(tx){
+  const c=MAT.cfg,P=MAT.col,img=MAT.img,u=new Uint32Array(img.data.buffer),Hh=GH*TS;
+  u.fill(0);
+  let run=0;                                        // 上方連續實心格數
+  for(let ty=0;ty<GH;ty++){
+    const v=T(tx,ty),solid=isSolid(v);
+    const below=ty+1<GH?T(tx,ty+1):1,surfBelow=isSolid(below)&&!solid,L=!isSolid(T(tx-1,ty)),R=!isSolid(T(tx+1,ty)),Le=T(tx-1,ty)!==3,Re=T(tx+1,ty)!==3;
+    for(let ly=0;ly<16;ly++){const wy=ty*16+ly;
+      for(let lx=0;lx<16;lx++){const wx=tx*16+lx;let k=0,lv=0;
+        if(solid&&v===1){
+          const dp=run*16+ly;
+          k=dp<24?mTop(c.top,wx,dp):-1;
+          if(k<0){
+            if((L&&lx===0)||(R&&lx===15))k=7;
+            else if((c.top==='E3'||c.top==='E1'||c.top==='E6')&&((L&&lx<2)||(R&&lx>13))&&dp<26&&mh(wx,wy>>1,36)<0.6)k=c.top==='E3'?1:3;
+            else if(c.top==='E2'&&((L&&lx===1)||(R&&lx===14))&&mh(wy>>1,tx,37)<0.25)k=0;
+            else{k=mBody(c.body,wx,wy,lx,ly,dp,c.acc);lv=mLv(c.strata,wx,wy,dp);}
+          }
+        }else if(v===6){k=7;}
+        else{
+          if(surfBelow&&ly>=11&&v!==3){const d=mDeco(c.top,wx,15-ly);if(d>0)k=d;}
+          if(v===3){const p=mPlat(c.plat,wx,lx,ly,Le,Re);if(p)k=p;}
+          else if(v===2){const p=mVine(c.vine,wx,wy,lx);if(p)k=p;}
+        }
+        if(k>0)u[wy*16+lx]=P[lv][k];
+      }
+    }
+    run=solid?run+1:0;
+  }
+  MAT.cx.putImageData(img,tx*16,0);
+  MAT.done[tx]=1;
+}
+function matSync(x0,x1){
+  if(MAT.map!==map||MAT.w!==G.world){
+    MAT.map=map;MAT.w=G.world;MAT.cfg=matCfg();MAT.col=matPal(MAT.cfg);MAT.done=new Uint8Array(map.w);
+    if(MAT.cv.width!==map.w*TS||MAT.cv.height!==GH*TS){MAT.cv.width=map.w*TS;MAT.cv.height=GH*TS;}else MAT.cx.clearRect(0,0,MAT.cv.width,MAT.cv.height);
+    if(!MAT.img)MAT.img=MAT.cx.createImageData(16,GH*TS);
+  }
+  if(G.state==='intro'){let n=0;for(let x=x0;x<Math.min(map.w,x1+24)&&n<MAT_INTRO;x++)if(!MAT.done[x]){matCol(x);n++;}return;} // 暗幕下分幀烘焙(先可見、再前方)
+  for(let x=x0;x<=x1;x++)if(!MAT.done[x])matCol(x);   // 可見欄位立刻補齊
+  let n=0;for(let x=x1+1;x<Math.min(map.w,x1+24)&&n<MAT_STEP;x++)if(!MAT.done[x]){matCol(x);n++;} // 前方預烘焙
+}
+function matDirty(x){if(MAT.map===map&&MAT.done)for(let i=x-1;i<=x+1;i++)if(i>=0&&i<map.w)MAT.done[i]=0;}
+function drawTiles(){
+  const x0=Math.max(0,Math.floor(cam.x/TS)-1),x1=Math.min(map.w-1,Math.floor((cam.x+W)/TS)+1);
+  matSync(x0,x1);
+  ctx.drawImage(MAT.cv,x0*TS,0,(x1-x0+1)*TS,GH*TS,x0*TS,0,(x1-x0+1)*TS,GH*TS);PXD=1;
+  const hz=MAT.cfg.haz;
+  for(let y=0;y<map.h;y++)for(let x=x0;x<=x1;x++){
+    const v=T(x,y);if(v!==4&&v!==5)continue;const sx=x*TS,sy=y*TS;
+    if(v===4){ctx.globalAlpha=.45;px(sx,sy,TS,TS,'#2a6acc');ctx.globalAlpha=1;px(sx,sy,TS,2,'#6aa8ff');}
+    else matHaz(hz,sx,sy,x);
+  }
+}
+function matHaz(s,sx,sy,x){                         // 灼燒面:判定為格子頂端,外觀限制在上方 5 列內
+  if(s==='K1'){px(sx,sy,TS,5,'#2a1410');const g=0.5+0.5*Math.sin(G.t*0.12+x);
+    const c=g>0.6?'#ffd27a':'#ff6a2a';px(sx+1,sy+1,5,1,c);px(sx+5,sy+2,4,1,c);px(sx+9,sy+1,3,1,c);px(sx+11,sy+3,4,1,c);px(sx+2,sy+3,3,1,'#ff6a2a');
+    px(sx,sy+5,TS,2,'#00000040');px(sx+((G.t>>2)%TS),sy-3,3,3,'#ffd27a');return;}
+  if(s==='K2'){px(sx,sy+3,TS,2,'#3a3a46');for(let i=0;i<4;i++){const bx=sx+i*4;
+      px(bx+1,sy+1,2,2,'#aab4c6');px(bx,sy+2,1,1,'#6a7486');px(bx+3,sy+2,1,1,'#6a7486');px(bx+1,sy,2,1,'#ff4a3a');}
+    px(sx,sy+5,TS,2,'#00000040');return;}
+  if(s==='K3'){px(sx,sy+2,TS,3,'#3a1a40');for(let i=0;i<4;i++){const bx=sx+i*4+(i&1);
+      px(bx+1,sy,1,2,'#c050e0');px(bx,sy+1,3,1,'#8a2aa0');}
+    const b=(G.t+x*13)%40;if(b<20)px(sx+4+(x*5)%8,sy-1-(b>>3),2,2,'#b0ff5a');
+    px(sx,sy+5,TS,2,'#00000040');return;}
+  px(sx,sy,TS,5,'#ff6a2a');px(sx,sy+5,TS,2,'#802a10');px(sx+((G.t>>2)%TS),sy-3,3,3,'#ffd27a');
 }
 /* ========== 主角精靈(v0.4,純視覺) ==========
    - 精靈 12×18,判定框仍為 P 的 10×14:精靈第 1~10 欄、第 4~17 列 = 判定框,即精靈原點 (P.x-1, P.y-4)
