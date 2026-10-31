@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.5 武器效果(深灰槍身+武器色條/菱形彈頭+長漸細拖尾+深色描邊/火焰連續火舌+火星+尾端煙,Lv4 冷色層次/槍口十字星火光/命中白閃+武器色碎片回彈;判定與機制不變) -->
-<!-- 前版:v0.4 主角精靈(12×18 像素精靈,判定框 10×14 不變/銀白髮+瀏海+耳側感應器+深色布面罩/深緋紅長圍巾/待機·跑步4格·跳躍·攀爬·受擊/正上射與攀爬背面視角,攀爬背槍、射擊時單手持槍並側臉/冷白發光線條) -->
+<!-- VERSION: v0.5.1 火焰遮蔽修正(敵彈移到泛光之後並加深色描邊/火焰外層半透明 0.55、發光只留槍口三分之一段、火星不發光/燃燒敵人改深色剪影加火焰對比色外框,Lv1~3 在火焰下層、Lv4 在火焰上層;子彈命中閃白不變;判定與機制不變) -->
+<!-- 前版:v0.5 武器效果(深灰槍身+武器色條/菱形彈頭+長漸細拖尾+深色描邊/火焰連續火舌+火星+尾端煙,Lv4 冷色層次/槍口十字星火光/命中白閃+武器色碎片回彈;判定與機制不變) -->
 
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -396,6 +396,7 @@ function flameDPS(){return BASE_DMG*6*(wlvl===4?6.75:(wlvl===3?4.5:2.4));}  // �
 /* ========== 武器視覺(v0.5,純視覺:不改判定、射程、傷害與子彈出生點) ==========
    - 彈頭:菱形+深色描邊,依 32 個方向預先畫成小圖快取(HEADC),每顆子彈每幀只貼一張圖;拖尾 4 段漸細,只畫在彈頭後方
    - 火焰:連續火舌(外層破碎交錯)+火星+尾端煙;視覺寬約為判定錐一半(判定照舊為 flameHit 的錐形)
+     v0.5.1:外層兩團半透明(0.55),發光只登記靠槍口三分之一段,火星不發光,讓敵彈與敵人維持畫面最亮的層級
    - 槍口:前長後短十字星,3 幀遞減;命中:白閃 2 幀+3 片武器色碎片向後回彈(走既有粒子系統) */
 function vHash(a,b){let h=(a*374761393+b*668265263)|0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296;}
 function vRgb(c){const n=parseInt(c.slice(1),16);return[n>>16,n>>8&255,n&255];}
@@ -463,13 +464,13 @@ function drawFlame(){
       pts.push({x:m[0]+a0*d-a1*wob,y:m[1]+a1*d+a0*wob,hw,f,k});}
     for(let i=pts.length-1;i>=0;i--){const q=pts[i];if(q.f>0.3&&(q.k+(t>>2))%2)continue; // 外層:上下兩團交錯跳格,邊緣破碎
       const c=q.f<0.35?H_[1]:(q.f<0.72?H_[2]:H_[3]),o=q.hw*0.5,j=(vHash(q.k,t>>2)-0.5)*q.hw*0.4;
-      ctx.globalAlpha=0.95-0.45*q.f;fSq(q.x-a1*(o+j),q.y+a0*(o+j),q.hw*0.5,c);fSq(q.x+a1*(o-j),q.y-a0*(o-j),q.hw*0.5,c);}
+      ctx.globalAlpha=0.55*(1-0.35*q.f);fSq(q.x-a1*(o+j),q.y+a0*(o+j),q.hw*0.5,c);fSq(q.x+a1*(o-j),q.y-a0*(o-j),q.hw*0.5,c);}
     ctx.globalAlpha=1;
     for(let i=pts.length-1;i>=0;i--){const q=pts[i];if(q.f<=0.75)fSq(q.x,q.y,q.hw*0.45,q.f<0.4?H_[0]:H_[1]);}
     for(const q of pts)if(q.f<=0.3)fSq(q.x,q.y,q.hw*0.2,'#ffffff');
-    for(const q of pts)if(q.k%3===0)gl(q.x-q.hw-2,q.y-q.hw-2,q.hw*2+4,q.hw*2+4,q.f<0.5?H_[1]:H_[2],FX.core*0.7); // 發光層:火焰
+    for(const q of pts)if(q.k%3===0&&q.f<=0.34)gl(q.x-q.hw-2,q.y-q.hw-2,q.hw*2+4,q.hw*2+4,H_[1],FX.core*0.7); // 發光層:火焰(v0.5.1 只登記靠槍口三分之一段)
   }
-  for(const q of FLV.sp){const k=1-q.t/q.life;ctx.globalAlpha=k;px(q.x,q.y,q.t<4?2:1,1,q.c);gl(q.x-1,q.y-1,3,3,q.c,FX.core*k);}
+  for(const q of FLV.sp){const k=1-q.t/q.life;ctx.globalAlpha=k;px(q.x,q.y,q.t<4?2:1,1,q.c);} // v0.5.1:火星不再登記發光
   ctx.globalAlpha=1;
 }
 /* 槍口火光(v0.5 改為前長後短十字星):衝鋒槍/散彈槍開火後 3 幀遞減、火焰槍噴射期間小幅閃爍,顏色跟武器 */
@@ -2020,21 +2021,31 @@ function drawPlayer(){
   else pGunH(ox,gy,f,9,4);
   pGlow(ox,gy,f,[[3,5],[5,9],[5,10]]);
 }
+/* 敵人外形:[x,y,w,h,色,是否本體(受擊閃白)]。與 v0.5 的方塊完全相同,只是改成清單以便畫剪影 */
+function eRects(e){const x=e.x,y=e.y;
+  if(e.type==='grunt')return[[x,y,12,14,'#8a3a3a',1],[x+2,y+2,8,4,'#e8b070'],[x+(e.face>0?9:0),y+7,3,3,'#555']];
+  if(e.type==='runner')return[[x,y,12,14,'#a05a20',1],[x+3,y+3,6,3,'#ffd27a']];
+  if(e.type==='skel')return[[x,y,12,14,'#d8d2bc',1],[x+3,y+3,6,3,'#2a2a2a']];
+  if(e.type==='turret')return[[x,y+4,14,10,'#4a5a6a',1],[x+4,y,6,6,'#7a8a9a'],[x+(e.face>0?12:-2),y+6,4,3,'#222']];
+  if(e.type==='mortar')return[[x,y+6,14,8,'#5a4030',1],[x+3,y,8,8,'#8a6a4a'],[x+5,y-4,4,6,'#3a2a1a']];
+  return[[x,y+2,14,6,'#5a4a7a',1],[x+3,y,8,3,'#a08ad0'],[x+((G.t>>1)&1?0:10),y+8,4,2,'#d0c0ff']];}
+/* v0.5.1 燃燒剪影(C3):火焰燒到的敵人不閃白,改為深色剪影+1 像素外框;外框取火焰對比色(橘焰配青、藍白焰配黃)。
+   燃燒判斷直接呼叫 flameHit(純讀取,不改任何狀態);子彈與特攻命中仍照舊整隻閃白。
+   層級:Lv1~3 剪影畫在火焰下層(本函式),Lv4 火焰最亮,改在 drawFlame 之後由 drawBurnTop 畫在火焰上層。 */
+const SIL_C='#140c12';
+function burnTop(){return wlvl===4;}
+function drawSil(e){const R=eRects(e),oc=wlvl>=3?'#ffd23a':'#5ff0ff';
+  for(const r of R)px(r[0]-1,r[1]-1,r[2]+2,r[3]+2,oc);
+  for(const r of R)px(r[0],r[1],r[2],r[3],SIL_C);}
 function drawEnemies(){
+  const top=burnTop();
   for(const e of ens){
-    const x=e.x,y=e.y,hit=e.fx>0;
-    if(e.type==='grunt'){px(x,y,12,14,hit?'#fff':'#8a3a3a');px(x+2,y+2,8,4,'#e8b070');
-      px(x+(e.face>0?9:0),y+7,3,3,'#555');}
-    else if(e.type==='runner'){px(x,y,12,14,hit?'#fff':'#a05a20');px(x+3,y+3,6,3,'#ffd27a');}
-    else if(e.type==='skel'){px(x,y,12,14,hit?'#fff':'#d8d2bc');px(x+3,y+3,6,3,'#2a2a2a');}
-    else if(e.type==='turret'){px(x,y+4,14,10,hit?'#fff':'#4a5a6a');px(x+4,y,6,6,'#7a8a9a');
-      px(x+(e.face>0?12:-2),y+6,4,3,'#222');}
-    else if(e.type==='mortar'){px(x,y+6,14,8,hit?'#fff':'#5a4030');px(x+3,y,8,8,'#8a6a4a');
-      px(x+5,y-4,4,6,'#3a2a1a');}
-    else{px(x,y+2,14,6,hit?'#fff':'#5a4a7a');px(x+3,y,8,3,'#a08ad0');
-      px(x+((G.t>>1)&1?0:10),y+8,4,2,'#d0c0ff');}
+    if(flameHit(e)){if(!top)drawSil(e);continue;}
+    const hit=e.fx>0;
+    for(const r of eRects(e))px(r[0],r[1],r[2],r[3],(hit&&r[5])?'#fff':r[4]);
   }
 }
+function drawBurnTop(){if(!burnTop()||P.flameT<=0)return;for(const e of ens)if(flameHit(e))drawSil(e);}
 function drawItems(){
   for(const it of items){
     const x=it.x,y=it.y+Math.sin(it.t*0.1)*1;
@@ -2049,9 +2060,7 @@ function drawPlayerBullets(){ // 己方子彈:須畫在危險區判定之前,確
     glBul(b.x,b.y,b.r,b.c);}                      // 發光層:己方子彈
 }
 function drawMisc(){
-  for(const b of ebul){px(b.x-b.r,b.y-b.r,b.r*2,b.r*2,b.c);
-    px(b.x-1,b.y-1,2,2,'#fff');
-    glBul(b.x,b.y,b.r,b.c);}                      // 發光層:敵方子彈
+  for(const b of ebul)glBul(b.x,b.y,b.r,b.c);    // 發光層:敵方子彈(本體改由 drawEBulTop 在泛光之後畫,v0.5.1)
   for(const p of parts){const a=Math.max(0,1-p.t/p.life);
     ctx.globalAlpha=a;px(p.x,p.y,p.sz,p.sz,p.c);ctx.globalAlpha=1;
     gl(p.x-2,p.y-2,p.sz+4,p.sz+4,p.c,a*FX.core);} // 發光層:爆炸、火花、餘燼粒子
@@ -2066,6 +2075,18 @@ function drawMisc(){
     px(x+10,y+2,10,28,'#d0fff0');
     for(let i=0;i<5;i++)px(x+13-i,y-12+i*2,2+i*2,2,'#7affd0'); // 箭頭改像素三角形(v0.3):寬 2~10、高 10,位置同原 ▲ 字元
   }
+}
+/* v0.5.1 敵彈(火焰遮蔽修正 A):在泛光之後直接畫在輸出畫布,外加 1 個邏輯像素的深色描邊(TOUT)。
+   座標換算與遊戲畫面相同(世界座標 − 鏡頭 + 震動,再乘輸出倍率);形狀、大小、顏色與 v0.5 相同,判定未改。
+   發光仍由 drawMisc 照常登記,所以光暈保留,只是本體不再被加亮洗白。HUD 與疊層之後才畫,仍蓋在敵彈上。 */
+function drawEBulTop(ox,oy){
+  if(!ebul.length)return;
+  const k=PW/W,kh=PH/H,dx=ox-cam.x,dy=oy-cam.y;
+  for(const b of ebul){const X=Math.round(b.x-b.r)+dx,Y=Math.round(b.y-b.r)+dy,D=Math.round(b.r*2);
+    octx.fillStyle=TOUT;octx.fillRect(Math.round((X-1)*k),Math.round((Y-1)*kh),Math.round((D+2)*k),Math.round((D+2)*kh));
+    octx.fillStyle=b.c;octx.fillRect(Math.round(X*k),Math.round(Y*kh),Math.round(D*k),Math.round(D*kh));
+    const cx=Math.round(b.x-1)+dx,cy=Math.round(b.y-1)+dy;
+    octx.fillStyle='#fff';octx.fillRect(Math.round(cx*k),Math.round(cy*kh),Math.round(2*k),Math.round(2*kh));}
 }
 /* ========== HUD ========== */
 function drawHUD(){
@@ -2199,7 +2220,7 @@ function render(){
     drawTiles();
     if(boss&&boss.alive&&(boss.introT<=180))boss.def.draw(boss);
     drawItems();drawEnemies();
-    drawPlayer();drawFlame();drawMuzzle();drawPlayerBullets();  // 主角本體、火焰、槍口火光、己方子彈先畫
+    drawPlayer();drawFlame();drawBurnTop();drawMuzzle();drawPlayerBullets();  // 主角本體、火焰(Lv4 燃燒剪影蓋在火焰上)、槍口火光、己方子彈先畫
     if(boss&&boss.alive&&boss.introT<=0&&boss.def.fg)boss.def.fg(boss); // 魔王前景警示(需蓋在主角之上)
     drawHazards();                             // 危險區警示/判定一律蓋在主角攻擊特效之上,確保清晰可見
     drawMisc();                                // 子彈(敵彈最後畫,永遠可見)、粒子等
@@ -2207,6 +2228,7 @@ function render(){
   }
   ctx.restore();
   postComposite();                             // 第一段:遊戲畫面放大 + 倒影/泛光/霧/暈影
+  if(G.state!=='title'&&G.state!=='finish'&&G.state!=='levelselect')drawEBulTop(Math.round(sx),Math.round(sy)); // 敵彈:泛光之後,不被洗白
   // 第二段:HUD 與疊層(暫停、過場、選單)畫在泛光之上,沒畫任何方塊就不合成;文字以螢幕解析度畫在最上層(見「文字層」)
   ctx.clearRect(0,0,W,H);PXD=0;TPASS=1;
   if(G.state!=='title'&&G.state!=='finish'&&G.state!=='over'&&G.state!=='levelselect')drawHUD();
