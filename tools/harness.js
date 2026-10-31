@@ -4,10 +4,12 @@
 //   node tools/harness.js special [檔案]            特攻功能檢查:一般關清空與回充、各魔王扣血、6 王選單、7 王、4 王隱身、登場禁用
 //   node tools/harness.js bench <舊檔> <新檔> [輪數] 繪圖時間相對比較(沙盒數字,非測試機)
 //   node tools/harness.js shot <大關> <小關> <幀數> <輸出.png> [特攻=0/1] [檔案]   截一張遊戲畫面
+//   node tools/harness.js sheet <小關> <畫質 low/high> <輸出.png> [檔案] [FX設定,如 fv=V1,t7=B]  10 大關同一小關拼成 5×2 對照圖(每格 512×288)
 // [檔案] 省略時為 repo 根目錄的 index.html。環境變數 CHROME 可指定 Chrome 路徑。
 // 做法:載入前把 requestAnimationFrame 換成空函式,改由腳本手動呼叫 update()/render(),所以結果可重現、不受機器速度影響。
 const path=require('path');
 const {chromium}=require('playwright');
+const fs=require('fs');
 const ROOT=path.resolve(__dirname,'..');
 const CHROME=process.env.CHROME||'/usr/bin/google-chrome';
 const url=f=>'file://'+path.resolve(f||path.join(ROOT,'index.html'));
@@ -85,11 +87,23 @@ async function shot(w,s,frames,outp,sp,file){
     if(sp){G.charge=100;HX.press();if(G.modal&&G.modal.spPick)spPick('avg');}HX.run(f,false);render();},[+w,+s,+frames,+sp]);
   await pg.screenshot({path:outp});console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();
 }
+async function sheet(s,q,outp,file,opt){              // 10 大關對照拼圖:同一小關、同一畫質,鏡頭移到敵人最密段
+  const {br,pg,errs}=await open(file,{width:1024,height:576});
+  const data=await pg.evaluate(([s,q,opt])=>{
+    if(opt)for(const kv of opt.split(',')){const [k,v]=kv.split('=');FX[k]=v;}
+    if(typeof T7!=='undefined'&&FX.t7)THEME[6]=T7[FX.t7];
+    const sh=document.createElement('canvas');sh.width=512*5;sh.height=288*2;const sx=sh.getContext('2d');
+    for(let w=1;w<=10;w++){HX.go(w,s);FX.q=q;HX.run(s===5?320:20);if(s<5){HX.crowd();HX.run(90,true);}else HX.run(60,true);render();
+      sx.drawImage(cv,((w-1)%5)*512,Math.floor((w-1)/5)*288,512,288);}
+    return sh.toDataURL('image/png');},[+s,q,opt||'']);
+  fs.writeFileSync(outp,Buffer.from(data.split(',')[1],'base64'));console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();
+}
 
 (async()=>{const [cmd,...a]=process.argv.slice(2);let bad=0;
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
   else if(cmd==='bench')await bench(a[0],a[1],+a[2]||1);
   else if(cmd==='shot')await shot(a[0],a[1],a[2],a[3],a[4]||0,a[5]);
+  else if(cmd==='sheet')await sheet(a[0],a[1]||'low',a[2],a[3]||undefined,a[4]);
   else{console.log(require('fs').readFileSync(__filename,'utf8').split('\n').slice(0,9).join('\n'));}
   process.exit(bad?1:0);})();
