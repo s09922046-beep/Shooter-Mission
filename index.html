@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.6 特攻機制改版(使用者授權):轟炸機 P2 自畫面左緣飛入、鎖定標記 L2 琥珀、左下通訊字幕 T3、機腹投放追蹤飛彈 M2(尾跡 R3、爆炸 X1)命中才結算;魔王 4 枚各扣總血量 2%(最高優先級)、6 王目標選單、魔王登場期間不能施放 -->
+<!-- VERSION: v0.7 各關主題色套用共用光影:天空 8 階抖色漸層、主題光源(與星點同層視差 0.15,登記淡泛光)、背景霧兩條、地形後方環境粒子(每大關一種)、前景薄霧與暈影(像素畫法,高低畫質皆開);第 7 大關主題色改破曉前藍調晨霧;判定與機制不變 -->
+<!-- 前版:v0.6 特攻機制改版(使用者授權):轟炸機 P2 自畫面左緣飛入、鎖定標記 L2 琥珀、左下通訊字幕 T3、機腹投放追蹤飛彈 M2(尾跡 R3、爆炸 X1)命中才結算;魔王 4 枚各扣總血量 2%(最高優先級)、6 王目標選單、魔王登場期間不能施放 -->
 <!-- 前版:v0.5.2 敵彈拿掉深色描邊(仍畫在泛光之後;描邊只留在主角衝鋒槍與散彈彈頭);其餘同 v0.5.1 -->
 <!-- 前版:v0.5.1 火焰遮蔽修正(敵彈移到泛光之後並加深色描邊/火焰外層半透明 0.55、發光只留槍口三分之一段、火星不發光/燃燒敵人改深色剪影加火焰對比色外框,Lv1~3 在火焰下層、Lv4 在火焰上層;子彈命中閃白不變;判定與機制不變) -->
 
@@ -1730,12 +1731,109 @@ const THEME=[
  {sky:'#120e06',far:'#2c2410',mid:'#3e3418',gr:'#7a6a3a',gr2:'#4a4022'},
  {sky:'#050814',far:'#101a34',mid:'#182448',gr:'#40507a',gr2:'#26304c'},
  {sky:'#0e0808',far:'#241414',mid:'#341c1c',gr:'#6a4a44',gr2:'#402c2a'},
- {sky:'#0c0614',far:'#20103a',mid:'#2e1652',gr:'#5e3a8a',gr2:'#3a2454'},
+ {sky:'#3e5a66',far:'#56717a',mid:'#47636a',gr:'#5d8a6a',gr2:'#34503e'}, // v0.7:第 7 關改破曉前藍調晨霧(原紫色系)
  {sky:'#060c08',far:'#0e2416',mid:'#153420',gr:'#3a6a48',gr2:'#24402c'},
  {sky:'#04060c',far:'#0c1626',mid:'#122034',gr:'#2e4a5e',gr2:'#1c2c3a'},
  {sky:'#000000',far:'#100818',mid:'#1a0c26',gr:'#4a2a5a',gr2:'#2c1836'}
 ];
 function th(){return THEME[clamp(G.world-1,0,9)];}
+/* ========== 共用光影(v0.7,純視覺:不參與任何判定) ==========
+   天空漸層+主題光源、背景霧(遠景之間)、環境粒子(地形後方)、前景薄霧、暈影。
+   LIT[大關]:c=主題光色、gx/gy/gr=光源位置與半徑(螢幕座標)、star=星點色(null=不畫)、fog=霧色、pk=粒子種類 */
+const LIT=[
+ {c:'#6f8fd0',gx:400,gy:46,gr:34,star:'#7a8ab0',fog:'#3a5a8a',pk:'rust'},
+ {c:'#d0603a',gx:150,gy:52,gr:30,star:'#9a7a8a',fog:'#6a3040',pk:'ember'},
+ {c:'#3fa08a',gx:380,gy:50,gr:30,star:'#6aa898',fog:'#2a6a5a',pk:'spore'},
+ {c:'#b0a848',gx:330,gy:70,gr:46,star:'#a89a6a',fog:'#6a6a30',pk:'miasma'},
+ {c:'#40a0ff',gx:256,gy:40,gr:40,star:'#5a8ad0',fog:'#2a4a8a',pk:'data'},
+ {c:'#b04a34',gx:140,gy:60,gr:36,star:'#9a7070',fog:'#5a2a26',pk:'ash'},
+ {c:'#f0c890',gx:410,gy:150,gr:34,star:null,fog:'#e6eef0',pk:'mote',sky:['#2e4a58','#7a9a9c']}, // 第 7 關:天空上下色直接指定
+ {c:'#c8d098',gx:150,gy:44,gr:28,star:'#9aa88a',fog:'#3a5a3a',pk:'seed'},
+ {c:'#5a88d0',gx:430,gy:60,gr:22,star:'#8ab0e8',fog:'#1e3450',pk:'dust'},
+ {c:'#9a40c0',gx:256,gy:56,gr:44,star:'#8a5aa0',fog:'#3a1a4a',pk:'doom'}];
+/* 粒子:n=數量、c=色、vx/vy=速度範圍、sw=左右擺幅、sz=大小、L=橫向長度、bl=明滅、gw=登記發光(各關最多 8 顆) */
+const PK={
+ rust:{n:30,c:['#8a6a50','#6a5a50'],vx:[-.05,.05],vy:[-.03,.03],sw:.2,sz:[1,2]},
+ ember:{n:26,c:['#ff8a3c','#ffb05a','#c0401a'],vx:[-.1,.1],vy:[-.5,-.2],sw:.3,sz:[1,1],bl:1,gw:1},
+ spore:{n:28,c:['#6ad0a0','#3a9a7a'],vx:[-.05,.05],vy:[-.25,-.08],sw:.5,sz:[1,2]},
+ miasma:{n:30,c:['#b0b050','#8a9a3a'],vx:[-.05,.05],vy:[.04,.12],sw:.25,sz:[1,2]},
+ data:{n:22,c:['#5fd8ff','#2a8acc'],vx:[0,0],vy:[-.6,-.3],sw:0,sz:[1,1],H:2,bl:1,gw:1},
+ ash:{n:32,c:['#8a8080','#6a4a48','#a06050'],vx:[-.1,.05],vy:[.15,.35],sw:.4,sz:[1,2]},
+ mote:{n:24,c:['#f4f8ff','#e0f0ea'],vx:[-.04,.04],vy:[-.05,.02],sw:.3,sz:[1,1],bl:1},
+ seed:{n:26,c:['#e8e0b8','#c8c098'],vx:[.25,.5],vy:[-.05,.05],sw:.6,sz:[1,1]},
+ dust:{n:30,c:['#7aa8e0','#4a70b0'],vx:[-1.2,-.6],vy:[0,0],sw:0,sz:[1,1],L:[3,5]},
+ doom:{n:32,c:['#3a1a1a','#6a2020','#b060ff'],vx:[-.05,.05],vy:[.12,.3],sw:.3,sz:[1,2],gw:1,gwc:'#b060ff'}};
+const LT={key:0,sky:null,sun:null,fog:null,fogF:null,vig:null,pts:[],cx:0};
+const BAYER=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+function lit(){return LIT[clamp(G.world-1,0,9)];}
+function ltNoise(x,y,s){ // 可水平無縫的值雜訊(週期 512)
+  const g=(i,j)=>vHash(((i%(512/s))+(512/s))%(512/s),j);
+  const fx=x/s,fy=y/s,i=Math.floor(fx),j=Math.floor(fy),u=fx-i,v=fy-j,su=u*u*(3-2*u),sv=v*v*(3-2*v);
+  return (g(i,j)*(1-su)+g(i+1,j)*su)*(1-sv)+(g(i,j+1)*(1-su)+g(i+1,j+1)*su)*sv;
+}
+function ltBuild(){ // 換大關(或換預覽組合)時重建快取
+  const key=G.world;if(LT.key===key)return;LT.key=key;
+  const t=th(),L=lit();
+  const sk=L.sky;                               // 第 7 關晨霧:天空上下色直接指定
+  const top=sk?sk[0]:vMix(t.sky,0.4,0),bot=sk?sk[1]:vMix(vMix(t.sky,0.28,0),0.25,255);
+  const [r1,g1,b1]=vRgb(top),[r2,g2,b2]=vRgb(bot),[lr,lg,lb]=vRgb(L.c);
+  // 天空:由上而下漸層,8 階加 4×4 抖色(像素感);下緣混入少量主題光色
+  let [c,x]=mkCv(W,H);const im=x.createImageData(W,H),d=im.data;
+  for(let y=0;y<H;y++)for(let i=0;i<W;i++){let k=y/H;k=Math.floor(k*8+BAYER[(y&3)*4+(i&3)]/16)/8;
+    const hl=Math.max(0,k-0.5)*0.35,o=(y*W+i)*4;
+    d[o]=r1+(r2-r1)*k+(lr-r1)*hl;d[o+1]=g1+(g2-g1)*k+(lg-g1)*hl;d[o+2]=b1+(b2-b1)*k+(lb-b1)*hl;d[o+3]=255;}
+  x.putImageData(im,0,0);
+  // 主題光源:三圈抖色光暈+實心核心(核心刻意不亮,保持敵彈為畫面最亮)
+  x.globalAlpha=1;LT.sky=c;
+  // 主題光源:獨立小圖,隨背景極慢視差移動(見 drawBG)
+  const R=L.gr;[c,x]=mkCv(R*2+1,R*2+1);x.fillStyle=L.c;
+  for(let y=-R;y<=R;y++)for(let i=-R;i<=R;i++){const r=Math.hypot(i,y)/R;if(r>1)continue;
+    if(r<0.32){x.globalAlpha=0.6;x.fillRect(R+i,R+y,1,1);continue;}         // 核心(刻意不到全亮,讓敵彈維持最亮)
+    const a=0.5*(1-r)*(1-r);if(a*16<=BAYER[((y+64)&3)*4+((i+64)&3)])continue;  // 光暈:抖色,向外快速淡出
+    x.globalAlpha=0.3;x.fillRect(R+i,R+y,1,1);}
+  x.globalAlpha=1;LT.sun=c;
+  // 霧:寬 512(水平無縫)、高 64 的雜訊帶,上下淡出
+  const mkFog=(dither,seed,amp)=>{const [fc,fx]=mkCv(W,64),fi=fx.createImageData(W,64),fd=fi.data,[r,g,b]=vRgb(L.fog);
+    for(let y=0;y<64;y++)for(let i=0;i<W;i++){const prof=Math.sin(y/63*Math.PI),n=ltNoise(i,y+seed,32)*0.65+ltNoise(i,y+seed,8)*0.35;
+      let a=prof*Math.max(0,n-0.25)/0.75*amp;
+      if(dither){a=Math.floor(a*5+BAYER[(y&3)*4+(i&3)]/16)/5;}
+      const o=(y*W+i)*4;fd[o]=r;fd[o+1]=g;fd[o+2]=b;fd[o+3]=a*255;}
+    fx.putImageData(fi,0,0);return fc;};
+  LT.fog=mkFog(true,0,0.55);LT.fogF=mkFog(true,97,0.45);
+  // 暈影:四角壓暗,色調取天空最暗色
+  const vg=(dither)=>{const [vc,vx]=mkCv(W,H),vi=vx.createImageData(W,H),vd=vi.data,[r,g,b]=vRgb(vMix(t.sky,0.6,0));
+    for(let y=0;y<H;y++)for(let i=0;i<W;i++){const dx=(i-W/2)/(W/2),dy=(y-H/2)/(H/2),q=Math.sqrt(dx*dx*0.8+dy*dy*1.1);
+      let a=clamp((q-0.62)/0.62,0,1);a=a*a*0.55;if(dither)a=Math.floor(a*6+BAYER[(y&3)*4+(i&3)]/16)/6;
+      const o=(y*W+i)*4;vd[o]=r;vd[o+1]=g;vd[o+2]=b;vd[o+3]=a*255;}
+    vx.putImageData(vi,0,0);return vc;};
+  LT.vig=vg(true);
+  // 粒子
+  const K_=PK[L.pk];LT.pts=[];
+  for(let i=0;i<K_.n;i++)LT.pts.push({x:rnd(0,W),y:rnd(0,H),vx:rnd(K_.vx[0],K_.vx[1]),vy:rnd(K_.vy[0],K_.vy[1]),
+    ph:rnd(0,6.283),c:K_.gwc&&i<6?K_.gwc:pick(K_.gwc?K_.c.slice(0,-1):K_.c),sz:ri(K_.sz[0],K_.sz[1]),L:K_.L?ri(K_.L[0],K_.L[1]):0,g:K_.gw&&(!K_.gwc||i<6)&&i<8});
+  LT.cx=cam.x;
+}
+function ltBand(img,y,par,drift){ // 霧帶:隨鏡頭視差捲動並緩慢漂移,水平無縫重複
+  const o=(((-cam.x*par-G.t*drift)%W)+W)%W;
+  ctx.drawImage(img,Math.round(o)-W,y);ctx.drawImage(img,Math.round(o),y);
+}
+function ltParticles(){
+  const K_=PK[lit().pk],run=G.state==='play'&&!G.paused&&!G.modal,dc=cam.x-LT.cx;LT.cx=cam.x;
+  for(const p of LT.pts){
+    if(run){p.x+=p.vx+Math.sin(G.t*0.02+p.ph)*K_.sw*0.1;p.y+=p.vy;}
+    p.x-=dc*0.6;                                  // 與中景接近的視差
+    if(p.x<-6)p.x+=W+12;else if(p.x>W+6)p.x-=W+12;if(p.y<-4)p.y+=H+8;else if(p.y>H+4)p.y-=H+8;
+    let a=1;if(K_.bl)a=0.45+0.55*Math.abs(Math.sin(G.t*0.05+p.ph));
+    ctx.globalAlpha=a;
+    if(p.L)px(p.x,p.y,p.L,1,p.c);else px(p.x,p.y,p.sz,K_.H||p.sz,p.c);
+    if(p.g)gl(p.x-1,p.y-1,p.sz+2,(K_.H||p.sz)+2,p.c,a*0.5);
+  }
+  ctx.globalAlpha=1;
+}
+function drawAtmoTop(){ // 前景薄霧與暈影(像素畫法:畫在 512×288 遊戲畫面,螢幕座標,不隨震動;使用者 10/31 選定 V2)
+  ltBand(LT.fogF,H-58,1.25,0.15);
+  ctx.drawImage(LT.vig,0,0);
+}
 
 /* ========== 流程 ========== */
 function startLevel(){
@@ -1848,7 +1946,7 @@ function updateParticles(){
    後製流程(每幀):
      1. 遊戲畫面畫進 gcv(512×288),會發光的東西同時用 gl() 登記到發光層 glc
      2. gcv 以最近鄰放大到輸出畫布(像素保持銳利)
-     3. 倒影(預留,本版未實作)→ 泛光 → 霧(預留)→ 暈影(預留)
+     3. 倒影(預留,本版未實作)→ 泛光;霧與暈影 v0.7 起改畫在遊戲畫面內(像素畫法,見「共用光影」)
      4. HUD 與各種疊層(暫停、過場、選單)最後才畫,不會被泛光影響;其中文字由 tFlush() 以螢幕解析度直接畫在輸出畫布(v0.3)
    泛光做法:發光層連續縮半(1/2→1/4→1/8),小圖上合成後一次放大以「加亮」疊回。
    不使用 ctx.filter 模糊,全解析度只付出一次加亮合成的成本。 */
@@ -1900,8 +1998,8 @@ function postBloom(){
   if(a>1){octx.globalAlpha=a-1;octx.drawImage(src,0,0,PW,PH);} // 強度超過 1 時才多疊一次
   octx.globalAlpha=1;octx.globalCompositeOperation='source-over';
 }
-function postFog(){/* 預留:霧層(高畫質才啟用) */}
-function postVignette(){/* 預留:暈影(高畫質才啟用) */}
+/* v0.7:霧與暈影改用像素畫法,畫在 512×288 遊戲畫面(drawBG、drawAtmoTop),高低畫質都開;
+   平滑畫法(放大後再疊)沙盒量測繪圖 +50%,不採用,故不再有 postFog/postVignette。 */
 function postComposite(){
   octx.imageSmoothingEnabled=false;
   octx.globalCompositeOperation='copy';
@@ -1909,7 +2007,6 @@ function postComposite(){
   octx.globalCompositeOperation='source-over';
   if(FX.q==='high')postReflect();
   postBloom();
-  if(FX.q==='high'){postFog();postVignette();}
 }
 const fxToastEl=document.getElementById('fxToast');let fxToastTm=0;
 function fxToast(s){fxToastEl.textContent=s;fxToastEl.style.display='block';
@@ -1968,14 +2065,21 @@ function perfRec(ts,frameDt,jsMs){
 }
 /* ========== 繪圖 ========== */
 function drawBG(){
-  const t=th();
-  px(0,0,W,H,t.sky);
-  for(let i=0;i<26;i++){const x=(i*97+((i*37)%53))%600-cam.x*0.15;
-    px(((x%600)+600)%600-40,(i*11)%120+8,2,2,'#7a8ab0');}
+  const t=th(),L=lit();ltBuild();
+  ctx.drawImage(LT.sky,0,0);PXD=1;                // v0.7:天空漸層(快取)
+  const sx=Math.round(L.gx-cam.x*0.15);           // 主題光源:與星點同一層視差(0.15),固定在天空上,走遠了會自然離開畫面
+  if(sx>-L.gr&&sx<W+L.gr)ctx.drawImage(LT.sun,sx-L.gr,L.gy-L.gr);
+  if(sx>-L.gr&&sx<W+L.gr){gctx.globalAlpha=0.14;gctx.fillStyle=L.c;gctx.beginPath();gctx.arc(sx,L.gy,L.gr*0.4,0,6.283);gctx.fill();gctx.globalAlpha=1;FX.n++;} // 光源淡淡登記泛光
+  if(L.star)for(let i=0;i<26;i++){const x=(i*97+((i*37)%53))%600-cam.x*0.15;
+    if(((i*7)&3)===0)ctx.globalAlpha=0.5+0.5*Math.abs(Math.sin(G.t*0.03+i));
+    px(((x%600)+600)%600-40,(i*11)%120+8,2,2,L.star);ctx.globalAlpha=1;}
   for(let i=0;i<10;i++){const w=90,x=((i*140-cam.x*0.3)%1400+1400)%1400-200;
     px(x,H-100-((i*31)%46),w,120,t.far);}
+  ltBand(LT.fog,H-150,0.4,0.05);                 // 背景霧 1:遠景與中景之間
   for(let i=0;i<14;i++){const w=70,x=((i*110-cam.x*0.55)%1540+1540)%1540-200;
     px(x,H-70-((i*23)%34),w,100,t.mid);}
+  ltBand(LT.fog,H-112,0.7,0.1);                  // 背景霧 2:中景與地形之間
+  ltParticles();                                 // 環境粒子(地形後方,不擋角色)
 }
 function drawTiles(){
   const t=th();
@@ -2368,6 +2472,7 @@ function render(){
     ctx.restore();
   }
   ctx.restore();
+  if(G.state!=='title'&&G.state!=='finish'&&G.state!=='levelselect')drawAtmoTop(); // v0.7 前景薄霧、暈影(像素畫法)
   postComposite();                             // 第一段:遊戲畫面放大 + 倒影/泛光/霧/暈影
   if(G.state!=='title'&&G.state!=='finish'&&G.state!=='levelselect')drawEBulTop(Math.round(sx),Math.round(sy)); // 敵彈:泛光之後,不被洗白
   // 第二段:HUD 與疊層(暫停、過場、選單)畫在泛光之上,沒畫任何方塊就不合成;文字以螢幕解析度畫在最上層(見「文字層」)
