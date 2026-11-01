@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.8.1 地面烘焙跳過空白格(修 10 王第三型態換圖時的單幀尖峰);移除從未使用的圖磚類型 6;其餘同 v0.8 -->
+<!-- VERSION: v0.9 一般小關視野上移 2 格(鏡頭 cam.y=-32,只影響顯示;王關不動);背景遠景、中景、兩條背景霧依垂直視差下移,第 7 關朝陽隨背景霧 1 下移;判定與機制不變 -->
+<!-- 前版:v0.8.1 地面烘焙跳過空白格(修 10 王第三型態換圖時的單幀尖峰);移除從未使用的圖磚類型 6;其餘同 v0.8 -->
 <!-- 前版:v0.8 地面材質依大關區隔:實心地面、單向平台、攀爬物、灼燒面逐關換材質(預先烘焙快取),本體明度壓低;第 1~6、8、9 關地面色改建議色 -->
 <!-- 前版:v0.7.2 F3 效能面板加「特攻粒子」欄(本秒與本場峰值);其餘同 v0.7.1 -->
 <!-- 前版:v0.7.1 F3 效能面板「本秒」加「環境粒子」欄(共用光影的背景粒子數);其餘同 v0.7 -->
@@ -267,6 +268,10 @@ function safeGroundY(x){ // 站上去撿道具時,身體所在那格不能是傷
   return gy;
 }
 let cam={x:0,y:0};
+/* v0.9 視野上移(使用者 11/1 定案):一般小關鏡頭固定 cam.y=-VSHIFT,畫面上方多露出 2 格天空、下方少 2 格地面;只影響顯示。
+   王關維持 0。上移 2 格時子彈上緣出界判定(y<-40)仍在畫面外,不必改;若改 3 格以上須一併處理(屬邏輯)。 */
+const VSHIFT=32;
+function camY(){return boss?0:-VSHIFT;}
 /* ========== 遊戲全域狀態 ========== */
 const G={
   state:'title', world:1, sub:1, score:0, charge:0,
@@ -959,7 +964,7 @@ function genLevel(world,sub){
   }
   // 出生點
   P.x=32;P.y=(gyStart(groundCols)-1)*TS;P.vx=0;P.vy=0;P.climb=false;P.safeX=P.x;P.safeY=P.y;
-  cam.x=0;cam.y=0;G.conveyor=0;G.noSpecial=false;endT=0;
+  cam.x=0;cam.y=-VSHIFT;G.conveyor=0;G.noSpecial=false;endT=0; // v0.9:開場暗幕期間就套用上移
 }
 function gyStart(cols){return cols.length?cols[0].y:12;}
 
@@ -1752,7 +1757,7 @@ const LIT=[
  {c:'#b0a848',gx:330,gy:70,gr:46,star:'#a89a6a',fog:'#6a6a30',pk:'miasma'},
  {c:'#40a0ff',gx:256,gy:40,gr:40,star:'#5a8ad0',fog:'#2a4a8a',pk:'data'},
  {c:'#b04a34',gx:140,gy:60,gr:36,star:'#9a7070',fog:'#5a2a26',pk:'ash'},
- {c:'#f0c890',gx:410,gy:150,gr:34,star:null,fog:'#e6eef0',pk:'mote',sky:['#2e4a58','#7a9a9c']}, // 第 7 關:天空上下色直接指定
+ {c:'#f0c890',gx:410,gy:150,gr:34,star:null,fog:'#e6eef0',pk:'mote',hz:1,sky:['#2e4a58','#7a9a9c']}, // 第 7 關:天空上下色直接指定;hz=朝陽坐在背景霧 1 上,隨視野上移一起下移
  {c:'#c8d098',gx:150,gy:44,gr:28,star:'#9aa88a',fog:'#3a5a3a',pk:'seed'},
  {c:'#5a88d0',gx:430,gy:60,gr:22,star:'#8ab0e8',fog:'#1e3450',pk:'dust'},
  {c:'#9a40c0',gx:256,gy:56,gr:44,star:'#8a5aa0',fog:'#3a1a4a',pk:'doom'}];
@@ -1934,14 +1939,12 @@ function update(){
   if(!boss&&!portal){ // 保底:卡在關尾偵測不到終點時,10 秒後強制開門
     if(P.x>(map.w-14)*TS){endT++;if(endT>600)spawnPortal();}else endT=0;
   }else endT=0;
-  // 鏡頭:水平維持原本跟隨;垂直完全固定不動(不逐幀變動,不會抖動)。
-  // 手機版一般小關額外套用一個「固定不變」的上緣安全邊界:犧牲畫面最下方一點點地面(通常只是純地板,資訊量低),
-  // 換取最上方多一點緩衝,避免裝置本身的畫面元素蓋住剛好在最頂端誕生的高空敵人
+  // 鏡頭:水平維持原本跟隨;垂直固定不動(不逐幀變動,不會抖動):一般小關上移 2 格(v0.9),王關 0
   const tx=clamp(P.x+5-W/2,0,Math.max(0,map.w*TS-W));
   cam.x+=(tx-cam.x)*0.22;
   if(map.w*TS<=W)cam.x=0;
   cam.x=Math.round(cam.x);
-  cam.y=0;
+  cam.y=camY();
 }
 function updateParticles(){
   for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.x+=p.vx;p.y+=p.vy;p.vy+=0.08;p.t++;
@@ -2072,19 +2075,20 @@ function perfRec(ts,frameDt,jsMs){
 /* ========== 繪圖 ========== */
 function drawBG(){
   const t=th(),L=lit();ltBuild();
+  const V=-cam.y,bo=p=>Math.round(V*p),gy=L.gy+(L.hz?bo(0.4):0); // v0.9 垂直視差:各層下移量=視野上移量×該層水平視差係數(遠景 10、霧 1 13、中景 18、霧 2 22 像素)
   ctx.drawImage(LT.sky,0,0);PXD=1;                // v0.7:天空漸層(快取)
   const sx=Math.round(L.gx-cam.x*0.15);           // 主題光源:與星點同一層視差(0.15),固定在天空上,走遠了會自然離開畫面
-  if(sx>-L.gr&&sx<W+L.gr)ctx.drawImage(LT.sun,sx-L.gr,L.gy-L.gr);
-  if(sx>-L.gr&&sx<W+L.gr){gctx.globalAlpha=0.14;gctx.fillStyle=L.c;gctx.beginPath();gctx.arc(sx,L.gy,L.gr*0.4,0,6.283);gctx.fill();gctx.globalAlpha=1;FX.n++;} // 光源淡淡登記泛光
+  if(sx>-L.gr&&sx<W+L.gr)ctx.drawImage(LT.sun,sx-L.gr,gy-L.gr);
+  if(sx>-L.gr&&sx<W+L.gr){gctx.globalAlpha=0.14;gctx.fillStyle=L.c;gctx.beginPath();gctx.arc(sx,gy,L.gr*0.4,0,6.283);gctx.fill();gctx.globalAlpha=1;FX.n++;} // 光源淡淡登記泛光
   if(L.star)for(let i=0;i<26;i++){const x=(i*97+((i*37)%53))%600-cam.x*0.15;
     if(((i*7)&3)===0)ctx.globalAlpha=0.5+0.5*Math.abs(Math.sin(G.t*0.03+i));
     px(((x%600)+600)%600-40,(i*11)%120+8,2,2,L.star);ctx.globalAlpha=1;}
   for(let i=0;i<10;i++){const w=90,x=((i*140-cam.x*0.3)%1400+1400)%1400-200;
-    px(x,H-100-((i*31)%46),w,120,t.far);}
-  ltBand(LT.fog,H-150,0.4,0.05);                 // 背景霧 1:遠景與中景之間
+    px(x,H-100-((i*31)%46)+bo(0.3),w,120,t.far);}
+  ltBand(LT.fog,H-150+bo(0.4),0.4,0.05);                 // 背景霧 1:遠景與中景之間
   for(let i=0;i<14;i++){const w=70,x=((i*110-cam.x*0.55)%1540+1540)%1540-200;
-    px(x,H-70-((i*23)%34),w,100,t.mid);}
-  ltBand(LT.fog,H-112,0.7,0.1);                  // 背景霧 2:中景與地形之間
+    px(x,H-70-((i*23)%34)+bo(0.55),w,100,t.mid);}
+  ltBand(LT.fog,H-112+bo(0.7),0.7,0.1);                  // 背景霧 2:中景與地形之間
   ltParticles();                                 // 環境粒子(地形後方,不擋角色)
 }
 /* ========== 地面材質(v0.8,純視覺)==========
