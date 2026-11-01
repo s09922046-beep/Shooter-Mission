@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.9 一般小關視野上移 2 格(鏡頭 cam.y=-32,只影響顯示;王關不動);背景遠景、中景、兩條背景霧依垂直視差下移,第 7 關朝陽隨背景霧 1 下移;判定與機制不變 -->
-<!-- 前版:v0.8.1 地面烘焙跳過空白格(修 10 王第三型態換圖時的單幀尖峰);移除從未使用的圖磚類型 6;其餘同 v0.8 -->
+<!-- VERSION: v0.10 道具精靈:生命 L1 立體心形、武器箱 W1 深灰金屬箱加武器色上緣與黑窗圖示,兩者加呼吸式微光;王關道具消失前最後 3 秒閃爍;拾取判定、掉落與存活時間不變 -->
+<!-- 前版:v0.9 一般小關視野上移 2 格(cam.y=-32,只影響顯示;王關不動);背景依垂直視差下移;判定與機制不變 -->
 <!-- 前版:v0.8 地面材質依大關區隔:實心地面、單向平台、攀爬物、灼燒面逐關換材質(預先烘焙快取),本體明度壓低;第 1~6、8、9 關地面色改建議色 -->
 <!-- 前版:v0.7.2 F3 效能面板加「特攻粒子」欄(本秒與本場峰值);其餘同 v0.7.1 -->
 <!-- 前版:v0.7.1 F3 效能面板「本秒」加「環境粒子」欄(共用光影的背景粒子數);其餘同 v0.7 -->
@@ -2461,13 +2461,32 @@ function drawEnemies(){
   }
 }
 function drawBurnTop(){if(!burnTop()||P.flameT<=0)return;for(const e of ens)if(flameHit(e))drawSil(e);}
+/* v0.10 道具精靈(使用者選定):生命 L1 立體心形;武器箱 W1 深灰金屬箱,上緣武器色、黑窗內武器色圖示(SMG 子彈、FLAME 火焰、SHOT 扇形);
+   兩者加呼吸式微光(每個道具 1 筆 gl)。王關道具最後 180 幀閃爍(前 2 秒每 8 幀、最後 1 秒每 4 幀切換),閃爍隱藏時仍可拾取。
+   全部 10 關共用同一套外觀;精靈在載入時預先畫成小圖,每幀只貼一張。拾取判定 12×12、掉落與存活時間未改。 */
+const IT_LIFE={p:{O:'#5a0c22',R:'#ff4a6a',H:'#ffd0da',D:'#c02848'},m:[
+  '..OOO..OOO..','.OHHROORRRO.','OHHRRRRRRRDO','OHRRRRRRRRDO','ORRRRRRRRRDO',
+  '.ORRRRRRRDO.','..ORRRRRDO..','...ORRRDO...','....ORDO....','.....OO.....']};
+const IT_BOX={p:{O:'#121418',B:'#4a4f5a',T:'#6a717e',K:'#0e1014',S:'#8a93a8'},m:[
+  'OOOOOOOOOOOO','OWWWWWWWWWWO','OTTTTTTTTTTO','OBKKKKKKKKBO','OBKKKKKKKKBO','OBKKKKKKKKBO',
+  'OBKKKKKKKKBO','OBKKKKKKKKBO','OBKKKKKKKKBO','OBKKKKKKKKBO','OSBBBBBBBBSO','OOOOOOOOOOOO']};
+const IT_GLY={smg:['..XX..','.XXXX.','.XXXX.','.XXXX.','.XXXX.'],
+  flame:['..X...','..XX..','.XXXX.','XXXXXX','.XXXX.'],
+  shot:['X.XX.X','.XXXX.','..XX..','..XX..','..XX..']};
+function itBake(m,p,ex){const c=document.createElement('canvas');c.width=12;c.height=12;const g=c.getContext('2d');
+  for(let r=0;r<m.length;r++)for(let k=0;k<m[r].length;k++){const ch=m[r][k];if(ch==='.')continue;g.fillStyle=p[ch]||ex;g.fillRect(k,r,1,1);}
+  return c;}
+const ITC={life:itBake(IT_LIFE.m,IT_LIFE.p)};
+for(const t in IT_GLY){const c=itBake(IT_BOX.m,IT_BOX.p,WCOL[t]),g=c.getContext('2d');g.fillStyle=WCOL[t];
+  IT_GLY[t].forEach((row,r)=>{for(let k=0;k<6;k++)if(row[k]==='X')g.fillRect(3+k,4+r,1,1);});ITC[t]=c;}
+function itBlink(it){if(!boss||it.t<=420)return false;return it.t>540?((it.t>>2)&1)===1:((it.t>>3)&1)===1;}
 function drawItems(){
   for(const it of items){
-    const x=it.x,y=it.y+Math.sin(it.t*0.1)*1;
-    if(it.kind==='life'){px(x+2,y+2,3,3,'#ff4a6a');px(x+7,y+2,3,3,'#ff4a6a');
-      px(x+1,y+4,10,3,'#ff4a6a');px(x+3,y+7,6,2,'#ff4a6a');px(x+5,y+9,2,2,'#ff4a6a');}
-    else{const c=WCOL[it.wt];px(x,y,12,12,'#6a4a2a');px(x+1,y+1,10,10,c);
-      px(x+1,y+5,10,2,'#6a4a2a');px(x+5,y+1,2,10,'#6a4a2a');}
+    if(itBlink(it))continue;
+    const x=Math.round(it.x),y=Math.round(it.y+Math.sin(it.t*0.1)*1),a=0.18+0.12*Math.sin(it.t*0.12);
+    if(it.kind==='life'){ctx.drawImage(ITC.life,x,y+1);gl(x+1,y+2,10,8,'#ff4a6a',a);}
+    else{ctx.drawImage(ITC[it.wt],x,y);gl(x+1,y+2,10,9,WCOL[it.wt],a);}
+    PXD=1;
   }
 }
 function drawPlayerBullets(){ // 己方子彈:須畫在危險區判定之前,確保不會蓋住敵方攻擊警示
