@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.10 道具精靈:生命 L1 立體心形、武器箱 W1 深灰金屬箱加武器色上緣與黑窗圖示,兩者加呼吸式微光;王關道具消失前最後 3 秒閃爍;拾取判定、掉落與存活時間不變 -->
-<!-- 前版:v0.9 一般小關視野上移 2 格(cam.y=-32,只影響顯示;王關不動);背景依垂直視差下移;判定與機制不變 -->
+<!-- VERSION: v0.10.1 敵人掉落改為單次擲骰(使用者授權):一隻敵人最多掉一樣,武器箱與生命各自機率不變;其餘同 v0.10 -->
+<!-- 前版:v0.10 道具精靈(生命 L1、武器箱 W1 圖示、微光、王關道具消失前 3 秒閃爍) -->
 <!-- 前版:v0.8 地面材質依大關區隔:實心地面、單向平台、攀爬物、灼燒面逐關換材質(預先烘焙快取),本體明度壓低;第 1~6、8、9 關地面色改建議色 -->
 <!-- 前版:v0.7.2 F3 效能面板加「特攻粒子」欄(本秒與本場峰值);其餘同 v0.7.1 -->
 <!-- 前版:v0.7.1 F3 效能面板「本秒」加「環境粒子」欄(共用光影的背景粒子數);其餘同 v0.7 -->
@@ -640,8 +640,10 @@ function killEnemy(e,i){
   const f=G.world<=3?1:Math.max(0.5,1-0.08*(G.world-3));
   const wr=(hasUpgrade()?0.25:0.35)*f;                 // 各敵人獨立計算:有強化25%、無強化35%
   const hr=0.10*(wlvl===3?1.2:1)*f;                    // 滿強化時生命掉落率x1.2
-  if(Math.random()<wr)dropCrate(gx-4,findGroundY(gx)-40);
-  if(Math.random()<hr)items.push({kind:'life',x:gx-3,y:findGroundY(gx)-40,vy:-1.6,t:0});
+  // v0.10.1(使用者 11/1 授權):改為單次擲骰切三段,一隻敵人最多掉一樣;武器箱 wr、生命 hr 各自機率與平均掉落數不變,只去掉兩樣同時掉落的情形
+  const dr=Math.random();
+  if(dr<wr)dropCrate(gx-4,findGroundY(gx)-40);
+  else if(dr<wr+hr)items.push({kind:'life',x:gx-3,y:findGroundY(gx)-40,vy:-1.6,t:0});
 }
 function hasUpgrade(){return !(wep==='smg'&&wlvl===1);}
 function dropCrate(x,y){
