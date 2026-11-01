@@ -11,6 +11,7 @@
 | `node tools/harness.js bench <舊檔> <新檔> [輪數]` | 繪圖時間相對比較(沙盒數字,不能代替測試機) |
 | `node tools/harness.js shot <大關> <小關> <幀數> <輸出.png> [特攻 0/1]` | 截一張遊戲畫面(截圖前先把可見地面烘完,v0.10 修正:只跑 `update` 時地面快取來不及烘焙) |
 | `node tools/harness.js sheet <小關> <low/high> <輸出.png> [檔案] [FX設定]` | 10 大關同一小關拼成 5×2 對照圖(每格 512×288);FX 設定如 `q=high`,用於預覽期切換方案;`seed=N` 固定亂數,新舊版可用同一批地圖對照 |
+| `node tools/harness.js vine [種子數]` | 繩梯攀爬測試(v0.11):每條可攀欄段按鍵模擬,從底爬到頂、站上頂端、再爬回底部;一般小關固定種子,王關與 10 王第三型態另測 |
 | `node tools/harness.js vshift <每關種子數> <輸出前綴> [檔案] [FX設定]` | 視野壓力測試(v0.9):固定種子生成大量一般小關,輸出地表高度統計與每大關地形最低段落的對照圖 |
 
 檔案參數省略時測試 repo 根目錄的 `index.html`。Chrome 不在 `/usr/bin/google-chrome` 時,用環境變數 `CHROME` 指定。
