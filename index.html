@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.11 繩梯斷口修正(使用者授權):繩梯穿過的單向平台格可攀爬,繩梯從平台後方穿過、頂格只畫把手(C 案);其餘同 v0.10.1 -->
+<!-- VERSION: v0.12 雜兵精靈(機械系):第 1、5、9 關 8 種雜兵改為像素精靈(走路 2 格、飛行類 4 格,燃燒剪影依輪廓自動產生、受擊只白化本體色),配色 1 鏽紅鐵+鏽斑、5 白瓷+發光線條、9 暗紫+霜晶;其餘大關暫用舊方塊;判定框與行為不變 -->
+<!-- 前版: v0.11 繩梯斷口修正(使用者授權):繩梯穿過的單向平台格可攀爬,繩梯從平台後方穿過、頂格只畫把手(C 案);其餘同 v0.10.1 -->
 <!-- 前版:v0.10.1 敵人掉落改為單次擲骰(使用者授權):一隻敵人最多掉一樣,武器箱與生命各自機率不變 -->
 <!-- 前版:v0.8 地面材質依大關區隔:實心地面、單向平台、攀爬物、灼燒面逐關換材質(預先烘焙快取),本體明度壓低;第 1~6、8、9 關地面色改建議色 -->
 <!-- 前版:v0.7.2 F3 效能面板加「特攻粒子」欄(本秒與本場峰值);其餘同 v0.7.1 -->
@@ -2441,7 +2442,84 @@ function drawPlayer(){
   else pGunH(ox,gy,f,9,4);
   pGlow(ox,gy,f,[[3,5],[5,9],[5,10]]);
 }
-/* 敵人外形:[x,y,w,h,色,是否本體(受擊閃白)]。與 v0.5 的方塊完全相同,只是改成清單以便畫剪影 */
+/* ========== 雜兵精靈(v0.12,純視覺:判定框、行為、出現位置不變)==========
+   - 系列(使用者 11/2 定案丙方案):機械 1、5、9 關;人形 2、6;沼澤生物 3、7;不死 4、8;終末 10。本版只完成機械,其餘大關暫用 eRects 舊方塊。
+   - 精靈上限(照主角比例):步兵、衝鋒兵、骷髏 14×18,原點 (x-1,y-4);砲台 16×14,原點 (x-1,y);迫擊砲 16×18,原點 (x-1,y-4);
+     飛行兵、蜂、無人機 16×12,原點 (x-1,y-1)。地面兵腳底對齊判定框底邊。
+   - 動畫:走路 2 格(兩個跨步姿勢交替,前後腳深淺對調),依水平位置每 6 像素換格,不打滑;飛行類 4 格,每格 4 幀(e.t)。
+   - 色號(依大關換色,EPAL):O 外框 D 深色 L 淺板 S 淺板暗面 T 點綴 E 鏡頭(發光) K 鏡頭暗框。
+   - 預先烘焙(大關或配色變更時):每格 × 左右 × 4 種 = 正常、受擊(只白化 D L S T,保留外框與發光點)、燃燒剪影青、燃燒剪影黃
+     (剪影依精靈輪廓自動產生:最外圈像素取外框色、其餘 #140c12,不超出精靈範圍)。每隻每幀從圖集貼一次,鏡頭另登記 1 筆發光(畫面內才登記)。 */
+const ESPR={mech:{
+ grunt:{b:["....OOOOO.....","...OLLLLSO....","..OLLLLLOEO...","..OLLLLLOEO...","OOODLLLLSOO...","ODDOOSSSOO....","ODOLLLOOOOOOO.","ODLLLSDLLLSTO.","ODOSSOOOOOOOO.",".OODDDTO......","..ODTTTO......","..OOTTOO......"],l:["..OLLOOLLO....",".OLSO.OLLO....",".ODO...ODO....","OLLO....OLO...","OLSO....OLLO..","OOOO....OOOO.."],sp:5,ox:-1,oy:-4},
+ runner:{b:["..............","......OOOO....",".....OLLLLOO..","....OLLLLLLLOO","...OTLLLLLLLLO","..OTTSLLLLKEEO","..OTTSLLLLKEEO",".OODDSLLLLLLLO",".ODDDDOSLLLLO.",".ODDTTDOOOOO..",".ODTTTDO......","..OOOOOO......"],l:[".OLLO.OLO.....","OLSO...OLLO...","ODO.....ODO...","OLO......OLO..","OLLO.....OLLO.","OOOO.....OOOO."],sp:5,ox:-1,oy:-4},
+ skel:{b:[".....OOOO.....","....OTTTOOOOO.","....OTTOLLLLLO","...OOOOLLLLKEO","..OLOOODLLLKEO",".OLLOOODOLLLO.",".OLLOODDDOOO..",".ODOODOODO....",".OLLODLLDO....",".OLLOODDO.....",".OSO.OTTO.....","..O..ODDO....."],l:["....OLOOLO....","...OLO..OLO...","...ODO...ODO..","..OLO....OLO..","..OLLO...OLLO.","..OOOO...OOOO."],sp:6,ox:-1,oy:-4},
+ turret:{f:[["....OOOOOO......","...OLLLLLSO.....","..OLLLLLLLSO....","..OLLLLLLOEEO...",".OSLLLLLLOEEOOOO",".ODSLLLLLLOTTLLO",".ODDSSSSSSOOOOOO",".OODDDDDDDDO....","..OOOOOOOOOO....","..OLLLLLLLLLLO..",".ODDDDDDDDDDDDO.",".ODLDDDDDDDDLDO.",".ODDDDDDDDDDDDO.",".OOOOOOOOOOOOOO."]],ox:-1,oy:0},
+ mortar:{f:[["..........OOO...",".........ODDDO..","........OTOOTO..",".......OLTTLO...","......OLLLLO....",".....OLLLLO.....",".....ODDDO......","...OOOODDOOOOO..","..ODDDDDDTTLLLO.",".OLLODDDDDDLLOEO",".OLLODDDDDDLLOEO",".OODDDDDDDDDDOO.","..ODDDDDDDDDDO..","..OOLOOOOOOLOO..",".OLLO.....OLLO..",".ODO.......ODO..","OLLO.......OLLO.","OOOO.......OOOO."]],ox:-1,oy:-4},
+ flyer:{m:["................",".....OOOOOO.....","....OTTTTLTO....","..OOOOOOOOOOOO..","OOOODDDDDDDKEOOO","OLLODDLDDDDKEOLO","OLLODDDDDDDDDOLO","OOOOSSSSSSSSSOOO","...OOOOOOOOOO...","......OTTO......","......OOOO......","................"],jet:[0, 1, 2, 1],ox:-1,oy:-1},
+ bee:{m:["................","................","................","................","........OOOO....","......OOTTKEO...",".....OTTTTKEO...","......OTTTTO....",".......OODO.....","........OO......","................","................"],wing:{"u":[[1,"....OO.........."],[2,"....OLO..O......"],[3,".....OLOOLO....."],[4,"......OLLO......"]],"m":[[3,"..OOO..........."],[4,".OLLLOOO........"],[5,"..OOOLLLO......."]],"d":[[6,".OOO............"],[7,".OLLOO.........."],[8,"..OOLLO........."],[9,"....OO.........."]]},seq:["u", "m", "d", "m"],ox:-1,oy:-1},
+ drone:{m:["................","................",".......OOO......",".......OLLO.....","....OOOOOOOOOOO.","...OLOTTDKEEDDOO","...OLOTTDKEEDDDO","....OOOOOOOOOOO.",".......OLLO.....",".......OOO......","................","................"],jet:[1,2,3,2],jd:"l",ox:-1,oy:-1}
+}};
+const ESER=['mech',null,null,null,'mech',null,null,null,'mech',null]; // 各大關用的系列;null=尚未完成,沿用 eRects
+/* 各大關配色與主題細節(使用者 11/2 在預覽頁選定;未採用:1 軍用土黃、原圖灰藍;5 黑鋼青光、原圖灰藍;9 霜白、原圖灰藍) */
+const EPAL={1:{n:'鏽紅鐵',O:'#160f10',D:'#43343a',L:'#b47c5c',S:'#7e5642',T:'#3a8a88',E:'#7ae8f2',K:'#2a1e20'},
+ 5:{n:'白瓷',O:'#10141c',D:'#3a4054',L:'#e0e4ec',S:'#a8b0c0',T:'#3ac8e8',E:'#aaffff',K:'#1a2030'},
+ 9:{n:'暗紫',O:'#100c18',D:'#2a2438',L:'#9a8ab8',S:'#6a5a88',T:'#8a6ac8',E:'#c8b0ff',K:'#1c1628'}};
+/* 主題細節(三關皆採用):鏽斑(淺板上零星鏽色)、發光線條(點綴色提亮)、霜晶(外框內側最上一排淺色) */
+const EDET={1:{n:'鏽斑',k:'rust',c:'#8a4a2a'},5:{n:'發光線條',k:'line',c:'#7ad8ff'},9:{n:'霜晶',k:'frost',c:'#eef6ff'}};
+const EB={key:0,s:null,eyeC:'#fff'};
+function eFrames(d){                               // 各格字串矩陣
+  if(d.b){const fr=[];for(let sw=0;sw<2;sw++)fr.push(d.b.concat(d.l.map(r=>{let s='';
+    for(let x=0;x<r.length;x++){const c=r[x];s+=((x<d.sp)!==(sw===1))&&(c==='L'||c==='S')?'D':c;}return s;})));return fr;} // 後腳深色,第 2 格前後對調
+  if(d.f)return d.f;
+  if(d.wing)return d.seq.map(k=>{const m=d.m.map(r=>r.split(''));
+    for(const [y,r] of d.wing[k])for(let x=0;x<r.length;x++)if(r[x]!=='.'&&m[y][x]==='.')m[y][x]=r[x];return m.map(r=>r.join(''));});
+  return d.jet.map(j=>{const m=d.m.map(r=>r.split(''));
+    for(let k=0;k<j;k++){if(d.jd==='l')m[5][2-k]=m[6][2-k]=k<2?'E':'T'; // 追蹤機:尾焰往左
+      else m[10+k][7]=m[10+k][8]='E';}                                                 // 飛碟:往下
+    return m.map(r=>r.join(''));});
+}
+function eBakeOne(m,P,det){
+  const h=m.length,w=m[0].length,at=(x,y)=>(x<0||y<0||x>=w||y>=h)?'.':m[y][x];
+  const col=(x,y)=>{const c=m[y][x];
+    if(det){if(det.k==='rust'&&(c==='L'||c==='S')&&vHash(x*3+7,y+31)<0.16)return det.c;
+      if(det.k==='line'&&c==='T')return det.c;
+      if(det.k==='frost'&&c!=='O'&&c!=='E'&&at(x,y-1)==='O'&&at(x,y-2)==='.')return det.c;}
+    return P[c];};
+  const V={n:col,h:(x,y)=>'DLST'.includes(m[y][x])?'#ffffff':P[m[y][x]]};
+  const edge=(x,y)=>at(x-1,y)==='.'||at(x+1,y)==='.'||at(x,y-1)==='.'||at(x,y+1)==='.';
+  V.c=(x,y)=>edge(x,y)?'#5ff0ff':SIL_C;V.y=(x,y)=>edge(x,y)?'#ffd23a':SIL_C;
+  const out={};                                  // 回傳每種變體的顏色函式;實際像素由 eBake 一次寫進圖集
+  for(const k in V)out[k]=V[k];out.M=m;out.W=w;out.H=h;   // 大寫:避免與變體鍵 h 衝突
+  return out;
+}
+function eBake(){                                 // 每大關一張圖集:每格一列,8 欄 = 正常/受擊/剪影青/剪影黃 × 右/左(一次 putImageData;改寫前每關 160 張小畫布約 10~35 ms)
+  const w=G.world,ser=ESER[clamp(w,1,10)-1],key=w;if(EB.key===key)return EB.s;EB.key=key;
+  if(!ser){EB.s=null;return null;}
+  const P=EPAL[w],det=EDET[w],S=ESPR[ser],out={},jobs=[],CW=16,CH=18,VK=['n','h','c','y'];EB.eyeC=P.E;
+  for(const t in S){const d=S[t],fr=eFrames(d);let sx=0,sy=0,n=0;
+    fr[0].forEach((r,y)=>{for(let x=0;x<r.length;x++)if(r[x]==='E'){sx+=x;sy+=y;n++;}});
+    const q={d,w:fr[0][0].length,fr:[],eye:n?[Math.round(sx/n),Math.round(sy/n)]:null};
+    for(const m of fr){const row=jobs.length,f={};jobs.push(eBakeOne(m,P,det));
+      for(let v=0;v<4;v++)f[VK[v]]=[[v*2*CW,row*CH],[(v*2+1)*CW,row*CH]];
+      f.W=m[0].length;f.H=m.length;q.fr.push(f);}        // 大寫:避免與變體鍵 h 衝突
+    out[t]=q;}
+  const AW=8*CW,AH=jobs.length*CH,[c,x]=mkCv(AW,AH),im=x.createImageData(AW,AH),D=im.data,rgb={};
+  jobs.forEach((j,row)=>{for(let v=0;v<4;v++){const fn=j[VK[v]];
+    for(let y=0;y<j.H;y++)for(let i=0;i<j.W;i++){if(j.M[y][i]==='.')continue;const hx=fn(i,y),q=rgb[hx]||(rgb[hx]=vRgb(hx));
+      for(let side=0;side<2;side++){const o=((row*CH+y)*AW+(v*2+side)*CW+(side?j.W-1-i:i))*4;D[o]=q[0];D[o+1]=q[1];D[o+2]=q[2];D[o+3]=255;}}}});
+  x.putImageData(im,0,0);EB.atlas=c;
+  EB.s=out;return out;
+}
+function eSpr(e){const s=eBake();return s&&s[e.type];}
+function eFace(e){if(e.type==='drone')return P.x+5<e.x+e.w/2?-1:1;return e.face>0?1:-1;} // 無人機沒有 face,依主角方位(只讀)
+function eDraw(e,q,v){                             // v:n 正常、h 受擊、c/y 燃燒剪影(青/黃)
+  const f=eFace(e),fr=q.fr.length===1?q.fr[0]:(q.d.b?q.fr[Math.floor(e.x/6)&1]:q.fr[(e.t>>2)%q.fr.length]);
+  const x=Math.round(e.x+q.d.ox),y=Math.round(e.y+q.d.oy);
+  const o=fr[v][f>0?0:1];ctx.drawImage(EB.atlas,o[0],o[1],fr.W,fr.H,x,y,fr.W,fr.H);PXD=1;
+  if((v==='n'||v==='h')&&q.eye&&onScr(e.x,e.y,e.w,e.h))gl(x+(f>0?q.eye[0]:q.w-1-q.eye[0])-1,y+q.eye[1]-1,3,3,EB.eyeC,0.35); // 鏡頭發光(受擊時保留)
+}
+/* 敵人外形(尚未換成精靈的大關沿用):[x,y,w,h,色,是否本體(受擊閃白)]。與 v0.5 的方塊完全相同,只是改成清單以便畫剪影 */
 function eRects(e){const x=e.x,y=e.y;
   if(e.type==='grunt')return[[x,y,12,14,'#8a3a3a',1],[x+2,y+2,8,4,'#e8b070'],[x+(e.face>0?9:0),y+7,3,3,'#555']];
   if(e.type==='runner')return[[x,y,12,14,'#a05a20',1],[x+3,y+3,6,3,'#ffd27a']];
@@ -2454,14 +2532,16 @@ function eRects(e){const x=e.x,y=e.y;
    層級:Lv1~3 剪影畫在火焰下層(本函式),Lv4 火焰最亮,改在 drawFlame 之後由 drawBurnTop 畫在火焰上層。 */
 const SIL_C='#140c12';
 function burnTop(){return wlvl===4;}
-function drawSil(e){const R=eRects(e),oc=wlvl>=3?'#ffd23a':'#5ff0ff';
+function drawSil(e){const q=eSpr(e);if(q){eDraw(e,q,wlvl>=3?'y':'c');return;} // v0.12:有精靈的大關,剪影由精靈輪廓自動產生
+  const R=eRects(e),oc=wlvl>=3?'#ffd23a':'#5ff0ff';
   for(const r of R)px(r[0]-1,r[1]-1,r[2]+2,r[3]+2,oc);
   for(const r of R)px(r[0],r[1],r[2],r[3],SIL_C);}
 function drawEnemies(){
   const top=burnTop();
   for(const e of ens){
     if(flameHit(e)){if(!top)drawSil(e);continue;}
-    const hit=e.fx>0;
+    const hit=e.fx>0,q=eSpr(e);
+    if(q){eDraw(e,q,hit?'h':'n');continue;}       // v0.12 精靈;受擊只白化本體色
     for(const r of eRects(e))px(r[0],r[1],r[2],r[3],(hit&&r[5])?'#fff':r[4]);
   }
 }
