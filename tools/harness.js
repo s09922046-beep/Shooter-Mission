@@ -15,8 +15,8 @@ const path=require('path');
 const {chromium}=require('playwright');
 const fs=require('fs');
 const ROOT=path.resolve(__dirname,'..');
-const CHROME=process.env.CHROME||'/usr/bin/google-chrome';
-const url=f=>'file://'+path.resolve(f||path.join(ROOT,'index.html'));
+const CHROME=process.env.CHROME||{win32:'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',darwin:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'}[process.platform]||'/usr/bin/google-chrome';
+const url=f=>require('url').pathToFileURL(path.resolve(f||path.join(ROOT,'index.html'))).href; // Windows 磁碟代號與空白需轉成正確的 file:/// 網址
 
 async function open(file,vp){
   const br=await chromium.launch({executablePath:CHROME,args:['--no-sandbox']});

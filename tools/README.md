@@ -2,7 +2,7 @@
 
 開發用的無頭瀏覽器測試工具,遊戲執行時不會載入這個資料夾。
 
-需要 Node 18 以上、`playwright` 套件與 Chrome。在 repo 根目錄執行:
+需要 Node 18 以上、`playwright` 套件與 Chrome。第一次使用先在 `tools/` 裡執行 `npm install` 安裝 playwright(裝在 `tools/node_modules/`,不提交)。測試指令在 repo 根目錄執行:
 
 | 指令 | 用途 |
 |---|---|
@@ -16,6 +16,6 @@
 | `node tools/harness.js eface [檔案]` | 飛行兵與蜂懸停於主角正上方 600 幀,統計 `e.face` 翻轉次數與畫面朝向翻轉次數(v0.13,第 1、2、5、6、9 關) |
 | `node tools/harness.js vshift <每關種子數> <輸出前綴> [檔案] [FX設定]` | 視野壓力測試(v0.9):固定種子生成大量一般小關,輸出地表高度統計與每大關地形最低段落的對照圖 |
 
-檔案參數省略時測試 repo 根目錄的 `index.html`。Chrome 不在 `/usr/bin/google-chrome` 時,用環境變數 `CHROME` 指定。
+檔案參數省略時測試 repo 根目錄的 `index.html`。Chrome 預設路徑:Windows `C:\Program Files\Google\Chrome\Application\chrome.exe`、macOS `/Applications/Google Chrome.app`、Linux `/usr/bin/google-chrome`;不在預設位置時,用環境變數 `CHROME` 指定。
 
 改版時若新增需要驗證的行為,直接在 `harness.js` 加子指令,不另寫一次性腳本。

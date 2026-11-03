@@ -1,0 +1,20 @@
+# 套件與預覽頁(不提交)
+node_modules/
+preview/
+
+# 測試輸出與暫存
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+npm-debug.log*
+
+# 系統檔
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 編輯器
+.vscode/
+.idea/

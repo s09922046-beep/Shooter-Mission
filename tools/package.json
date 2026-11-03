@@ -1,0 +1,8 @@
+{
+  "name": "shooter-mission-tools",
+  "private": true,
+  "description": "PIXEL STRIKE FORCE 開發用測試工具(harness.js)的相依套件;遊戲執行時不使用",
+  "devDependencies": {
+    "playwright": "^1.64.1"
+  }
+}
