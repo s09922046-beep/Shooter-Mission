@@ -4,7 +4,7 @@
 
 ## 開工流程(每次對話都做)
 1. 先讀 `design-decisions.md`,它是唯一的長期記憶與決定記錄。需要實作細節時才讀 `claude/changelog.md` 最後一筆;`claude/perf-history.md`、`claude/enemy-prompts.md` 用到時再讀。
-2. 核對三處版本一致:`index.html` 開頭的 VERSION 註解、`design-decisions.md` 第 1 節「目前檔案版本」、`git log -1` 的提交訊息。不一致就先告訴使用者,不要開始修改。
+2. 核對三處版本一致:`index.html` 開頭的 VERSION 註解、`design-decisions.md` 第 1 節「目前檔案版本」、最新的版本 tag(`git describe --tags --abbrev=0`;環境整備等非版本提交不打 tag,所以不影響核對)。不一致就先告訴使用者,不要開始修改。
 3. 確認本次只有一個工作項目(對照 design-decisions.md 第 7 節排程)。使用者沒指定就先問。
 4. 依第 7 節「精簡」規則檢查文件有無過時或重複之處;有刪就告訴使用者刪了什麼。
 
