@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.13 雜兵精靈(人形系):第 2、6 關 6 種雜兵改為像素精靈(十字弓兵、狂戰士、重盾衛兵、連弩台、石像鬼、小惡魔),配色 2 原圖青銅+沙塵、6 白銀聖殿+積灰,新增色號 G M C;飛行兵與蜂懸停於主角正上方時不再左右急速翻面(繪製端 8 像素死區,1、5、9 關一併修正);判定框與行為不變 -->
+<!-- VERSION: v0.14 雜兵精靈(沼澤生物系):第 3 關 5 種(長苔死水版)、第 7 關 8 種(乾淨淺水版)雜兵改為像素精靈(吐沫蛙人、衝鋒蟹、背甲龜、噴吐囊、拋射蟾蜍、蜻蜓、水蚊、飛鏢魚),配色 3 灰紫沼影+泥沾、7 原圖清溪+水光;判定框與行為不變 -->
 <!-- 前版: v0.11 繩梯斷口修正(使用者授權):繩梯穿過的單向平台格可攀爬,繩梯從平台後方穿過、頂格只畫把手(C 案);其餘同 v0.10.1 -->
 <!-- 前版:v0.10.1 敵人掉落改為單次擲骰(使用者授權):一隻敵人最多掉一樣,武器箱與生命各自機率不變 -->
 <!-- 前版:v0.8 地面材質依大關區隔:實心地面、單向平台、攀爬物、灼燒面逐關換材質(預先烘焙快取),本體明度壓低;第 1~6、8、9 關地面色改建議色 -->
@@ -2443,7 +2443,7 @@ function drawPlayer(){
   pGlow(ox,gy,f,[[3,5],[5,9],[5,10]]);
 }
 /* ========== 雜兵精靈(v0.12,純視覺:判定框、行為、出現位置不變)==========
-   - 系列(使用者 11/2 定案丙方案):機械 1、5、9 關;人形 2、6;沼澤生物 3、7;不死 4、8;終末 10。v0.12 機械、v0.13 人形(6 種,無迫擊砲與無人機),其餘大關暫用 eRects 舊方塊。
+   - 系列(使用者 11/2 定案丙方案):機械 1、5、9 關;人形 2、6;沼澤生物 3、7;不死 4、8;終末 10。v0.12 機械、v0.13 人形(6 種,無迫擊砲與無人機)、v0.14 沼澤生物(3、7 關分兩套 swa/swb),其餘大關暫用 eRects 舊方塊。
    - 精靈上限(照主角比例):步兵、衝鋒兵、骷髏 14×18,原點 (x-1,y-4);砲台 16×14,原點 (x-1,y);迫擊砲 16×18,原點 (x-1,y-4);
      飛行兵、蜂、無人機 16×12,原點 (x-1,y-1)。地面兵腳底對齊判定框底邊。
    - 動畫:走路 2 格(兩個跨步姿勢交替,前後腳深淺對調),依水平位置每 6 像素換格,不打滑;飛行類 4 格,每格 4 幀(e.t)。
@@ -2468,18 +2468,40 @@ hum:{
  turret:{"f":[["................","................","....OOOOO.......","...OGGGGMO......",".OOOLOOOLOOOOOOO","OLLLLDDDLLGGGGGO","OTTDLDDDLDMMMMMO","OTTDLDDDLDOOOOOO",".OOOOODOOOO.....","....ODDDO.......","..OODDODDOO.....","OOOOOOOOOOOOOOOO","OLLODDOLLODDOLLO","OOOOOOOOOOOOOOOO"]],"ox":-1,"oy":0},
  flyer:{"m":["................","................","................","..........OO....","..........OGOO..","......OOO.OGGGO.",".....OGGGOGGKEO.",".....OGGGGOGGGGO","....OMGGGGGOMMO.",".....OMGMOGMO...","......OOO.OOO...","................"],"wing":{"u":[[0,"..OOOOOOO......."],[1,"..OGGGGGGO......"],[2,"...OMMMMGO......"],[3,"...OMOMMGO......"],[4,"....O.OMGO......"],[5,".......OO......."]],"m":[[4,"OOOO............"],[5,"OGGGOOO........."],[6,".OMMGGGO........"],[7,".OMOMMO........."],[8,"..O.OO.........."]],"d":[[8,"...OO..........."],[9,"..OGMO.........."],[10,".OGMMO.........."],[11,"OOOOO..........."]]},"seq":["u","m","d","m"],"ox":-1,"oy":-1},
  bee:{"m":["................","................","................","................","........OOO.....",".......OTTTO....","......OTTTKEO...","......OTTTKKO...",".......OCTTO....",".......OCOCO....","........O.O.....","................"],"wing":{"u":[[1,"...OOOO........."],[2,"...OGGMO........"],[3,"....OMMO........"],[4,".....OMO........"],[5,"......OO........"]],"m":[[5,"OOOOOO.........."],[6,"OGMMMMO........."],[7,".OMOMO.........."],[8,"..O.O..........."]],"d":[[7,".....OO........."],[8,"....OMO........."],[9,"...OMMO........."],[10,"..OGMO.........."],[11,"..OOO..........."]]},"seq":["u","m","d","m"],"ox":-1,"oy":-1}
+},
+/* v0.14 沼澤生物系:swa 第 3 關長苔死水(只出現前 5 種)、swb 第 7 關乾淨淺水(8 種);同一兵種兩關剪影相近,差在苔蘚、疣、半閉眼與透明鰭。
+   兵種:grunt 吐沫蛙人、runner 衝鋒蟹、skel 背甲龜、turret 噴吐囊、mortar 拋射蟾蜍、flyer 蜻蜓、bee 水蚊、drone 飛鏢魚(鰭用 wing 格) */
+swa:{
+ grunt:{"b":["...OOOO.OOO...","..OTTTTOLKKO..",".OTTTTSLLEKO..",".OTTDSLLLLLLO.",".OTSSLLDLLLLLO",".OTSSLLLOOMMMO",".OSDSLLCOMMMO.",".OSSLLCCCOOOO.",".OSSLOCCDCO...",".OSDSLOCCCO...",".ODSSLCCCCO...",".ODSSSLCCLO..."],"l":["..ODSSOOSSO...","..ODSO.OSLO...",".ODSO...OSLO..",".OSO.....OSO..","OSSO....OSSLO.","OOOO....OOOOO."],"sp":5,"ox":-1,"oy":-4},
+ runner:{"b":["..............","..............","........OOOO..",".......OCCCCO.","......OCCCCCCO","......OCCOOOO.","......OCCO....","......OCCCOOO.","...OOO.OCCCCCO","..OTTTOOOCCCO.",".OTTGTTTOOOOO.","OGTTGGGGGOEKO."],"l":["OGGGGGGGGGGGO.",".OMMMMMMMMMMO.","..OGOGO.OGOGO.",".OGOGO..OGOGO.","OGOGO....OGOGO","OOOO......OOOO"],"sp":5,"ox":-1,"oy":-4},
+ skel:{"b":["..............","..............","...OOOOO......","..OTTTTTOO....",".OTTGTTTTGO...",".OTGGMGGTGGO..","OGTGMGGGMGGO..","OGGMGGGGGMGOOO","OGMGGGGGGGMLLO","OMGGMGGGMGOLKE","OCCCCCCCCCOLLO","OMMMMMMMMMMOO."],"l":["OMMMMMMMMMMO..",".OSSOOOOOSSO..","OSSSO...OSSSO.","OSSO.....OSLO.","OSSLO...OSSLO.","OOOOO...OOOOO."],"sp":6,"ox":-1,"oy":-4},
+ turret:{"f":[["................","....OOOOOO......","...OTTTTTTO.....","..OTTTSTTTTO....","..OTSLLLTLLO....",".OTSLLOOLLLLOOOO",".OSLLOEKOLLLLCCO",".OSLDOKKOLLLLCMO",".OSSLLOOLDLLLCCO",".ODSSLLLLLLLOOOO","..ODSSSSSSSO....","...OODDDDOO.....","..OGGOMMOGGO....",".OGGO.OO.OGGO..."]],"ox":-1,"oy":0},
+ flyer:{"m":["................","................","................","................","................","..........OOOO..",".OOOOOOOOOSLLEO.","OGMGMGMGMGSLLKEO",".OOOOOOOOOSSLLO.","..........OOOO..","................","................"],"wing":{"u":[[0,"....OOO.OOO....."],[1,"...OCCCOCCCO...."],[2,"...OCCCOCCCO...."],[3,"....OCCOCCO....."],[4,".....OCCCO......"],[5,"......OOO......."]],"m":[[3,".OOOOOOO........"],[4,"OCCCCCCCOOO....."],[5,".OOOOOOOCCCO...."],[9,".OOOOOOOO......."],[10,"OCCCCCCCO......."],[11,".OOOOOOO........"]],"d":[[9,"......OOO......."],[10,".....OCCCO......"],[11,"....OCCOCCO....."]]},"seq":["u","m","d","m"],"ox":-1,"oy":-1}
+},
+swb:{
+ grunt:{"b":["...OO...OOO...","..OTTO.OLEKO..",".OTTTTOLLEEO..",".OTTTSLLLLLLO.",".OTTSLLLLLLLLO","..OTSLLLOOMMMO","..OSSLLCOMMMO.","..OSLLCCCOOOO.","..OSLOCCCCO...","..OSSLOCCCO...","..ODSLCCCCO...","..ODSSLCCLO..."],"l":["..ODSSOOSSO...","..ODSO.OSLO...",".ODSO...OSLO..",".OSO.....OSO..","OSSO....OSSLO.","OOOO....OOOOO."],"sp":5,"ox":-1,"oy":-4},
+ runner:{"b":["..............","..............","........OOOO..",".......OCCCCO.","......OCCCCCCO","......OCCOOOO.","......OCCO....","......OCCCOOO.","...OOO.OCCCCCO","..OGGGOOOCCCO.",".OGGGGGGOOOOO.","OGGGGGGGGOEKO."],"l":["OGGGGGGGGGGGO.",".OMMMMMMMMMMO.","..OGOGO.OGOGO.",".OGOGO..OGOGO.","OGOGO....OGOGO","OOOO......OOOO"],"sp":5,"ox":-1,"oy":-4},
+ skel:{"b":["..............","..............","...OOOOO......","..OGGGGGOO....",".OGGGOGGGGO...",".OGGGOGGGGGO..","OGGGOOOGGGGO..","OGGOGGGOGGGOOO","OGOGGGGGOGGLLO","OGOGGGGGOGOLKE","OCCCCCCCCCOLLO","OMMMMMMMMMMOO."],"l":["OMMMMMMMMMMO..",".OSSOOOOOSSO..","OSSSO...OSSSO.","OSSO.....OSLO.","OSSLO...OSSLO.","OOOOO...OOOOO."],"sp":6,"ox":-1,"oy":-4},
+ turret:{"f":[["................",".....OOO........","....OTTTO.......","...OTTTTO.......","..OOOTTOOO......",".OLLLOOLLLLOOOOO",".OSLLOEKOLLLLLCO",".OSLLOEEOLLLLCMO",".OSSLLOOLLLLLLCO",".ODSSLLLLLLLOOOO","..ODSSSSSSSO....","...OODDDDOO.....","..OCCOMMOCCO....",".OCCO.OO.OCCO..."]],"ox":-1,"oy":0},
+ mortar:{"f":[["................","................","................","................","................","........OOOO....","......OOLEKKO...",".....OLLLEEKLO..","....OLLLLLLLLLO.","...OSLLLLLLLLLLO","..OSSLLLLOCCCCCO","..OSLLLLOCCCCCCO",".OSSLLLOCCCCCCCO",".OSLLLLOCCCCCCCO","OSSOSLLOCCCCCCO.","OSOSSLLLOCCCCO..","OSSSOOSLLOOOO...","OOOOO.OOOOOO...."]],"ox":-1,"oy":-4},
+ flyer:{"m":["................","................","................","................","................","..........OOOO..",".OOOOOOOOOSLLEO.","OSDSDSDSDSSLLKEO",".OOOOOOOOOSSLLO.","..........OOOO..","................","................"],"wing":{"u":[[0,"....OOO.OOO....."],[1,"...OTTTOTTTO...."],[2,"...OTTTOTTTO...."],[3,"....OTTOTTO....."],[4,".....OTTTO......"],[5,"......OOO......."]],"m":[[3,".OOOOOOO........"],[4,"OTTTTTTTOOO....."],[5,".OOOOOOOTTTO...."],[9,".OOOOOOOO......."],[10,"OTTTTTTTO......."],[11,".OOOOOOO........"]],"d":[[9,"......OOO......."],[10,".....OTTTO......"],[11,"....OTTOTTO....."]]},"seq":["u","m","d","m"],"ox":-1,"oy":-1},
+ bee:{"m":["................","................","................","................","........OOO.....",".......OLLLOO...","......OSLLOEKO..","......OSSSLLOO..",".......OOOOO....",".......O.O.O....","................","................"],"wing":{"u":[[1,"....OO.........."],[2,"....OTO..O......"],[3,".....OTOOTO....."],[4,"......OTTO......"]],"m":[[3,"..OOO..........."],[4,".OTTTOOO........"],[5,"..OOOTTTO......."]],"d":[[7,"...OO..........."],[8,"..OTTO.........."],[9,"...OOTO........."],[10,".....O.........."]]},"seq":["u","m","d","m"],"ox":-1,"oy":-1},
+ drone:{"m":["................","................","................","................","........OOO.....","OO.....OSSLOO...","OTO..OOLLLLLLOO.",".OTOOSLLLLLLKEO.",".OTOSLLLLLLLLLLO","OTO.OOCCCCCCCOO.","OO....OOOOOOO...","................"],"wing":{"u":[[0,"........OO......"],[1,".......OTTO....."],[2,"......OTTTO....."],[3,".....OTTTO......"],[4,".......OO......."]],"m":[[3,"......OOOO......"],[4,"....OOTTTO......"],[5,"...OTTTOO......."]],"d":[[10,".......OTTO....."],[11,"......OTTTO....."]]},"seq":["u","m","d","m"],"ox":-1,"oy":-1}
 }};
-const ESER=['mech','hum',null,null,'mech','hum',null,null,'mech',null]; // 各大關用的系列;null=尚未完成,沿用 eRects
+const ESER=['mech','hum','swa',null,'mech','hum','swb',null,'mech',null]; // 各大關用的系列;null=尚未完成,沿用 eRects
 /* 各大關配色與主題細節(使用者 11/2 在預覽頁選定;未採用:1 軍用土黃、原圖灰藍;5 黑鋼青光、原圖灰藍;9 霜白、原圖灰藍;
-   v0.13 人形系:2 原圖青銅、6 白銀聖殿;未採用:2 黑鐵沙黃、銀盔青布;6 原圖青銅、黑袍狂信) */
+   v0.13 人形系:2 原圖青銅、6 白銀聖殿;未採用:2 黑鐵沙黃、銀盔青布;6 原圖青銅、黑袍狂信;
+   v0.14 沼澤系:3 灰紫沼影、7 原圖清溪;未採用:3 原圖苔沼(苔綠融進綠地面)、泥褐腐沼;7 沙金溪石、白腹墨青) */
 const EPAL={1:{n:'鏽紅鐵',O:'#160f10',D:'#43343a',L:'#b47c5c',S:'#7e5642',T:'#3a8a88',E:'#7ae8f2',K:'#2a1e20'},
  5:{n:'白瓷',O:'#10141c',D:'#3a4054',L:'#e0e4ec',S:'#a8b0c0',T:'#3ac8e8',E:'#aaffff',K:'#1a2030'},
  9:{n:'暗紫',O:'#100c18',D:'#2a2438',L:'#9a8ab8',S:'#6a5a88',T:'#8a6ac8',E:'#c8b0ff',K:'#1c1628'},
  2:{n:'原圖青銅',O:'#1a1210',D:'#5a3424',L:'#c89a52',S:'#8a6434',T:'#7a1e2a',E:'#fff07a',K:'#140c0c',G:'#8e8c90',M:'#55525a',C:'#d8c09a'},
- 6:{n:'白銀聖殿',O:'#12121a',D:'#4a4a5a',L:'#e4e6ec',S:'#a8acb8',T:'#2a3a7a',E:'#bfefff',K:'#0c0c14',G:'#b8bcc6',M:'#6a6e7c',C:'#ece4d0'}}; // 人形系另有 G 灰金屬、M 灰金屬暗面、C 布料
-/* 主題細節(三關皆採用):鏽斑(淺板上零星鏽色)、發光線條(點綴色提亮)、霜晶(外框內側最上一排淺色) */
+ 6:{n:'白銀聖殿',O:'#12121a',D:'#4a4a5a',L:'#e4e6ec',S:'#a8acb8',T:'#2a3a7a',E:'#bfefff',K:'#0c0c14',G:'#b8bcc6',M:'#6a6e7c',C:'#ece4d0'}, // 人形系另有 G 灰金屬、M 灰金屬暗面、C 布料
+ 3:{n:'灰紫沼影',O:'#120e16',D:'#3a3044',L:'#9a8aa0',S:'#6a5a74',T:'#8ab04a',E:'#f0f0c0',K:'#120e16',G:'#5e5068',M:'#3a3044',C:'#d0c4b0'}, // 沼澤系:L/S/D 皮膚、C 腹部與鉗、G/M 殼、T 苔蘚(3)或透明鰭(7)
+ 7:{n:'原圖清溪',O:'#10201e',D:'#2e5a54',L:'#7ab8a8',S:'#4f8a80',T:'#b8e4f4',E:'#fffbe0',K:'#10201e',G:'#3e7a74',M:'#285450',C:'#efe0a8'}};
+/* 主題細節(皆採用):鏽斑(淺板上零星鏽色)、發光線條(點綴色提亮)、霜晶(外框內側最上一排淺色);v0.14 泥沾(3)、水光(7) */
 const EDET={1:{n:'鏽斑',k:'rust',c:'#8a4a2a'},5:{n:'發光線條',k:'line',c:'#7ad8ff'},9:{n:'霜晶',k:'frost',c:'#eef6ff'},
- 2:{n:'沙塵',k:'dust',c:'#a88a5e'},6:{n:'積灰',k:'ash',c:'#8a8282'}};
+ 2:{n:'沙塵',k:'dust',c:'#a88a5e'},6:{n:'積灰',k:'ash',c:'#8a8282'},3:{n:'泥沾',k:'mud',c:'#3e3020'},7:{n:'水光',k:'wet',c:'#e6fbff'}};
 const EB={key:0,s:null,eyeC:'#fff'};
 function eFrames(d){                               // 各格字串矩陣
   if(d.b){const fr=[];for(let sw=0;sw<2;sw++)fr.push(d.b.concat(d.l.map(r=>{let s='';
@@ -2500,7 +2522,9 @@ function eBakeOne(m,P,det){
       if(det.k==='line'&&c==='T')return det.c;
       if(det.k==='frost'&&c!=='O'&&c!=='E'&&at(x,y-1)==='O'&&at(x,y-2)==='.')return det.c;
       if(det.k==='dust'&&h>=14&&y>=h-3&&'DCMG'.includes(c))return det.c;            // 沙塵:地面兵與砲台最下 2 排(不含外框)
-      if(det.k==='ash'&&'LSGMC'.includes(c)&&at(x,y-1)==='O'&&at(x,y-2)==='.'&&vHash(x*5+3,y+17)<0.6)return det.c;} // 積灰:朝上的表面
+      if(det.k==='ash'&&'LSGMC'.includes(c)&&at(x,y-1)==='O'&&at(x,y-2)==='.'&&vHash(x*5+3,y+17)<0.6)return det.c; // 積灰:朝上的表面
+      if(det.k==='mud'&&h>=14&&y>=h-3&&'DLSCGM'.includes(c)&&vHash(x*7+1,y+5)<0.7)return det.c;                // 泥沾:地面兵與噴吐囊最下 2 排沾泥
+      if(det.k==='wet'&&'LSGC'.includes(c)&&at(x,y-1)==='O'&&at(x,y-2)==='.'&&vHash(x*3+11,y+23)<0.5)return det.c;} // 水光:朝上表面零星反光
     return P[c];};
   const V={n:col,h:(x,y)=>'DLSTGMC'.includes(m[y][x])?'#ffffff':P[m[y][x]]};
   const edge=(x,y)=>at(x-1,y)==='.'||at(x+1,y)==='.'||at(x,y-1)==='.'||at(x,y+1)==='.';
