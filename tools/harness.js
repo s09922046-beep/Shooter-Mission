@@ -9,6 +9,8 @@
 //   node tools/harness.js edraw <舊檔> <新檔> [次數]  雜兵繪製量測(v0.12;v0.13 加第 2、6 關;v0.14 加第 3、7 關;v0.15 加第 4、8 關;v0.16 加第 10 關):第 1~10 關各 16 隻排進畫面,量 drawEnemies 每次耗時與首次烘焙
 //   node tools/harness.js eface [檔案]  飛行兵與蜂懸停於主角正上方 600 幀:統計 e.face 翻轉次數與畫面朝向(eFace)翻轉次數(v0.13;v0.14 加第 3、7 關;v0.15 加第 4、8 關;v0.16 加第 10 關)
 //   node tools/harness.js espr [檔案]  每大關 1~4 小關跑 900 幀、魔王關 3600 幀(含召喚),統計畫面上找不到精靈的敵人(v0.16.1 移除方塊備援後,缺精靈會不畫)
+//   node tools/harness.js boss [檔案]  魔王共用工具(v0.17):登場鎖主角與血條填充、判定框不變、閃白與燒紅邊、核心狀態、死亡演出到傳送門、重挑縮短、預警四樣式、RotSprite
+//   node tools/harness.js bshot <輸出.png> <情境 warn/burn/hit/die/intro> [大關] [幀數] [檔案]  魔王共用工具截圖(v0.17)
 //   node tools/harness.js vshift <每關種子數> <輸出前綴> [檔案] [FX設定]  視野上移壓力測試:統計地表高度,截每大關地形最低的段落
 // [檔案] 省略時為 repo 根目錄的 index.html。環境變數 CHROME 可指定 Chrome 路徑。
 // 做法:載入前把 requestAnimationFrame 換成空函式,改由腳本手動呼叫 update()/render(),所以結果可重現、不受機器速度影響。
@@ -221,6 +223,52 @@ async function espr(f){const {br,pg,errs}=await open(f);
   console.log('出現過的大關×兵種',r.seen,'組;魔王關召喚',r.boss||'無','缺精靈',Object.keys(r.miss).length?JSON.stringify(r.miss):'無');
   console.log('錯誤',errs.length?errs.slice(0,3):'無');await br.close();return errs.length+Object.keys(r.miss).length;}
 
+// v0.17:魔王共用工具。每隻魔王:登場鎖主角與血條填充、判定框在繪製前後不變、閃白/燒紅邊計時、核心狀態、死亡演出到傳送門、重挑縮短;
+// 另測四種預警樣式可繪製、RotSprite 烘焙(各角度像素數應接近原圖)、bossRender 每次耗時(沙盒相對值)
+async function bosst(f){const {br,pg,errs}=await open(f);
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;const J=a=>JSON.stringify(a.map(p=>[p.key,p.x,p.y,p.w,p.h]));
+    for(let w=1;w<=10;w++){HX.go(w,5);const x0=P.x;K.r=1;K.j=1;K.f=1;let shots=0,fillMid=-1;
+      for(let i=0;i<299;i++){P.inv=999;update();render();shots+=bul.length;if(300-boss.introT===260)fillMid=bossFill();}
+      const lockOK=Math.abs(P.x-x0)<0.01&&shots===0;
+      HX.run(30);K.j=0;K.f=0;const moved=Math.abs(P.x-x0)>1;K.r=0;
+      const ps=bossParts(),j0=J(ps);let hf='-',hb='-';
+      if(ps.length){bossHit({x:ps[0].x+ps[0].w/2,y:ps[0].y+ps[0].h/2,r:3,dmg:1});hf=boss.hf&&boss.hf[ps[0].key];
+        bossDamage(ps[0],1,1);hb=boss.hb&&boss.hb[ps[0].key];}
+      render();const same=J(bossParts())===j0;const ci=bCoreInfo(boss);
+      const t0=performance.now();for(let i=0;i<200;i++)bossRender();const ms=(performance.now()-t0)/200;
+      boss.hp=1;boss.invin=false;const pp=bossParts();for(const p of pp)if(boss.alive)bossDamage(p,99999);if(boss.alive)bossDie(); // 6 王兩隻都要打倒
+      let pk=0;for(let i=0;i<205&&G.state==='win';i++){update();render();pk=Math.max(pk,BT.booms.length);}
+      const portalOK=G.state==='play'&&!!portal;
+      HX.go(w,5);startBoss(1);const rt=boss.introT;
+      const ok=lockOK&&moved&&fillMid>0&&fillMid<1&&same&&portalOK&&rt===120;if(!ok)bad++;
+      o.push(`王${w} 鎖定${lockOK?'OK':'NG'} 解鎖${moved?'OK':'NG'} 血條中段${fillMid.toFixed(2)} 判定框不變${same?'OK':'NG'} 閃白${hf} 燒邊${hb} 核心${ci?['全亮','半亮','暗灰'][ci.st]:'不畫'} 繪製${ms.toFixed(3)}ms 爆炸峰值${pk} 傳送門${portalOK?'OK':'NG'} 重挑${rt}`);}
+    HX.go(3,5);HX.run(320);hazs.length=0;
+    for(const k of ['beam','ground','drop','area']){haz(40,40,200,12,30,20,'#ff4a6a',k);haz(300,0,20,200,30,20,'#4a6aff',k);}
+    for(let i=0;i<80;i++){HX.run(1);render();}o.push('預警四樣式繪製 OK');
+    const m=bMat(['..OOOO......','.OLLLLO.....','OLLDDLLOOOOO','.OLLLLO.....','..OOOO......'],{O:'#101018',L:'#c8d0dc',D:'#5a6478'});
+    const rr=bRot(m.n,32,2,2),cx=rr.cv.getContext('2d'),cnt=k=>{const d=cx.getImageData(k*rr.S,0,rr.S,rr.S).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i])n++;return n;};
+    const c0=cnt(0),cs=[0,4,8,12,16,20,24,28].map(cnt),dev=Math.max(...cs.map(c=>Math.abs(c-c0)/c0));
+    if(dev>0.35)bad++;o.push(`RotSprite 32 角度:原圖像素 ${c0},各角度 ${cs.join('/')},最大偏差 ${(dev*100).toFixed(0)}%`);
+    return {o,bad};});
+  console.log(r.o.join('\n'));console.log('錯誤',errs.length?errs.slice(0,3):'無');await br.close();return errs.length+r.bad;}
+
+// v0.17:魔王共用工具截圖。情境 warn 四種預警各兩個進度(上排 30%、下排 75%);burn 火焰燒紅邊;hit 子彈閃白;die 死亡第 n 幀;intro 登場第 n 幀
+async function bshot(outp,sc,w,n,file){
+  const {br,pg,errs}=await open(file,{width:1024,height:576});
+  await pg.evaluate(([sc,w,n])=>{HX.go(w,5);
+    if(sc==='intro'){for(let i=0;i<n;i++){update();}render();return;}
+    HX.run(320);ebul.length=0;hazs.length=0;ens.length=0;
+    if(sc==='warn'){const K_=['beam','ground','drop','area'];
+      K_.forEach((k,i)=>{for(const [r,p] of [[0,.3],[1,.75]]){const z=haz(20+i*120,30+r*110,96,r?60:14,20,60,['#ff4a6a','#ffb03c','#8a3aa0','#dfe6ff'][i],k);z.t=Math.round(z.warn*p);}});
+      const z=haz(470,0,20,14*16,20,60,'#ffbe3c','drop');z.t=Math.round(z.warn*.6);render();return;}
+    const p=bossParts()[0];
+    if(sc==='burn'){for(let i=0;i<3;i++){bossDamage(p,1,1);render();}return;}
+    if(sc==='hit'){bossDamage(p,1);render();return;}
+    if(sc==='die'){for(const q of bossParts())if(boss.alive)bossDamage(q,1e6);for(let i=0;i<n;i++)update();render();return;}
+  },[sc,+w||3,+n||0]);
+  await pg.evaluate(()=>HX.warm());               // 地面快取只在 render 時烘焙
+  await pg.screenshot({path:outp});console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();}
+
 (async()=>{const [cmd,...a]=process.argv.slice(2);let bad=0;
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
@@ -231,6 +279,8 @@ async function espr(f){const {br,pg,errs}=await open(f);
   else if(cmd==='edraw')await edraw(a[0],a[1],+a[2]||2000);
   else if(cmd==='eface')bad=await eface(a[0]);
   else if(cmd==='espr')bad=await espr(a[0]);
+  else if(cmd==='boss')bad=await bosst(a[0]);
+  else if(cmd==='bshot')await bshot(a[0],a[1],a[2],a[3],a[4]);
   else if(cmd==='vshift')await vshift(a[0]||50,a[1]||'vshift',a[2]||undefined,a[3]);
   else{console.log(require('fs').readFileSync(__filename,'utf8').split('\n').slice(0,10).join('\n'));}
   process.exit(bad?1:0);})();

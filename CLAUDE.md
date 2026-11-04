@@ -27,7 +27,7 @@
 
 ## 測試(提交前)
 - `git diff` 核對只動到預期位置,沒有混入預覽用的控制列或暫存檔。
-- 必跑 `node tools/harness.js smoke` 與 `special`;依工作項目加跑 `vine`、`edraw`、`eface`、`espr`、`vshift`、`sheet`、`shot`(說明見 `tools/README.md`)。
+- 必跑 `node tools/harness.js smoke` 與 `special`;依工作項目加跑 `vine`、`edraw`、`eface`、`espr`、`boss`、`bshot`、`vshift`、`sheet`、`shot`(說明見 `tools/README.md`)。
 - 新行為需要驗證時,在 `tools/harness.js` 加子指令,不寫一次性腳本。
 - 需要 Node 18 以上、playwright、Chrome(Chrome 不在預設位置時設 `CHROME` 環境變數)。沙盒數字只作新舊版相對比較,不能代替測試機。
 - 地面快取只在 render 時烘焙,自寫截圖流程要先連畫數幀。
