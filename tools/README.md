@@ -14,6 +14,7 @@
 | `node tools/harness.js vine [種子數]` | 繩梯攀爬測試(v0.11):每條可攀欄段按鍵模擬,從底爬到頂、站上頂端、再爬回底部;一般小關固定種子,王關與 10 王第三型態另測 |
 | `node tools/harness.js edraw <舊檔> <新檔> [次數]` | 雜兵繪製量測(v0.12):第 1~10 關各 16 隻(v0.13 加第 2、6 關,v0.14 加第 3、7 關,v0.15 加第 4、8 關,v0.16 加第 10 關)敵人排進畫面,量 `drawEnemies` 每次耗時(含鏡頭發光登記)與首次精靈烘焙時間;沙盒相對比較用 |
 | `node tools/harness.js eface [檔案]` | 飛行兵與蜂懸停於主角正上方 600 幀,統計 `e.face` 翻轉次數與畫面朝向翻轉次數(v0.13,第 1、2、5、6、9 關;v0.14 加第 3、7 關;v0.15 加第 4、8 關;v0.16 加第 10 關) |
+| `node tools/harness.js espr [檔案]` | 第 1~10 關各 1~4 小關跑 900 幀、魔王關 3600 幀(含召喚),統計畫面上找不到精靈的敵人(v0.16.1 移除 eRects 方塊備援後,缺精靈的敵人不會畫出來) |
 | `node tools/harness.js vshift <每關種子數> <輸出前綴> [檔案] [FX設定]` | 視野壓力測試(v0.9):固定種子生成大量一般小關,輸出地表高度統計與每大關地形最低段落的對照圖 |
 
 檔案參數省略時測試 repo 根目錄的 `index.html`。Chrome 預設路徑:Windows `C:\Program Files\Google\Chrome\Application\chrome.exe`、macOS `/Applications/Google Chrome.app`、Linux `/usr/bin/google-chrome`;不在預設位置時,用環境變數 `CHROME` 指定。

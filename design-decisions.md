@@ -9,7 +9,7 @@ PIXEL STRIKE FORCE (PC) 設計決定文件
 例外(11/1 使用者明確授權):一般小關顯示範圍改變(視野上移 2 格),內容見第 3 節「視野」,v0.9 已實作。只改鏡頭垂直位置,判定、機制與邏輯座標不變。
 例外(11/1 使用者明確授權):敵人掉落改為單次擲骰,一隻敵人最多掉一樣(武器箱、生命各自機率不變),v0.10.1 已實作,見第 3 節「道具」。
 例外(11/1 使用者明確授權,1~10 關):繩梯穿過單向平台處的斷口改為可攀爬,v0.11 已實作,見第 3 節「繩梯」。只改攀爬判定;平台站立與單向判定、判定框、邏輯座標不變。
-目前檔案版本:v0.16(雜兵精靈終末系,第 10 關;見第 3 節「雜兵」)。每輪完成後更新此行。
+目前檔案版本:v0.16.1(清理:移除舊方塊雜兵 eRects;前一版 v0.16 雜兵精靈終末系)。每輪完成後更新此行。
 2. 硬性限制
 只支援 PC(鍵盤操作,滑鼠僅用於標題與選關),不做手機版。
 單一檔案 index.html,託管於 GitHub Pages。執行時不從任何外部網址載入資源(字型、圖片、程式庫皆不外連)。
@@ -155,8 +155,8 @@ v0.9 到 v0.15 尚未在測試機量測。沙盒量測皆在誤差內:v0.9 只�
 武器視覺(v0.5):headSprite(彈頭快取 HEADC)、drawBulletV、hitFx、HOT(火焰各級配色)、FLV(火星與煙)、drawFlame、drawMuzzle、槍 pGunH/pGun45
 主角精靈(v0.4):PSP(調色盤)、PS_HEAD/PS_BODY/PS_LEG(側面矩陣)、PS_HEADB/PS_BODYB(背面矩陣)、psBake、PSPR(預先畫好的各格)、PV、pPix、pGlow、pScarfSide、pScarfBack
 敵人、危險區:updateEnemies、drawEnemies、updateHazards、drawHazards;敵人種類與出現大關在 genLevel(1 關起:grunt、runner、turret、flyer;3 關起 skel;5 關起 bee;7 關起 drone、mortar),判定框在 addEnemy(12×14;turret、mortar 14×14;flyer、bee、drone 14×10)。
-敵人外形與燃燒剪影(v0.5.1):eRects(尚未換精靈的大關沿用的方塊清單)、drawSil、burnTop、drawBurnTop、SIL_C
-雜兵精靈(v0.12,在 eRects 之前):ESPR(各系列像素矩陣,mech、hum、swa 第 3 關、swb 第 7 關、und 第 4、8 關、end 第 10 關;走路兵種 b 身體加 l 腿、sp 前後腳分界、lw 換色右界;飛行類 m 加 wing/jet)、ESER(各大關用哪個系列;v0.16 起十關皆有,null 時沿用 eRects)、EPAL(各大關配色)、EDET(主題細節)、eFrames(展開各格)、eBakeOne(四種變體的著色規則)、eBake(每大關一張圖集 EB.atlas)、eSpr、eFace(飛行兵與蜂的朝向死區,視覺欄位 e.vf)、eDraw;drawEnemies、drawSil 有精靈時改呼叫 eDraw。
+燃燒剪影(v0.5.1):drawSil、burnTop、drawBurnTop、SIL_C
+雜兵精靈(v0.12,在 drawSil 之前):ESPR(各系列像素矩陣,mech、hum、swa 第 3 關、swb 第 7 關、und 第 4、8 關、end 第 10 關;走路兵種 b 身體加 l 腿、sp 前後腳分界、lw 換色右界;飛行類 m 加 wing/jet)、ESER(各大關用哪個系列;十關皆有,v0.16.1 移除 eRects 後缺精靈的敵人不畫,改兵種或召喚前先跑 harness.js espr)、EPAL(各大關配色)、EDET(主題細節)、eFrames(展開各格)、eBakeOne(四種變體的著色規則)、eBake(每大關一張圖集 EB.atlas)、eSpr、eFace(飛行兵與蜂的朝向死區,視覺欄位 e.vf)、eDraw;drawEnemies、drawSil 呼叫 eDraw。
 道具(v0.10):IT_LIFE、IT_BOX、IT_GLY(像素矩陣)、itBake、ITC(預先畫好的小圖)、itBlink、drawItems;掉落與拾取邏輯在 killEnemy、dropCrate、updateItems(未改)。
 敵彈繪製:本體在 drawEBulTop(render 內 postComposite 之後呼叫);發光登記在 drawMisc 開頭
 關卡生成:genLevel、bossArena
@@ -191,7 +191,7 @@ v0.9 到 v0.15 尚未在測試機量測。沙盒量測皆在誤差內:v0.9 只�
 模型:需要判斷架構、效能或複雜魔王行為時用 Opus,反覆調整參數與逐項補做時用 Sonnet。
 上下文長度:預估一次做不完時主動告知使用者,使用者另開延續對話。延續對話開頭照常讀本文件、核對版本,以第 1 節與第 8 節「最新一筆」銜接;需要細節時再讀 claude/changelog.md 最後一筆。
 檔案流程:開頭 git status 與 git log -1 確認在 dev 且乾淨;用搜尋與分段讀取只看需要的函式;修改後以 git diff 核對只動到預期位置,跑 tools/harness.js 相關子指令;commit 推回 dev,再向使用者回報。
-測試工具:dev 分支 tools/harness.js(說明見 tools/README.md),子指令 smoke、special、bench <舊檔> <新檔>、shot、sheet(seed=N 固定亂數,新舊版同一批地圖對照)、vshift(視野壓力測試)、vine(繩梯攀爬測試,v0.11)、edraw(雜兵繪製量測,v0.12;v0.16 起第 1~10 關)、eface(懸停敵人朝向,v0.13)。新行為需要驗證時直接加子指令,不另寫一次性腳本。舊版用 git show <commit>:index.html 取出對照。本機需安裝 playwright 與 Chrome(見 tools/README.md)。
+測試工具:dev 分支 tools/harness.js(說明見 tools/README.md),子指令 smoke、special、bench <舊檔> <新檔>、shot、sheet(seed=N 固定亂數,新舊版同一批地圖對照)、vshift(視野壓力測試)、vine(繩梯攀爬測試,v0.11)、edraw(雜兵繪製量測,v0.12;v0.16 起第 1~10 關)、eface(懸停敵人朝向,v0.13)、espr(每隻出現的敵人都有精靈,v0.16.1)。新行為需要驗證時直接加子指令,不另寫一次性腳本。舊版用 git show <commit>:index.html 取出對照。本機需安裝 playwright 與 Chrome(見 tools/README.md)。
 special 沒有固定亂數,偶爾會出現「飛彈殘留、飛機未離場」:原因是敵人掉落的武器箱落在主角身上,跳出換武器對話框使遊戲暫停,腳本沒有回答。屬測試盲點,不是遊戲問題(v0.9 核對)。
 地面快取只在 render 時烘焙(遊玩中單幀上限 3 ms):只跑 update 再畫一幀的截圖會缺地面。shot 已加 HX.warm()(v0.10);自寫截圖流程也要先連畫數幀。
 全量 bench 耗時長,局部改動改做針對性量測(只量改動的函式)。
@@ -208,4 +208,4 @@ special 沒有固定亂數,偶爾會出現「飛彈殘留、飛機未離場」:�
 雜兵範圍:8 種、依大關遞增(1~2 關 4 種、3~4 關 5 種、5~6 關 6 種、7~10 關 8 種),丙方案共 38 個設計(機械 8、人形 6、沼澤生物 8 另加第 3/7 關差異版、不死 8、終末 8);魔王召喚的雜兵(5 王蜂、骷髏、無人機)沿用所在大關外觀。
 8. 變更紀錄
 完整紀錄在 claude/changelog.md。每輪完成後在該檔最末端新增一筆,並把下一行改成最新版本的一句摘要。
-最新一筆:v0.16 雜兵精靈終末系(11/4;第 10 關 8 種改像素精靈,配色冷青裂隙加裂縫微光;十關雜兵全部完成)。下一項:魔王共用工具。判定框、行為與邏輯座標未改。
+最新一筆:v0.16.1 清理(11/4;使用者指示移除不再使用的舊方塊雜兵 eRects 與備援路徑,畫面不變;前一版 v0.16 完成十關雜兵)。下一項:魔王共用工具。判定框、行為與邏輯座標未改。

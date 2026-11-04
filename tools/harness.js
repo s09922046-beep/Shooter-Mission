@@ -8,6 +8,7 @@
 //   node tools/harness.js vine [種子數] [檔案]           繩梯攀爬測試(v0.11):從底爬到頂、站上頂端、從頂端爬回底部
 //   node tools/harness.js edraw <舊檔> <新檔> [次數]  雜兵繪製量測(v0.12;v0.13 加第 2、6 關;v0.14 加第 3、7 關;v0.15 加第 4、8 關;v0.16 加第 10 關):第 1~10 關各 16 隻排進畫面,量 drawEnemies 每次耗時與首次烘焙
 //   node tools/harness.js eface [檔案]  飛行兵與蜂懸停於主角正上方 600 幀:統計 e.face 翻轉次數與畫面朝向(eFace)翻轉次數(v0.13;v0.14 加第 3、7 關;v0.15 加第 4、8 關;v0.16 加第 10 關)
+//   node tools/harness.js espr [檔案]  每大關 1~4 小關跑 900 幀、魔王關 3600 幀(含召喚),統計畫面上找不到精靈的敵人(v0.16.1 移除方塊備援後,缺精靈會不畫)
 //   node tools/harness.js vshift <每關種子數> <輸出前綴> [檔案] [FX設定]  視野上移壓力測試:統計地表高度,截每大關地形最低的段落
 // [檔案] 省略時為 repo 根目錄的 index.html。環境變數 CHROME 可指定 Chrome 路徑。
 // 做法:載入前把 requestAnimationFrame 換成空函式,改由腳本手動呼叫 update()/render(),所以結果可重現、不受機器速度影響。
@@ -211,6 +212,15 @@ async function eface(f){const {br,pg,errs}=await open(f);
     return out;});
   console.log(r.join('\n'));console.log('錯誤',errs.length?errs.slice(0,3):'無');await br.close();return errs.length;}
 
+// v0.16.1:移除 eRects 後,缺精靈的敵人不會畫出來;逐關逐小關確認每隻出現過的敵人都有精靈
+async function espr(f){const {br,pg,errs}=await open(f);
+  const r=await pg.evaluate(()=>{const miss={},seen={};
+    for(let w=1;w<=10;w++)for(let s=1;s<=5;s++){HX.go(w,s);
+      for(let i=0;i<(s===5?3600:900);i++){K.r=i%60<40?1:0;HX.run(1);for(const e of ens){const k=w+' '+e.type;seen[k]=1;if(s===5)seen['王'+k]=1;if(!eSpr(e))miss[k]=(miss[k]||0)+1;}}K.r=0;}
+    return {seen:Object.keys(seen).filter(k=>k[0]!=='王').length,boss:Object.keys(seen).filter(k=>k[0]==='王').map(k=>k.slice(1)).join('、'),miss};});
+  console.log('出現過的大關×兵種',r.seen,'組;魔王關召喚',r.boss||'無','缺精靈',Object.keys(r.miss).length?JSON.stringify(r.miss):'無');
+  console.log('錯誤',errs.length?errs.slice(0,3):'無');await br.close();return errs.length+Object.keys(r.miss).length;}
+
 (async()=>{const [cmd,...a]=process.argv.slice(2);let bad=0;
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
@@ -220,6 +230,7 @@ async function eface(f){const {br,pg,errs}=await open(f);
   else if(cmd==='vine')bad=await vine(a[0]||5,a[1]);
   else if(cmd==='edraw')await edraw(a[0],a[1],+a[2]||2000);
   else if(cmd==='eface')bad=await eface(a[0]);
+  else if(cmd==='espr')bad=await espr(a[0]);
   else if(cmd==='vshift')await vshift(a[0]||50,a[1]||'vshift',a[2]||undefined,a[3]);
   else{console.log(require('fs').readFileSync(__filename,'utf8').split('\n').slice(0,10).join('\n'));}
   process.exit(bad?1:0);})();
