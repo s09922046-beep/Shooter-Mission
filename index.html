@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.17 魔王共用工具:部件閃白、火焰燒紅邊、發光核心三狀態、預警四樣式、死亡零件與單次閃光、登場時間軸(鎖主角、血條填充、重挑縮短)、傳送門延後 30 幀、RotSprite、殘影;判定框不變 -->
+<!-- VERSION: v0.17.1 擊破字幕在第 170 幀收掉,停頓 30 幀後才開傳送門(總時長不變);判定框與行為不變 -->
+<!-- 前版: v0.17 魔王共用工具:部件閃白、火焰燒紅邊、發光核心三狀態、預警四樣式、死亡零件與單次閃光、登場時間軸(鎖主角、血條填充、重挑縮短)、傳送門延後 30 幀、RotSprite、殘影;判定框不變 -->
 <!-- 前版: v0.16.1 清理:移除舊方塊雜兵 eRects -->
 <!-- 前版:v0.10.1 敵人掉落改為單次擲骰(使用者授權):一隻敵人最多掉一樣,武器箱與生命各自機率不變 -->
 <!-- 前版:v0.8 地面材質依大關區隔:實心地面、單向平台、攀爬物、灼燒面逐關換材質(預先烘焙快取),本體明度壓低;第 1~6、8、9 關地面色改建議色 -->
@@ -1080,7 +1081,7 @@ function aimEb(x,y,sp,c,r){const dx=P.x+5-x,dy=P.y+7-y,n=Math.hypot(dx,dy)||1;eb
    繪製流程:bossRender 把 def.draw 畫進魔王層 BL,再依判定部件疊上閃白(子彈)、燒紅邊(火焰)、核心,最後貼回遊戲畫面。
    登場時間軸(introT 由 300 倒數,t=300-introT):0~119 WARNING、120~219 出場、220~299 字卡加血條填充;期間鎖住主角操作。
    重挑(從王關接續)由 t=180 開始。 */
-const BT_IN_SHOW=120,BT_IN_CARD=220,BT_DIE_BIG=96,BT_DIE_HIDE=100,BT_WIN_END=200;
+const BT_IN_SHOW=120,BT_IN_CARD=220,BT_DIE_BIG=96,BT_DIE_HIDE=100,BT_TXT_END=170,BT_WIN_END=200;   // 擊破字幕 100~169,170~199 停頓,200 開傳送門
 const [BLc,BLx]=mkCv(W,H);BLx.imageSmoothingEnabled=false;
 const [BTc,BTx]=mkCv(W,H);                        // 燒紅邊用的暫存畫布(只用到部件大小的區域)
 const BT={booms:[],flT:0,k0:null};
@@ -2967,7 +2968,7 @@ function drawOverlays(){
   }
   if(G.state==='win'){
     if(BT.flT>0){ctx.globalAlpha=0.6*BT.flT/40;px(0,0,W,H,'#ffffff');ctx.globalAlpha=1;} // v0.17:單次閃光淡出(原脈衝閃有光敏風險)
-    if(G.sT>=BT_DIE_HIDE){txt('VICTORY',W/2,90,'#ffe9a0',30,'center',1);
+    if(G.sT>=BT_DIE_HIDE&&G.sT<BT_TXT_END){txt('VICTORY',W/2,90,'#ffe9a0',30,'center',1);
     txt(BOSSES[G.world-1].name+' 擊破',W/2,130,'#d8e2f4',12,'center',1);}
   }
   // 魔王警示 / 登場
