@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.17.1 擊破字幕在第 170 幀收掉,停頓 30 幀後才開傳送門(總時長不變);判定框與行為不變 -->
+<!-- VERSION: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製(3 王暗紫肉質吸盤觸手、10 王第三型態黑曜藤、抽回長回動畫與判定同步、裝飾觸手擺動)、倒影(遊戲畫面內、高低畫質皆開;3 王常駐、10 王第 1、2 型態);判定框與行為不變 -->
+<!-- 前版: v0.17.1 擊破字幕在第 170 幀收掉,停頓 30 幀後才開傳送門(總時長不變);判定框與行為不變 -->
 <!-- 前版: v0.17 魔王共用工具:部件閃白、火焰燒紅邊、發光核心三狀態、預警四樣式、死亡零件與單次閃光、登場時間軸(鎖主角、血條填充、重挑縮短)、傳送門延後 30 幀、RotSprite、殘影;判定框不變 -->
 <!-- 前版: v0.16.1 清理:移除舊方塊雜兵 eRects -->
 <!-- 前版:v0.10.1 敵人掉落改為單次擲骰(使用者授權):一隻敵人最多掉一樣,武器箱與生命各自機率不變 -->
@@ -1209,6 +1210,81 @@ function bSmearDraw(h,r,c){                        // 畫過去幾格的單色�
   for(let i=0;i<h.length-1;i++){ctx.globalAlpha=0.12+0.28*(i+1)/h.length;bRotDraw(r,h[i].a,h[i].x,h[i].y,cv);}
   ctx.globalAlpha=1;
 }
+/* ---- v0.18 藤蔓觸手共用繪製(1b;3 王觸手、10 王第 3 型態藤蔓、3 王裝飾觸手)----
+   純視覺:判定仍是地圖上的繩梯格(2),外觀不擺動、輪廓固定在 16 像素寬的一欄內,只有表面花紋往下(或上)流動加一道脈動。
+   載入時把每種樣式烘焙成 16×32 的可無縫重複貼圖(base 本色、hi 脈動亮色、dk 可攀範圍以上的暗色)加 16×12 的末端,每幀只貼圖。
+   地圖 map.str 為真時,地面快取不畫該圖的繩梯格(由 def.strands 改畫);def.strands(b) 回傳 [{x,y0,y1,k,st}]:
+   x 欄左緣、y0~y1 可攀範圍、k 可見比例(抽回 0~1)、st 樣式。根部一律從畫面頂端畫起。 */
+const STP=32,STT=12;
+function stC(h){const n=parseInt(h.slice(1),16);return [n>>16,n>>8&255,n&255];}
+function stMix(h,t,k){const a=stC(h),b=stC(t);return '#'+a.map((v,i)=>Math.round(v+(b[i]-v)*k).toString(16).padStart(2,'0')).join('');}
+const STY={
+  flesh:{flow:0.25,pv:1.4,pal:{O:'#160818',D:'#3a1640',M:'#5e2560',L:'#8a4a8c',V:'#a87aa4',S:'#d0a0c4',K:'#401838'},hiT:'#f0b8e8',hiK:0.28,
+    px(lx,y,tip){                                  // 暗紫肉質:環狀皺摺、右側淺粉紫腹面加一排吸盤,末端漸細往右捲
+      const r=y&7,f=tip?y/STT:0,cx=7.5+(tip?Math.round(3*f*f):0),hw=tip?Math.max(0.8,4.6*(1-f)):(r===0?4.2:5),d=lx+0.5-cx,ad=Math.abs(d);
+      if(ad>hw)return 0;if(ad>hw-1)return 'O';
+      if(d>=1){if(tip)return 'V';const q=(y+4)&7;if(q>=2&&q<=4&&d<=4)return q===3&&d>=2&&d<3?'K':'S';return 'V';}
+      if(r===0&&!tip)return 'D';if(d<-hw+2.2)return 'D';if(d>=-2&&d<-1)return 'L';return 'M';}},
+  obsid:{flow:-0.2,pv:-1.1,glow:'#3ad0c8',pal:{O:'#060a10',D:'#1a2230',M:'#283040',S:'#3c4c62',L:'#5e7690',T:'#3ad0c8'},hiT:'#b0fff0',hiK:0.35,
+    px(lx,y,tip){                                  // 黑曜扭絞雙股藤:兩股交替前後、交叉處裂縫透青光、外側小尖刺
+      const f=tip?y/STT:0,A=2.6*(1-f),a=y*Math.PI/8,s=Math.sin(a),fr=Math.cos(a)>0,p=lx+0.5,R=tip?Math.max(0.5,1.5*(1-f)):1.5;
+      const x1=7.5+A*s,x2=7.5-A*s,df=Math.abs(p-(fr?x1:x2)),db=Math.abs(p-(fr?x2:x1));
+      if(df<=R-0.5){if(!tip&&(y&15)===7&&df<0.6)return 'T';return p<(fr?x1:x2)?'L':'S';}
+      if(df<=R+0.5)return 'O';
+      if(db<=R-0.5)return 'D';if(db<=R+0.5)return 'O';
+      if(!tip&&y%12===2&&(lx===(y%24<12?3:12)))return 'M';
+      return 0;}}
+};
+const STB={};
+function stBake(id){let o=STB[id];if(o)return o;const s=STY[id];o={};
+  const vs={base:s.pal,hi:{},dk:{}};for(const k in s.pal){vs.hi[k]=stMix(s.pal[k],s.hiT,s.hiK);vs.dk[k]=stMix(s.pal[k],'#000000',0.45);}
+  vs.hi.O=s.pal.O;vs.dk.O=s.pal.O;
+  for(const v in vs)for(const tip of[0,1]){const h=tip?STT:STP,[cv,x]=mkCv(16,h),im=x.createImageData(16,h),u=new Uint32Array(im.data.buffer);
+    for(let y=0;y<h;y++)for(let lx=0;lx<16;lx++){const k=s.px(lx,y,tip);if(!k)continue;const c=stC(vs[v][k]);u[y*16+lx]=(255<<24)|(c[2]<<16)|(c[1]<<8)|c[0];}
+    x.putImageData(im,0,0);if(tip){o[v+'T']=cv;continue;}
+    const [tc,tx]=mkCv(16,STP*10);for(let i=0;i<10;i++)tx.drawImage(cv,0,i*STP);o[v]=tc;} // 預先排成 320 列長條,每幀一次貼圖就能貼滿整條
+  return STB[id]=o;}
+function stCol(cv,x,ya,yb,off){                    // 以 off 為花紋起點貼滿 ya~yb(長條 320 列,一次貼完)
+  const sy=((off%STP)+STP)%STP,h=Math.min(yb-ya,STP*9);if(h>0)ctx.drawImage(cv,0,sy,16,h,x,ya,16,h);}
+function stDraw(st,x,y0,y1,k,ph){                  // 一條可攀觸手:根部在畫面頂端(y0 以上畫暗色),末端在 y1 下方 STT 列,k<1 時從末端往上收
+  const s=STY[st],o=stBake(st),full=y1+STT,bot=Math.round(k*full);if(bot<3)return;
+  const be=bot-STT,off=Math.floor(G.t*s.flow)+(full-bot)+ph*11;
+  if(be>0){const c=Math.min(be,y0);if(c>0)stCol(o.dk,x,0,c,off);if(be>y0){stCol(o.base,x,y0,be,off+y0);
+    const L=y1-y0+48,py=y0-24+((Math.floor(G.t*s.pv)+ph*29)%L+L)%L,a=Math.max(y0,py),b=Math.min(be,py+8); // 脈動:一段 8 列亮色沿觸手移動
+    if(b>a){stCol(o.hi,x,a,b,off+a);if(s.glow)gl(x+5,a,6,b-a,s.glow,0.3);}}}
+  const dx=Math.round(Math.sin(G.t*0.05+ph)),ty=Math.max(0,-be);                 // 末端不可攀,可小幅擺動
+  if(ty<STT)ctx.drawImage(o.baseT,0,ty,16,STT-ty,x+dx,be+ty,16,STT-ty);
+  PXD=1;}
+function stSway(st,x,y,len,ph){                    // 裝飾觸手(不可攀):以 8 列為一段(v0.18 沙盒量測 2 列一段每條約 43 µs),越接近末端擺得越大
+  const o=stBake(st),bl=len-STT,off=Math.floor(G.t*STY[st].flow)+ph*11,A=3,sw=s=>Math.round(A*(s/len)*(s/len)*Math.sin(G.t*0.045+ph-s*0.07));
+  const so=((off%STP)+STP)%STP;for(let s=0;s<bl;s+=8){const h=Math.min(8,bl-s);ctx.drawImage(o.base,0,so+s,16,h,x+sw(s),y+s,16,h);}
+  ctx.drawImage(o.baseT,x+sw(bl),y+Math.max(0,bl));PXD=1;}
+function stTiles(){                                // render 內、drawTiles 之前呼叫:畫在地形後方,平台木板會蓋住觸手
+  if(!map.str||!boss||!boss.def.strands)return;
+  const L=boss.def.strands(boss);for(let i=0;i<L.length;i++){const q=L[i];stDraw(q.st,q.x,q.y0,q.y1,q.k,i);}}
+/* ---- v0.18 倒影(1b):畫在 512×288 遊戲畫面內,高低畫質都開 ----
+   render 在 drawPlayer 之後呼叫,所以倒影只含背景、地形、魔王、雜兵、道具與主角;火焰、子彈、預警、粒子、爆炸都在之後才畫,不會出現在倒影裡。
+   def.refl={y 地表線(世界座標), h 鋪多高, a 最大不透明度, amp 水波像素, tint 染色, tk 染色濃度, on(b) 何時出現};強度 b.rfa 每次繪製往目標靠 1/15(淡入淡出)。
+   做法:把地表線以上 h 列每 2 列上下翻轉、加水平水波,越深越淡,染色後貼回地表線以下;發光層整塊鏡像一次。 */
+const RFH=64,[rfc,rfx]=mkCv(W,RFH);
+function rfBand(src,dx0,R,ay,h){
+  dx0.setTransform(1,0,0,1,0,0);dx0.globalCompositeOperation='source-over';dx0.clearRect(0,0,W,RFH);
+  for(let i=0;i<h;i+=2){const sy=ay-2-i;if(sy<0)break;  // 每次翻轉 2 列(上下鏡像用負縮放),每 4 列降一階透明度,維持像素風
+    dx0.globalAlpha=R.a*(1-Math.floor(i/4)*4/h);
+    dx0.setTransform(1,0,0,-1,i<2?0:Math.round(R.amp*Math.sin(G.t*0.08+i*0.55)),i+2);dx0.drawImage(src,0,sy,W,2,0,0,W,2);}
+  dx0.setTransform(1,0,0,1,0,0);dx0.globalAlpha=1;}
+function bRefl(){
+  const b=boss;if(!b||!b.def.refl)return;const R=b.def.refl,on=b.alive&&R.on(b);
+  b.rfa=Math.max(0,Math.min(1,(b.rfa||0)+(on?1:-1)/15));if(b.rfa<=0)return;
+  const m=ctx.getTransform(),ay=Math.round(R.y*m.d+m.f),h=Math.min(R.h||48,RFH,H-ay);if(h<=0||ay<=0)return;
+  const a0=R.a;R.a=a0*b.rfa;
+  rfBand(gcv,rfx,R,ay,h);
+  rfx.globalCompositeOperation='source-atop';rfx.globalAlpha=R.tk;rfx.fillStyle=R.tint;rfx.fillRect(0,0,W,h);
+  rfx.globalCompositeOperation='source-over';rfx.globalAlpha=1;
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(rfc,0,0,W,h,0,ay,W,h);ctx.restore();
+  if(FX.n){const g=gctx.getTransform();gctx.setTransform(1,0,0,-1,0,2*ay);gctx.globalAlpha=0.3*b.rfa; // 發光層:整塊翻轉一次(泛光本身是模糊的,不需水波與分階)
+    gctx.drawImage(glc,0,ay-h,W,h,0,ay-h,W,h);gctx.globalAlpha=1;gctx.setTransform(g);}
+  R.a=a0;PXD=1;}
 
 /* ========== 1-5 赫利俄斯殘骸 ========== */
 const B1={
@@ -1338,7 +1414,11 @@ const B2={
 const B3={
   name:'深淵孵卵者 歐貝格',en:'OBEG, THE SPAWNER',tag:'COSMIC HORROR / 觸手',
   arena(){bossArena(()=>{gnd(14);fillR(1,13,30,13,4);
-    for(const x of[6,11,16,21,26])vineAt(x,5,12);});},
+    for(const x of[6,11,16,21,26])vineAt(x,5,12);map.str=1;});},
+  strands(b){const r=b.retract;let k=1;            // v0.18 視覺:判定消失那一幀起 12 幀往上收;長回提前 12 幀往下長,可攀那一幀剛好長滿
+    if(b.vinesGone)k=r>88?(r-88)/12:r<=12?1-r/12:0;
+    return [6,11,16,21,26].map(x=>({x:x*TS,y0:5*TS,y1:13*TS,k,st:'flesh'}));},
+  refl:{y:13*TS,h:48,a:0.44,amp:1,tint:'#1a2a5a',tk:0.35,on:b=>true}, // v0.18 倒影常駐(使用者看預覽定案:強度 0.44、水波 1)
   init(b){b.x=150;b.y=0;b.w=220;b.h=76;b.eye=0;b.retract=0;b.saveV=null;b.vinesGone=false;b.slamPhase='';b.eyeY=null;b.slamTx=null;},
   parts(b){
     const cx=(b.slamPhase==='fall'||b.slamPhase==='center')?(b.slamTx-28):(b.x+80);
@@ -1384,7 +1464,7 @@ const B3={
     const x=b.x;
     px(x,0,b.w,64,'#4a1d4e');px(x+10,50,b.w-20,18,'#5e2560');
     for(let i=0;i<10;i++){const tx=x+12+i*22,L=30+Math.sin(G.t*0.03+i)*12;
-      px(tx,60,7,L,'#6b2a6e');px(tx+1,60+L,5,8,'#8a3a8c');}
+      stSway('flesh',tx-4,58,Math.round(L)+10,i);}  // v0.18 裝飾觸手改用共用繪製(會擺動)
     const ex=(b.slamPhase==='fall'||b.slamPhase==='center')?(b.slamTx-28):(x+80),ey=b.eyeY!=null?b.eyeY:24;
     px(ex,ey,56,44,'#20101f');
     const e=b.eye>0?'#ff4ad0':'#ffe36a';
@@ -1828,6 +1908,8 @@ const B10={
   arena(){bossArena(()=>{gnd(14);fillR(6,9,12,9,3);fillR(19,9,25,9,3);
     vineAt(4,2,13);vineAt(16,2,13);vineAt(28,2,13);});},
   init(b){b.x=340;b.y=14*TS-34;b.w=24;b.h=34;b.ph=1;b.st='';b.spin=0;},
+  strands(b){return b.ph===3&&b.vxs?b.vxs.map(x=>({x:x*TS,y0:TS,y1:(GH-1)*TS,k:1,st:'obsid'})):[];}, // v0.18 第 3 型態藤蔓
+  refl:{y:14*TS,h:48,a:0.4,amp:0,tint:'#101a3a',tk:0.4,on:b=>b.ph<3},          // v0.18 第 1、2 階段濕地倒影(無水波)
   parts(b){return [{x:b.x,y:b.y,w:b.w,h:b.h,key:'core'}];},
   upd(b){
     const f=b.hp/b.max;
@@ -1841,6 +1923,7 @@ const B10={
       const lo=3,hiEnd=28,nSeg=8,step=3,shift=ri(0,Math.max(0,(hiEnd-lo)-(nSeg-1)*step));
       const xs=[];for(let i=0;i<nSeg;i++)xs.push(lo+shift+i*step);
       for(const x of xs)vineAt(x,1,GH-2);
+      map.str=1;b.vxs=xs; // v0.18 視覺:藤蔓改由 def.strands 畫(只記位置,不影響判定)
       fillR(9,6,12,6,3);fillR(19,10,22,10,3);fillR(13,14,16,14,3); // 新增喘息平台,降低最終型態壓迫感
       P.x=xs[0]*TS+3;P.y=8*TS;P.vy=0;P.climb=true;
       G.charge=0;G.noSpecial=true;b.x=232;b.y=40;}
@@ -2152,7 +2235,7 @@ function updateParticles(){
    後製流程(每幀):
      1. 遊戲畫面畫進 gcv(512×288),會發光的東西同時用 gl() 登記到發光層 glc
      2. gcv 以最近鄰放大到輸出畫布(像素保持銳利)
-     3. 倒影(預留,本版未實作)→ 泛光;霧與暈影 v0.7 起改畫在遊戲畫面內(像素畫法,見「共用光影」)
+     3. 泛光;霧、暈影 v0.7 起、倒影 v0.18 起改畫在遊戲畫面內(像素畫法,見「共用光影」與 bRefl)
      4. HUD 與各種疊層(暫停、過場、選單)最後才畫,不會被泛光影響;其中文字由 tFlush() 以螢幕解析度直接畫在輸出畫布(v0.3)
    泛光做法:發光層連續縮半(1/2→1/4→1/8),小圖上合成後一次放大以「加亮」疊回。
    不使用 ctx.filter 模糊,全解析度只付出一次加亮合成的成本。 */
@@ -2181,7 +2264,6 @@ function glBul(x,y,r,c){ // 中空外框:發光源只放在子彈外圍,本體�
   gl(X,Y,S,t,c,FX.core);gl(X,Y+S-t,S,t,c,FX.core);gl(X,Y+t,t,S-2*t,c,FX.core);gl(X+S-t,Y+t,t,S-2*t,c,FX.core);
 }
 function down(dstX,src,w,h){dstX.globalCompositeOperation='copy';dstX.drawImage(src,0,0,w,h);dstX.globalCompositeOperation='source-over';}
-function postReflect(){/* 預留:倒影層(冷月倒影,僅限指定魔王戰;高畫質才啟用) */}
 function postBloom(){
   if(!FX.n)return;
   down(bx1,glc,W/2,H/2);                        // 1/2
@@ -2211,7 +2293,6 @@ function postComposite(){
   octx.globalCompositeOperation='copy';
   octx.drawImage(gcv,0,0,PW,PH);
   octx.globalCompositeOperation='source-over';
-  if(FX.q==='high')postReflect();
   postBloom();
 }
 const fxToastEl=document.getElementById('fxToast');let fxToastTm=0;
@@ -2450,7 +2531,7 @@ function matCol(tx){
   for(let ty=0;ty<GH;ty++){
     const v=T(tx,ty),solid=isSolid(v);
     const below=ty+1<GH?T(tx,ty+1):1,surfBelow=isSolid(below)&&!solid,L=!isSolid(T(tx-1,ty)),R=!isSolid(T(tx+1,ty)),Le=T(tx-1,ty)!==3,Re=T(tx+1,ty)!==3;
-    const vp=v===3&&vinePass(tx,ty),vt=v===2&&!climbT(tx,ty-1)&&vinePass(tx,ty+1); // v0.11:穿過平台的繩梯格/穿過平台後的頂格
+    const vp=v===3&&vinePass(tx,ty)&&!map.str,vt=v===2&&!climbT(tx,ty-1)&&vinePass(tx,ty+1); // v0.11:穿過平台的繩梯格/穿過平台後的頂格;v0.18 map.str 時繩梯改由 stTiles 畫
     if(!solid&&v!==2&&v!==3&&!(surfBelow&&deco)){run=0;continue;} // v0.8.1:空白格(及水、灼燒面)沒有東西要烘焙,整格跳過
     for(let ly=(!solid&&v!==2&&v!==3)?11:0;ly<16;ly++){const wy=ty*16+ly; // 只有地表裝飾的空白格從第 11 列開始
       for(let lx=0;lx<16;lx++){const wx=tx*16+lx;let k=0,lv=0;
@@ -2466,7 +2547,7 @@ function matCol(tx){
         }else{
           if(surfBelow&&ly>=11&&v!==3){const d=mDeco(c.top,wx,15-ly);if(d>0)k=d;}
           if(v===3){const p=mPlat(c.plat,wx,lx,ly,Le,Re);if(p)k=p;else if(vp){const q=mVine(c.vine,wx,wy,lx);if(q)k=q;}} // v0.11:繩梯從平台木板後方穿過
-          else if(v===2&&!(vt&&ly<9)){const p=mVine(c.vine,wx,wy,lx);if(p)k=p;}           // v0.11 C 案:平台上方的繩梯頂格只畫下 7 列(把手)
+          else if(v===2&&!map.str&&!(vt&&ly<9)){const p=mVine(c.vine,wx,wy,lx);if(p)k=p;}           // v0.11 C 案:平台上方的繩梯頂格只畫下 7 列(把手)
         }
         if(k>0)u[wy*16+lx]=P[lv][k];
       }
@@ -3037,10 +3118,11 @@ function render(){
     const zoom=1; // 鏡頭不再縮放/跟隨,固定1倍,王關與小關行為一致
     ctx.save();ctx.scale(zoom,zoom);ctx.translate(-cam.x,-cam.y);
     gctx.setTransform(zoom,0,0,zoom,Math.round(sx)-cam.x*zoom,Math.round(sy)-cam.y*zoom);
+    stTiles();                                 // v0.18 魔王觸手/藤蔓(地形後方)
     drawTiles();
     bossRender();                              // v0.17 魔王層:閃白、燒紅邊、核心、登場淡入、死亡演出
     drawItems();drawEnemies();
-    drawPlayer();drawFlame();drawBurnTop();drawMuzzle();drawPlayerBullets();  // 主角本體、火焰(Lv4 燃燒剪影蓋在火焰上)、槍口火光、己方子彈先畫
+    drawPlayer();bRefl();drawFlame();drawBurnTop();  // v0.18 倒影:只含主角以前畫的東西drawMuzzle();drawPlayerBullets();  // 主角本體、火焰(Lv4 燃燒剪影蓋在火焰上)、槍口火光、己方子彈先畫
     if(boss&&boss.alive&&boss.introT<=0&&boss.def.fg)boss.def.fg(boss); // 魔王前景警示(需蓋在主角之上)
     bBoomDraw();                               // v0.17 魔王爆炸
     drawHazards();                             // 危險區警示/判定一律蓋在主角攻擊特效之上,確保清晰可見
@@ -3049,7 +3131,7 @@ function render(){
   }
   ctx.restore();
   if(G.state!=='title'&&G.state!=='finish'&&G.state!=='levelselect')drawAtmoTop(); // v0.7 前景薄霧、暈影(像素畫法)
-  postComposite();                             // 第一段:遊戲畫面放大 + 倒影/泛光/霧/暈影
+  postComposite();                             // 第一段:遊戲畫面放大 + 泛光(倒影、霧、暈影已畫在遊戲畫面內)
   if(G.state!=='title'&&G.state!=='finish'&&G.state!=='levelselect')drawEBulTop(Math.round(sx),Math.round(sy)); // 敵彈:泛光之後,不被洗白
   // 第二段:HUD 與疊層(暫停、過場、選單)畫在泛光之上,沒畫任何方塊就不合成;文字以螢幕解析度畫在最上層(見「文字層」)
   ctx.clearRect(0,0,W,H);PXD=0;TPASS=1;

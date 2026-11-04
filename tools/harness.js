@@ -11,6 +11,7 @@
 //   node tools/harness.js espr [檔案]  每大關 1~4 小關跑 900 幀、魔王關 3600 幀(含召喚),統計畫面上找不到精靈的敵人(v0.16.1 移除方塊備援後,缺精靈會不畫)
 //   node tools/harness.js boss [檔案]  魔王共用工具(v0.17):登場鎖主角與血條填充、判定框不變、閃白與燒紅邊、核心狀態、死亡演出到傳送門、重挑縮短、預警四樣式、RotSprite
 //   node tools/harness.js bshot <輸出.png> <情境 warn/burn/hit/die/intro> [大關] [幀數] [檔案]  魔王共用工具截圖(v0.17)
+//   node tools/harness.js strand <舊檔> <新檔> [輸出前綴]  藤蔓觸手與倒影(v0.18):舊新版邏輯狀態比對、觸手外觀與判定同步、倒影時機、耗時、截圖
 //   node tools/harness.js vshift <每關種子數> <輸出前綴> [檔案] [FX設定]  視野上移壓力測試:統計地表高度,截每大關地形最低的段落
 // [檔案] 省略時為 repo 根目錄的 index.html。環境變數 CHROME 可指定 Chrome 路徑。
 // 做法:載入前把 requestAnimationFrame 換成空函式,改由腳本手動呼叫 update()/render(),所以結果可重現、不受機器速度影響。
@@ -269,6 +270,50 @@ async function bshot(outp,sc,w,n,file){
   await pg.evaluate(()=>HX.warm());               // 地面快取只在 render 時烘焙
   await pg.screenshot({path:outp});console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();}
 
+// v0.18:藤蔓觸手與倒影。① 舊版與新版同種子、同按鍵跑 3 王、10 王第 1~3 型態,每 30 幀比對邏輯狀態(行為不變)
+// ② 3 王觸手外觀與判定同步(有可攀格時必定長滿) ③ 3 王倒影常駐、10 王第三型態倒影關閉 ④ stTiles、bRefl 每次耗時(沙盒相對值)
+async function strandRun(file){const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{
+    const seed=k=>{let a=k*2654435761>>>0;Math.random=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};};
+    const st=()=>{let m=0;for(let i=0;i<map.d.length;i++)m=(m*31+map.d[i])|0;
+      return [P.x,P.y,P.vy,P.climb?1:0,boss?boss.hp:0,boss?boss.x:0,boss?boss.y:0,boss?boss.retract:0,boss?boss.ph:0,ebul.length,hazs.length,ens.length,m].map(v=>+(+v).toFixed(3)).join(',');};
+    const o={log:[],ns:{},sync:'-',rf:'-',ms:{}};
+    const keys=i=>{K.r=i%240<120?1:0;K.l=i%240>=150&&i%240<200?1:0;K.u=i%90<40?1:0;K.j=i%70<6?1:0;K.f=i%50<30?1:0;};
+    for(const [nm,w,ph] of [['3王',3,0],['10王',10,0],['10王第三型態',10,3]]){seed(7+w+ph);HX.go(w,5);
+      if(ph===3){HX.run(320);boss.ph=2;boss.hp=boss.max*0.3;}
+      const L=[];let bad=0,tot=0,onF=0,offOK=1;
+      for(let i=0;i<1800;i++){keys(i);P.inv=999;P.lives=5;update();render();if(i%30===0)L.push(st());
+        if(w===3&&boss&&boss.def.strands&&typeof stTiles==='function'){const S=boss.def.strands(boss);
+          for(const q of S){const tx=q.x/16;let has=false;for(let y=5;y<=12;y++)if(T(tx,y)===2)has=true;tot++;if(has&&q.k!==1)bad++;}
+          if(boss.rfa>0)onF++;}if(i>30&&w===10&&boss&&boss.ph===3&&boss.rfa>0)offOK=0;}
+      for(const k of ['r','l','u','j','f'])K[k]=0;
+      o.log.push(nm+':'+L.join('|'));
+      if(w===3)o.sync=`觸手可攀時外觀長滿 ${tot-bad}/${tot},倒影常駐 ${onF}/1800 幀 ${onF>=1750?'OK':'NG'}`;
+      if(ph===3)o.sync+=`,10 王第三型態倒影已關 ${offOK?'OK':'NG'}`;
+      if(typeof stTiles==='function'){let t0=performance.now();for(let i=0;i<300;i++)stTiles();const a=(performance.now()-t0)/300;
+        boss.rfa=1;const sv=boss.def.refl&&boss.def.refl.on;if(boss.def.refl)boss.def.refl.on=()=>true;
+        t0=performance.now();for(let i=0;i<300;i++)bRefl();const b=(performance.now()-t0)/300;if(sv)boss.def.refl.on=sv;
+        o.ms[nm]=`stTiles ${a.toFixed(3)}ms、bRefl ${boss.def.refl?b.toFixed(3)+'ms':'不適用'}`;}}
+    return o;});
+  await br.close();return {r,errs};}
+async function strand(fa,fb,outp){
+  const A=await strandRun(fa),B=await strandRun(fb);let bad=A.errs.length+B.errs.length;
+  for(let i=0;i<A.r.log.length;i++){const [n,a]=A.r.log[i].split(':'),b=B.r.log[i].split(':')[1];const same=a===b;if(!same)bad++;
+    let d=-1;if(!same){const x=a.split('|'),y=b.split('|');d=x.findIndex((v,j)=>v!==y[j])*30;}
+    console.log(`${n} 舊新版邏輯狀態(每 30 幀,共 1800 幀)${same?'完全相同':'不同,第 '+d+' 幀起'}`);}
+  console.log(B.r.sync);for(const k in B.r.ms)console.log(k,B.r.ms[k]);if(B.r.sync.includes('NG'))bad++;
+  const m=/(\d+)\/(\d+)/.exec(B.r.sync);if(m&&m[1]!==m[2])bad++;
+  console.log('錯誤',[...A.errs,...B.errs].slice(0,3).join(' / ')||'無');
+  if(outp){const {br,pg}=await open(fb,{width:1024,height:576});let i=0;
+    for(const sc of ['slam','retract','b10','b10p3']){await pg.evaluate(sc=>{HX.go(sc==='slam'||sc==='retract'?3:10,5);HX.run(320);ebul.length=0;hazs.length=0;
+      if(sc==='slam'){boss.slamPhase='center';boss.slamT=180;boss.slamTx=15*16;boss.eyeY=13*16-44;P.x=60;P.y=13*16-14;for(let i=0;i<20;i++)render();}
+      if(sc==='retract'){boss.retract=-299;boss.eye=0;for(let i=0;i<6;i++)update();} // 判定消失後第 6 幀(抽回動畫進行到一半)
+      if(sc==='b10p3'){boss.ph=2;boss.hp=boss.max*0.3;HX.run(2);HX.run(60);}
+      if(sc!=='slam')for(let i=0;i<20;i++)render();},sc);
+      await pg.evaluate(()=>HX.warm());const f=outp.replace(/\.png$/,'')+'-'+sc+'.png';await pg.screenshot({path:f});console.log('已存',f);}
+    await br.close();}
+  return bad;}
+
 (async()=>{const [cmd,...a]=process.argv.slice(2);let bad=0;
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
@@ -281,6 +326,7 @@ async function bshot(outp,sc,w,n,file){
   else if(cmd==='espr')bad=await espr(a[0]);
   else if(cmd==='boss')bad=await bosst(a[0]);
   else if(cmd==='bshot')await bshot(a[0],a[1],a[2],a[3],a[4]);
+  else if(cmd==='strand')bad=await strand(a[0],a[1],a[2]);
   else if(cmd==='vshift')await vshift(a[0]||50,a[1]||'vshift',a[2]||undefined,a[3]);
   else{console.log(require('fs').readFileSync(__filename,'utf8').split('\n').slice(0,10).join('\n'));}
   process.exit(bad?1:0);})();

@@ -17,6 +17,7 @@
 | `node tools/harness.js espr [檔案]` | 第 1~10 關各 1~4 小關跑 900 幀、魔王關 3600 幀(含召喚),統計畫面上找不到精靈的敵人(v0.16.1 移除 eRects 方塊備援後,缺精靈的敵人不會畫出來) |
 | `node tools/harness.js boss [檔案]` | 魔王共用工具(v0.17):每隻魔王檢查登場鎖主角與血條填充、判定框在繪製前後不變、閃白與燒紅邊計時、核心狀態、死亡演出到傳送門、重挑縮短;另測四種預警樣式與 RotSprite;印出 bossRender 每次耗時(沙盒相對值) |
 | `node tools/harness.js bshot <輸出.png> <warn/burn/hit/die/intro> [大關] [幀數] [檔案]` | 魔王共用工具截圖(v0.17):warn 四種預警各兩個進度,burn 燒紅邊,hit 閃白,die 死亡第 n 幀,intro 登場第 n 幀 |
+| `node tools/harness.js strand <舊檔> <新檔> [輸出前綴]` | 藤蔓觸手與倒影(v0.18):舊新版同種子、同按鍵跑 3 王、10 王第 1~3 型態各 1800 幀,每 30 幀比對邏輯狀態(證明行為不變);檢查 3 王觸手可攀時外觀必定長滿、3 王倒影常駐、10 王第三型態倒影關閉;印出 stTiles、bRefl 耗時(沙盒相對值);給輸出前綴時另存 slam、retract、b10、b10p3 四張截圖 |
 | `node tools/harness.js vshift <每關種子數> <輸出前綴> [檔案] [FX設定]` | 視野壓力測試(v0.9):固定種子生成大量一般小關,輸出地表高度統計與每大關地形最低段落的對照圖 |
 
 檔案參數省略時測試 repo 根目錄的 `index.html`。Chrome 預設路徑:Windows `C:\Program Files\Google\Chrome\Application\chrome.exe`、macOS `/Applications/Google Chrome.app`、Linux `/usr/bin/google-chrome`;不在預設位置時,用環境變數 `CHROME` 指定。
