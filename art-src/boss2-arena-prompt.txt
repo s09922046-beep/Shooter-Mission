@@ -1,0 +1,21 @@
+【2 王競技場背景:附上 boss2-arena-template.png 一起送出】
+
+Background art for one fixed screen of a 2D side-scrolling pixel-art run-and-gun game: the boss arena of a fallen valkyrie. Use the attached guide image as an exact layout template. It will be shrunk 3 times to 512 x 288 pixels, so it must read clearly at that size.
+
+Guide image legend:
+- Magenta #FF00FF = open night sky. Keep every magenta area as flat solid magenta #FF00FF in the output (the game draws its own sky, moon and stars there).
+- Grey areas = covered by the game's floor and side walls. Fill them with flat dark grey #303030, no details.
+- Cyan line = the arena floor line. Architecture stands on this line.
+- Blue dashed box = keep this upper band mostly open sky. Only a few broken tops of the highest ruins may reach into it.
+- Yellow boxes with yellow poles = 4 tall stone brazier pillars. Each pillar stands on the floor line and holds an EMPTY iron brazier bowl exactly inside the yellow box. Do NOT draw any fire, flame, smoke or glow; the game animates the fire.
+- White dashed boxes = foreground platforms and rope ladders that the game draws later. Do not draw them, and keep the background behind them simple and dark.
+
+Scene: the inside of an abandoned, partly collapsed ancient sand arena (colosseum) at night, seen from the arena floor. A low inner stone wall runs along the floor line; behind it rise empty stepped stone seating tiers and a row of large round arches on top. Some sections of the tiers and arches have collapsed, leaving jagged gaps against the sky. No people, no statues, no banners, no text.
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color pixel-art-friendly illustration. Use only 3 or 4 tones per material. No gradients, no soft shading, no texture noise, no glow, no rim light.
+- No shape or gap smaller than 12 pixels across. Large simple blocks of stone; no fine cracks, no small debris, no tiny windows.
+- Colors: cold moonlit night. Stone is dark muted blue-grey and dark sandstone brown; the lightest tone is still darker than mid-grey. Only the sides of the 4 brazier pillars facing the bowls may have a slightly warmer brown tone. The whole image must be low contrast and dark so that bright game characters stand out in front of it.
+- Strict side view, horizon flat, no perspective distortion, no vanishing point.
+- The design must be original and must not resemble any existing game, film or real landmark photo.

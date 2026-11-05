@@ -1,0 +1,38 @@
+【2 王 墮落女武神 希爾德:三則依序送,同一個對話】
+
+【第 1 則:主設計圖】
+
+Boss concept for a 2D side-scrolling pixel-art run-and-gun game. This image is a design reference that will later be redrawn as a small sprite about 40 pixels tall, so it must read clearly when shrunk 20 times.
+
+Character: an original fallen valkyrie knight, a tall armored woman, full body, strict side view, FACING LEFT, standing in a ready stance.
+Key identifying features (all three must be obvious in a pure black silhouette):
+1. ONE large feathered wing on her back, swept up and back. The other wing is only a short broken stump.
+2. A long straight two-handed longsword with a broad blade, almost as long as her body, held forward and low.
+3. A closed helmet with a single swept-back metal fin on top. No wings on the helmet. No face visible.
+Details:
+- Helmet has one narrow horizontal visor slit that glows solid bright red. This slit is the ONLY red element in the whole image.
+- Armor: tarnished, slightly oxidized dark silver plate (cool grey-silver, not gold, not black).
+- Cloth: a grey-blue knee-length skirt or tabard under the armor, cut in 2 or 3 large simple panels.
+- Wing feathers: grey-white, the wing tip charred black, drawn as 5 to 7 big separate feather shapes, not many small ones.
+- Slender but sturdy proportions, about 6 heads tall. No visible hair, no cape, no prosthetic or mechanical arm.
+
+Output rules:
+- Canvas 1536 x 1024. The character (including wing and sword) fills about 80% of the canvas height, centered.
+- Background is one flat solid magenta #FF00FF. No floor, no shadow, no text, no labels, no frame.
+- Clean flat-color illustration with bold dark outlines of even thickness (about 8 pixels).
+- 4 to 5 tones per material for large areas (light to dark steps). No gradients, no soft shading, no texture noise, no glow halo, no rim light, no particle effects.
+- No shape or gap smaller than 40 pixels across. Prefer a few big readable shapes over many small details. No thin spikes, no fine engraving, no chains, no tattered cloth strips.
+- The design must be original and must not resemble any existing game, film, anime, toy or brand character.
+
+【第 2 則:姿勢表(第 1 張滿意後送出)】
+
+Now draw exactly the same character, same design, same colors and same style, as a pose sheet: four full-body poses in one horizontal row, all FACING LEFT, all at the same scale, evenly spaced, on the same flat magenta #FF00FF background. No text, no labels, no motion lines, no effects.
+1. Idle ready stance (same as before).
+2. Wind-up: sword raised high over the shoulder, ready to swing down.
+3. Lunge thrust: low forward dash, body leaning forward, sword pointed straight ahead horizontally at full reach.
+4. Plunge: airborne, knees bent, sword held with both hands pointing straight down below her, about to strike the ground.
+Keep the wing, broken stump and helmet fin visible in every pose. Each pose fits inside its own quarter of the canvas.
+
+【第 3 則:剪影(第 1 張滿意後送出;可與第 2 則對調順序)】
+
+Now output exactly the same design as the first image (the idle stance), same canvas and same position, as a pure black silhouette (#000000) on the flat magenta #FF00FF background. Only the visor slit stays red. No outlines, no interior details.

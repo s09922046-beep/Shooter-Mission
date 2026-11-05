@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製(3 王暗紫肉質吸盤觸手、10 王第三型態黑曜藤、抽回長回動畫與判定同步、裝飾觸手擺動)、倒影(遊戲畫面內、高低畫質皆開;3 王常駐、10 王第 1、2 型態);判定框與行為不變 -->
-<!-- 前版: v0.17.1 擊破字幕在第 170 幀收掉,停頓 30 幀後才開傳送門(總時長不變);判定框與行為不變 -->
+<!-- VERSION: v0.19 魔王 2 墮落女武神:六姿勢精靈(眼縫核心)、招式特效(新月刀光、突刺殘影、沙浪地波與落地衝擊、紅蓮花瓣與壓暗、熾熱劍身)、眼縫閃光登場、翅膀碎裂死亡、荒廢競技場專屬場景(內嵌背景圖、4 火盆);判定框與行為不變 -->
+<!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
 <!-- 前版: v0.17 魔王共用工具:部件閃白、火焰燒紅邊、發光核心三狀態、預警四樣式、死亡零件與單次閃光、登場時間軸(鎖主角、血條填充、重挑縮短)、傳送門延後 30 幀、RotSprite、殘影;判定框不變 -->
 <!-- 前版: v0.16.1 清理:移除舊方塊雜兵 eRects -->
 <!-- 前版:v0.10.1 敵人掉落改為單次擲骰(使用者授權):一隻敵人最多掉一樣,武器箱與生命各自機率不變 -->
@@ -574,11 +574,36 @@ const HZD={
     ctx.globalAlpha=1;
   },
 };
+/* v0.19 各王自訂的生效期外觀(haz 物件 fx 欄位,只影響畫面;範圍與時間不變)。p = 生效進度 0~1。 */
+const HZA={
+  b2slash(z,x,y,w,h,p){HZD.area(z,x,y,w,h,0,0);},              // 2 王三段斬:淡框,主體交給刀光
+  b2wave(z,x,y,w,h,p){                                         // 2 王下砸地波:往前捲的沙浪
+    ctx.globalAlpha=.2;px(x,y,w,h,'#ffb03c');ctx.globalAlpha=1;
+    const d=z.vx>0?1:-1,t=z.t;
+    for(let i=0;i<w;i++){const q=i/(w-1),hh=Math.max(3,Math.round(h*(0.35+0.65*q))),cx=d>0?x+i:x+w-1-i,top=y+h-hh;
+      px(cx,top+2,1,hh-2,q>0.7?'#e8c070':'#c89a52');px(cx,top,1,2,q>0.8?'#fff2cc':'#f0d090');
+      if(q>0.75&&((i*7+t)%5)<2)px(cx+d,top-1-((i+t)%3),1,1,'#fff2cc');}
+    px(x,y+h-1,w,1,'#8a6a3a');gl(x-2,y,w+4,h,'#ffb03c',0.25);
+  },
+  b2burst(z,x,y,w,h,p){                                        // 2 王第二階段下砸範圍:沙塵團
+    const a=1-p;ctx.globalAlpha=.25*a+.1;ctx.fillStyle=hzPat('#e8c070');ctx.fillRect(x,y,w,h);ctx.globalAlpha=1;
+    for(let i=0;i<w;i+=2){const hh=Math.round((h-6)*(0.5+0.5*Math.sin(i*0.37+z.sd))*(0.6+0.4*a));px(x+i,y+h-hh,2,1,'#f0d090');}
+    HZD.area(z,x,y,w,h,0,0);gl(x,y+h-12,w,12,'#ffb03c',0.3*a);
+  },
+  b2rage(z,x,y,w,h,p){                                         // 2 王紅蓮突刺撞牆:整寬緋紅衝擊帶(整寬都會傷人)
+    const a=1-p*0.7;ctx.globalAlpha=.22*a+.1;ctx.fillStyle=hzPat('#c41e2c');ctx.fillRect(x,y,w,h);
+    ctx.globalAlpha=.4*a;px(x,y+h-8,w,8,'#c41e2c');ctx.globalAlpha=1;
+    for(let i=0;i<w;i+=5){const hh=4+((i*13+z.t*3)%((h>>1)+1));px(x+i,y+h-hh,1,hh,'#ff5a5a');}
+    px(x,y,w,1,z.t<3?'#ffffff':'#ff7a7a');px(x,y+h-1,w,1,'#ff7a7a');
+    gl(x,y+h-16,w,16,'#ff3a3a',0.35*a);
+  },
+};
 function drawHazards(){
   for(const z of hazs){
     const x=Math.round(z.x),y=Math.round(z.y);
     if(z.t<=z.warn){
       (HZD[z.k]||HZD.area)(z,x,y,z.w,z.h,clamp(z.t/z.warn,0,1),(z.t>>2)&1);
+    }else if(z.fx&&HZA[z.fx]){HZA[z.fx](z,x,y,z.w,z.h,clamp((z.t-z.warn)/z.live,0,1));  // v0.19 各王自訂生效期外觀(範圍不變)
     }else{
       ctx.globalAlpha=.85;px(x,y,z.w,z.h,z.c);ctx.globalAlpha=1;
       px(x,y,z.w,2,'#fff');
@@ -1079,6 +1104,9 @@ function aimEb(x,y,sp,c,r){const dx=P.x+5-x,dy=P.y+7-y,n=Math.hypot(dx,dy)||1;eb
      noCore     → true 不畫共用核心(6 王兩隻各自設計、7 王真假結晶外觀不得有差)
      die(b,t)   → 自訂死亡演出(t = 0~199 幀,需在 BT_DIE_HIDE 前藏起本體);預設為部件連鎖爆炸加一次大爆炸
      debris     → 預設死亡演出的碎片色
+     intro(b,k) → 自訂出場(k = 0~1,第 120~219 幀);沒有時用淡入加下降(v0.19)
+     vfx(b)     → 每幀視覺狀態(update 端呼叫;不得用 Math.random)(v0.19)
+     fx(b)      → 畫在魔王層之上、不受閃白影響的特效(v0.19)
    繪製流程:bossRender 把 def.draw 畫進魔王層 BL,再依判定部件疊上閃白(子彈)、燒紅邊(火焰)、核心,最後貼回遊戲畫面。
    登場時間軸(introT 由 300 倒數,t=300-introT):0~119 WARNING、120~219 出場、220~299 字卡加血條填充;期間鎖住主角操作。
    重挑(從王關接續)由 t=180 開始。 */
@@ -1104,7 +1132,8 @@ function bCore(b){
   const s=0.5+0.5*Math.sin(G.t*0.06),C=BT_CORE[c.st],{x,y,w,h}=c;   // 呼吸:內圈分 4 階明暗
   px(x-1,y-1,w+2,h+2,'#14060a');px(x,y,w,h,C[0]);
   if(w>2&&h>2)px(x+1,y+1,w-2,h-2,C[Math.min(3,1+Math.floor(s*3))]);
-  if(c.st<2)px(x+1,y+1,Math.max(1,w>>2),Math.max(1,h>>2),c.st?'#b06a6a':'#ffd0d0');
+  else px(x,y,w,h,C[Math.min(3,1+Math.floor(s*3))]);  // v0.19 細長核心(2 王眼縫,高 1~2):整條呼吸,不畫高光
+  if(c.st<2&&w>2&&h>2)px(x+1,y+1,Math.max(1,w>>2),Math.max(1,h>>2),c.st?'#b06a6a':'#ffd0d0');
   if(c.st===0)gl(x-3,y-3,w+6,h+6,'#ff3a3a',0.30+0.30*s);
   else if(c.st===1)gl(x-2,y-2,w+4,h+4,'#ff3a3a',0.10+0.10*s);
 }
@@ -1128,19 +1157,21 @@ function bFx(b){                                   // 在魔王層上疊閃白�
 }
 function bossRender(){
   const b=boss;if(!b)return;
-  let a=1,dy=0;
+  let a=1,dy=0,ik=-1;
   if(b.alive){const t=300-b.introT;if(t<BT_IN_SHOW)return;
-    if(t<BT_IN_CARD){const k=(t-BT_IN_SHOW)/(BT_IN_CARD-BT_IN_SHOW);a=k;dy=-Math.round((1-k)*(1-k)*24);}} // 色塊王暫用出場:淡入加下降
+    if(t<BT_IN_CARD){const k=(t-BT_IN_SHOW)/(BT_IN_CARD-BT_IN_SHOW);if(b.def.intro)ik=k;else{a=k;dy=-Math.round((1-k)*(1-k)*24);}}} // 沒有 def.intro 的王暫用:淡入加下降
   else{if(G.state!=='win'||G.sT>=BT_DIE_HIDE)return;if(G.sT>=BT_DIE_BIG-8&&(G.sT>>1)&1)return;}
   const m=ctx.getTransform();
   BLx.setTransform(1,0,0,1,0,0);BLx.clearRect(0,0,W,H);BLx.setTransform(m);
   const c0=ctx;ctx=BLx;
-  try{b.def.draw(b);bFx(b);if(a>=1)bCore(b);}finally{ctx=c0;}
+  try{if(ik>=0)b.def.intro(b,ik);else{b.def.draw(b);bFx(b);if(a>=1)bCore(b);}}finally{ctx=c0;}
   ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=a;ctx.drawImage(BLc,0,dy);ctx.restore();PXD=1;
+  if(b.alive&&ik<0&&b.def.fx){b.def.fx(b);PXD=1;}  // v0.19 魔王層之上的特效(刀光、衝擊環等,不被閃白蓋掉)
 }
 function bossFxTick(){                             // 每幀倒數受擊計時(update 呼叫)
   const b=boss;if(!b)return;
   for(const o of [b.hf,b.hb])if(o)for(const k in o)if(o[k]>0)o[k]--;
+  if(b.alive&&b.def.vfx)b.def.vfx(b);              // v0.19 各王的視覺狀態(殘影軌跡、粒子;不得用 Math.random)
 }
 /* ---- 死亡零件:爆炸、碎片、單次閃光(各王 die() 可直接組合) ---- */
 function bExplode(x,y,r,life){BT.booms.push({x,y,r,t:0,L:life||26});
@@ -1333,6 +1364,347 @@ const B1={
   }
 };
 /* ========== 2-5 墮落女武神 希爾德 ========== */
+/* v0.19 精靈(純視覺):各姿勢畫布 56 寬、朝左為原圖;判定框左上角在畫布 (17,16),左右翻轉後位置相同。
+   x,y 為裁切後在畫布內的位置,v 為頭盔眼縫(發光核心)[x,y,寬]。原始產生腳本在 art-src/boss2-gen/。 */
+const B2P={O:'#16141c',A:'#d4d8e0',S:'#a2a8b6',D:'#6a7080',M:'#40444f',C:'#6c7c94',B:'#4a576c',W:'#eceef2',G:'#b4b9c4',
+  K:'#2a2830',E:'#c41e2c',L:'#e4e8ef',T:'#949cab',F:'#e6c2a8',f:'#b88e7a'};
+const B2F={
+  idle:{x:7,y:5,v:[24,16,3],r:[
+'........................................OO...',
+'.......................................OKKO..',
+'......................OOOOOOO.........OKKKO..',
+'.....................OAAAAAAAO.......OWKKKO..',
+'....................OAAAAAAAAAO.....OWWWKO...',
+'...................OASSSAAOOOSO....OWWWWOOOO.',
+'...................OASAAAO...O....OWWWWOOKKO.',
+'..................OAASSSO........OWWWWOKKKKKO',
+'..................OOOOOO......OOOOWWWOWWKKKO.',
+'.................OAAAASSO....OOWWOOWOOWWKOO..',
+'.................OAASSSSDO...OWWWWOWOWWOO....',
+'................OEEESSSSDO..OWWWWWOOWWOOOOOO.',
+'.................OFFSSSDDO.OOWWWWOWWOOOKKKKO.',
+'.................OFFSSSDO..OWWWWWOWOWWWKKKKO.',
+'..................OfDDDO..OWWWWWGOOWWWWKKKKO.',
+'...................OMMO...OWWWWWOWWWWWWOOOO..',
+'.................OOAAASOOOWWWWWOWWWOOOO......',
+'................OAAAASSSDOWWWWOGOOOOOOO......',
+'...............OAAASSSSSDOWWWWOOWWWWWKKOOO...',
+'...............OADDDSSSSDOWWWOOWWWWWWKKKKO...',
+'...............ODDDDSSSDOWWWWGWWWWWWWKKKKO...',
+'..........O...ODDDSSSSDDOOWWOOOOOOOOOOOOOO...',
+'.........ODO.ODDDOSSSSDO.OOOOWWOOOO..........',
+'..........ODOASSDODMMMDOOWWWWWWWWWKO.........',
+'........OOODMSSSOCAACCCBOOOOWWWWWWKKOO.......',
+'......OOOTTLDSSSOCAACCCCBO..OOOOWKKKO........',
+'....OOTTTLLODOOOCAAACCCCBO......OOKKO........',
+'..OOTTTLLOOOODOOCASCCBCCCBO.......OOO........',
+'.OTTTLLOO....OOCCCCCCBCCCCBO.................',
+'OLLLOOO.......OCCCCCCBCCCCCBO................',
+'OOOOO........OCCCCCCBCCCCCCBO................',
+'.............OCCCCCCBCCCCCCCO................',
+'............OCCCCCCCBCCCCCBOO................',
+'............OOOOCCCOOOOCCOO..................',
+'..............OSSSO...OOOO...................',
+'..............OASSO...ODDDO..................',
+'.............OAAASO....ODDDO.................',
+'............OSSSOO......ODDO.................',
+'............OSSSO......ODMMDO................',
+'...........OAASSSO.....OMMMMO................',
+'...........ODDDDDO.....OMMMMO................',
+'...........OOOOOOO.....OOOOOO................']},
+  walk:{x:7,y:5,v:[24,17,3],r:[
+'.........................................O...',
+'.......................................OOKO..',
+'......................................OKKKKO.',
+'......................OOOOOOO........OOKKKO..',
+'.....................OAAAAAAAO......OOWWKKO..',
+'....................OAAAAAAAAAO....OOWWWOOOO.',
+'...................OASSSAAOOOSO...OWWWWOOOKO.',
+'...................OASAAAO...O...OWWWWOOKKKKO',
+'..................OAASSSO.....OOOOWWWWOWKKKKO',
+'..................OOOOOO.....OOWWOOWWOWWKKOO.',
+'.................OAAAASSO....OWWWWOWOWWWOO...',
+'.................OAASSSSDO..OWWWWWOOWWOO.....',
+'................OEEESSSSDO.OOWWWWOWWWOOOOOOO.',
+'.................OFFSSSDDO.OWWWWWOWOOOWKKKKO.',
+'.................OFFSSSDO.OWWWWWGOOWWWWKKKKO.',
+'..................OfDDDO..OWWWWWOWWWWWWWKKOOO',
+'...................OMMO..OWWWWWOWWWWWOOOOO...',
+'.................OOAAASOOWWWWWOGWOOOO........',
+'................OAAAASSSDOWWWWOOWWOOOOOOO....',
+'...............OAAASSSSSDOWWWOOWWWWWWKKKKO...',
+'...............OADDDSSSSDOWWWGWWWWWWWKKKKO...',
+'..........OO...ODDDDSSSDOOWWOOOOOOOOOKKKKO...',
+'.........ODDO.ODDDSSSSDDOOOOOWWOO....OOOO....',
+'..........ODOODDDOSSSSDOOWWWWWWWWOO..........',
+'........OOLDMASSDODMMMDO.OOOWWWWWWKOO........',
+'.....OOOTTTLDSSSOCAACCCBO...OOOWWKKKOO.......',
+'...OOTTTTLLODSSSOCAACCCCBO.....OOKKKO........',
+'.OOTTTLLOOOODDOOCAAACCCCBO.......OOOO........',
+'.OTLLLOOO...OO.OCASCCBCCCBO..................',
+'OLLOOO........OCCCCCCBCCCCBO.................',
+'.OO...........OCCCCCCBCCCCCBO................',
+'.............OCCCCCCBCCCCCCBO................',
+'.............OCCCCCCBCCCCCCCO................',
+'............OCCCCCCCBCCCCCBOO................',
+'............OOOOCCCOOOOCCOO..................',
+'..............OASSSSSODDDDO..................',
+'..............OSSSSSSOADDDO..................',
+'..............OSSSSOOODDDO...................',
+'.............ODDDDDOOODDDO...................',
+'.............ODDDDDOMMMMMO...................',
+'..............OOOOOOMMMMMO...................',
+'....................OOOOO....................']},
+  windup:{x:18,y:0,v:[24,16,3],r:[
+'........OOO......................',
+'........OLO......................',
+'.......OLTO......................',
+'.......OLTO......................',
+'......OLTTO.................OO...',
+'......OLTO.................OKKO..',
+'......OLTO................OKKKO..',
+'.....OLTO..OOOOOOO.......OKKKKO..',
+'.....OLTO.OAAAAAAAO......OWWKOO..',
+'....OLTOOOAAAAAAAAAO....OWWWOOOO.',
+'..O.OLTOOASSSAAOOOSO...OWWWWOKKKO',
+'.ODOLLTOOASAAAO...O...OWWWWOKKKKO',
+'.ODDDLOOAASSSO.......OOWWWOWKKKO.',
+'..OOMDDDOOOOO......OOOOWWWOWWKO..',
+'...OMSSDOAASSO....OOWWOOWOWWOO...',
+'..OMMSSAASSSSDO...OWWWWOOWWOOOOO.',
+'...OSSSEESSSSDO..OWWWWWOOWOOKKKKO',
+'...ODDOFFSSSDDO.OOWWWWOWOOWWKKKKO',
+'...ODDOFFSSSDO..OWWWWWOOOWWWKKKOO',
+'...ODDOOfDDDO..OWWWWWGOWWWWWKOO..',
+'...ODDO.OMMO...OWWWWWOWWWOOOO....',
+'...ODDDOAAASOOOWWWWWOWWOOOOOOO...',
+'....ODDDAASSSDOWWWWOGOOOOWKKKKO..',
+'....OADDDSSSSDOWWWWOWWWWWWKKKKO..',
+'....OAADDDSSSDOWWWOOWWWWWWKKKKO..',
+'.....OSSDDSSDOWWWWGWWOOOOOOOOOO..',
+'......OSSSSDDOOWWOOOOO...........',
+'......OSSSSDO..OOOWWWWOOOO.......',
+'......ODMMMDO.OWWWWWWWWKKKO......',
+'.....OCAACCCBOOOOOOWWWWKKKO......',
+'.....OCAACCCCBO....OOOOKKO.......',
+'....OCAAACCCCBO........OOO.......',
+'....OCASCCBCCCBO.................',
+'...OCCCCCCBCCCCBO................',
+'...OCCCCCCBCCCCCBO...............',
+'..OCCCCCCBCCCCCCBO...............',
+'..OCCCCCCBCCCCCCCO...............',
+'.OCCCCCCCBCCCCCBOO...............',
+'.OOOOCCCOOOOCCOO.................',
+'...OSSSO...OOOO..................',
+'...OASSO...ODDDO.................',
+'..OAAASO....ODDDO................',
+'.OSSSOO......ODDO................',
+'.OSSSO......ODMMDO...............',
+'OAASSSO.....OMMMMO...............',
+'ODDDDDO.....OMMMMO...............',
+'OOOOOOO.....OOOOOO...............']},
+  slash:{x:1,y:7,v:[23,17,3],r:[
+'................................................OO...',
+'...........................OOOOOOO.............OKKO..',
+'..........................OAAAAAAAO..........OOKKKKO.',
+'.........................OAAAAAAAAAO........OOWKKKO..',
+'........................OASSSAAOOOSO.......OWWWWKO...',
+'........................OASAAAO...O.......OWWWWOO.O..',
+'.......................OAASSSO..........OOWWWWOOOOKO.',
+'.......................OOOOOO........OOOOWWWWOOKKKKO.',
+'......................OAAAASSO......OOWWOOWWOWWKKKKOO',
+'......................OAASSSSDO.....OWWWWOWOWWWWKOO..',
+'.....................OEEESSSSDO....OWWWWWOOWWWWOO....',
+'......................OFFSSSDDO...OOWWWWOOWWWOO......',
+'......................OFFSSSDO....OWWWWWOWWOOOOOOOO..',
+'.......................OfDDDO....OWWWWWGWOOWWWKKKKO..',
+'........................OMMO.....OWWWWWOOWWWWWWKKKO..',
+'......................OOAAASOO..OWWWWWOWWWWWWWWKKOOO.',
+'.....................OAAAASSSDOOWWWWWOGWWOOOOOOOO....',
+'....................OAAASSSSSDOOWWWWWOOOOOO..........',
+'....................OADDDSSSSDOWWWWWOOWWWWWOOOO......',
+'....................ODDDDSSSDOWWWWWWGWWWWWWWKKKOO....',
+'....................ODDDSSSDDOOOOWWOOOWWWWWWKKKKO....',
+'...............O...ODDDSSSSDOO..OOOOWOOOOOOOKKKO.....',
+'..............ODO.ODDDOCAACCCBOOWWWWWWWOO...OOOO.....',
+'...OOOOOOOOOOOODOODDDDOCAACCCCBOOOWWWWWWOO...........',
+'.OOTTTTTTTTTTTTDASSDOOCAAACCCCBO..OOOWWWKKOO.........',
+'OLLLLLLLLLLLLLLLSSSO.OCASCCBCCCBO...OOOWKKKO.........',
+'.OOOOOOOOOOOOOOOSSSOOCCCCCCBCCCCBO.....OKKKO.........',
+'...............ODOO.OCCCCCCBCCCCCBO.....OOO..........',
+'................O..OCCCCCCBCCCCCCBO..................',
+'...................OCCCCCCBCCCCCCCO..................',
+'..................OCCCCCCCBCCCCCBOO..................',
+'..................OOOOCCCOOOOCCOO....................',
+'....................OSSSO...OOOO.....................',
+'....................OASSO...ODDDO....................',
+'...................OAAASO....ODDDO...................',
+'..................OSSSOO......ODDO...................',
+'..................OSSSO......ODMMDO..................',
+'.................OAASSSO.....OMMMMO..................',
+'.................ODDDDDO.....OMMMMO..................',
+'.................OOOOOOO.....OOOOOO..................']},
+  thrust:{x:0,y:8,v:[21,17,3],r:[
+'..........................OOOOOOO.....................',
+'.........................OAAAAAAAO....................',
+'........................OAAAAAAAAAO...............OO..',
+'.......................OASSSAAOOOSO.............OOKKO.',
+'.......................OASAAAO...O.............OKKKKOO',
+'......................OAASSSO................OOWWKKOO.',
+'......................OOOOOO...............OOWWWWKO...',
+'.....................OAAAASSO.............OWWWWWWO....',
+'.....................OAASSSSDO........OOOOWWWWWOOOOOO.',
+'....................OEEESSSSDO.......OOWWOOWWWOOKKKKKO',
+'.....................OFFSSSDDO.......OWWWWOWWOWWWKKKKO',
+'.....................OFFSSSDO.......OWWWWWOOOWWWWKKOOO',
+'......................OfDDDO.......OOWWWWOOWWWWWOOO...',
+'.......................OMMO........OWWWWWOWWWOOO......',
+'.....................OOAAASOO.....OWWWWWGWOOOOOOOOOOO.',
+'....................OAAAASSSDO....OWWWWWOOWWWWWWKKKKO.',
+'.............O.....OAAASSSSSDO...OWWWWWOWWWWWWWWKKKKO.',
+'............ODO...OODDDDSSSSDO..OWWWWWOGWWWWWWWWKKKKO.',
+'OOOOOOOOOOOOODOOOODDDDDDSSSDO...OWWWWWOOOOOOOOOOOOOOO.',
+'LTTTTTTTTTTTTDASSDDDDOSSSSDDO..OWWWWWOOWWWOO..........',
+'LLLLLLLLLLLLLLSSSDDDOOSSSSDOO.OWWWWWWGWWWWWWOOO.......',
+'OOOOOOOOOOOOOOSSSOOO.OCAACCCBOOOOOWWOOWWWWWWWKKOOO....',
+'.............ODOO....OCAACCCCBO..OOOOOOOOOWWWKKKO.....',
+'.............ODO....OCAAACCCCBO.OWWWWWWO..OOKKKKO.....',
+'..............O.....OCASCCBCCCBO.OOWWWWWOO..OOOOO.....',
+'...................OCCCCCCBCCCCBO..OOWWWWKO...........',
+'...................OCCCCCCBCCCCCBO..OOWWWKKO..........',
+'..................OCCCCCCBCCCCCCBO....OOKKKKO.........',
+'..................OCCCCCCBCCCCCCCO......OKKO..........',
+'.................OCCCCCCCBCCCCCBOO.......OO...........',
+'.................OOOOCCCOOOOCCOOOOO...................',
+'...................OOSSSSSO.OOODDDDO..................',
+'................OOOSSSSSSSO...ODDDDDOOO...............',
+'...............OSSSASSSSSSO...ODDDADDDDO..............',
+'...............OSSSSSSSOOO.....ODDDDDDDDO.............',
+'..............OOSSSSSSO.........OODDDDDDOO............',
+'.............ODDDDDOOO............OOOMMMMMO...........',
+'.............ODDDDDO................OMMMMMO...........',
+'..............OOOOO..................OOOOO............']},
+  plunge:{x:15,y:2,v:[24,16,3],r:[
+'.............................OO....',
+'............................OKKOO..',
+'............................OKKO...',
+'...........................OKKKO...',
+'...........................OWKKOO..',
+'..............OOOOOOO.....OWWWOKKO.',
+'.............OAAAAAAAO....OWWWOKKOO',
+'............OAAAAAAAAAO..OWWWOKKKO.',
+'...........OASSSAAOOOSO.OOWWWOKKO..',
+'...........OASAAAO...O..OWWWOWWO.O.',
+'..........OAASSSO.....OOOOWWOWOOOO.',
+'..........OOOOOO.....OOWWOOOWOOKKKO',
+'.........OAAAASSO....OWWWWOOOWKKKKO',
+'.........OAASSSSDO..OWWWWWOOOWKKKO.',
+'........OEEESSSSDO.OOWWWWOWOWWWOO..',
+'.........OFFSSSDDO.OWWWWWOOWWOO....',
+'.........OFFSSSDO.OWWWWWGOWWOOOOO..',
+'..........OfDDDO..OWWWWWOWOOOKKKO..',
+'...........OMMO..OWWWWWOWOWWWKKKO..',
+'.........OOAAASOOWWWWWOGOWWWWKKKOO.',
+'........OAAAASSSDOWWWWOWWWWWWKOO...',
+'.......OAAASSSSSDOWWWOOWWOOOOO.....',
+'.......OADDDSSSSDOWWWGOOOOOO.......',
+'......ODDDDDSSSDOOWWOOWWWWKKOO.....',
+'.....ODDDDSSSSDDO.OOOWWWWWKKKO.....',
+'....ODDDDOSSSSDO.OWWWWWWWWKKKO.....',
+'....ODDDOODMMMDO..OOOOOOOOOOOO.....',
+'...OMSSOOCAACCCBO..................',
+'.OOASSSOOCAACCCCBO.................',
+'ODDSSSSOCAAACCCCBO.................',
+'.OOLDDDOCASCCBCCCBO................',
+'..OTLOOCCCCCCBCCCCBO...............',
+'..OTLOOCCCCCCBCCCCCBO..............',
+'..OTLOCCCCCCBCCCCCCBO..............',
+'..OTLOCCCCCCBCCCCCCCO..............',
+'..OTLOCCCCCCBCCCCCBOO..............',
+'..OTLOOOCCCOOOOCCOOO...............',
+'..OTLOOSSSSSO.ODDDDDOOO............',
+'..OTLOSSSSSSO.ODDDADDDDO...........',
+'..OTLOASSSSSO.ODDDDDDDDDO..........',
+'..OTLOSSSSSSSO.OOODDDDDDOO.........',
+'..OTLOSSSSSSSO....OOOMMMMMO........',
+'..OTO.OODDDDDO......OMMMMMO........',
+'..OTO..ODDDDDO.......OOOOO.........',
+'.OTTO...OOOOO......................',
+'.OTLO..............................',
+'.OTLO..............................',
+'..OLO..............................',
+'..OLO..............................',
+'...O...............................']}
+};
+let B2C=null;
+const b2h=n=>{const s=Math.sin(n*12.9898+78.233)*43758.5453;return s-Math.floor(s);};   // 由數字算花紋(不用 Math.random)
+function b2Flip(cv){const [c,x]=mkCv(cv.width,cv.height);x.translate(cv.width,0);x.scale(-1,1);x.drawImage(cv,0,0);return c;}
+function b2Tint(cv,col){const [c,x]=mkCv(cv.width,cv.height);x.drawImage(cv,0,0);x.globalCompositeOperation='source-in';x.fillStyle=col;x.fillRect(0,0,c.width,c.height);return c;}
+function b2Two(cv){return [cv,b2Flip(cv)];}                // [朝左, 朝右]
+function b2Bake(){B2C={};
+  const HOT=Object.assign({},B2P,{L:'#ffd08a',T:'#ff8a3a'});
+  for(const k in B2F){const f=B2F[k],m=bMat(f.r,B2P);
+    let x0=1e9,y0=1e9,x1=-1,y1=-1;f.r.forEach((r,j)=>{for(let i=0;i<r.length;i++)if(r[i]==='L'||r[i]==='T'){x0=Math.min(x0,i);x1=Math.max(x1,i);y0=Math.min(y0,j);y1=Math.max(y1,j);}});
+    B2C[k]={c:b2Two(m.n),hot:b2Two(bMat(f.r,HOT).n),sb:b2Two(b2Tint(m.n,'#bcd4ff')),sr:b2Two(b2Tint(m.n,'#c41e2c')),
+      dk:b2Two(b2Tint(m.n,'#08060c')),W:m.W,H:m.H,bl:x1>=0?{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1}:null};}
+  // 死亡用:待機姿勢去掉翅膀(W G K)後重補外框,另存翅膀遮罩與其像素清單(碎羽粒子)
+  const r=B2F.idle.r,h=r.length,w=r[0].length,at=(x,y)=>(y>=0&&y<h&&x>=0&&x<w)?r[y][x]:'.',wg=c=>c==='W'||c==='G'||c==='K',bd=c=>c!=='.'&&c!=='O'&&!wg(c);
+  const nr=[],mk=[],px_=[];
+  for(let y=0;y<h;y++){let s='',t='';for(let x=0;x<w;x++){const c=r[y][x];let o=c;
+      if(wg(c))o='.';else if(c==='O'&&![[1,0],[-1,0],[0,1],[0,-1]].some(([a,b2])=>bd(at(x+a,y+b2))))o='.';
+      s+=o;t+=(c!=='.'&&o==='.')?'W':'.';if(c!=='.'&&o==='.'&&(x+y)%3===0)px_.push([x,y]);}
+    nr.push(s);mk.push(t);}
+  for(let y=0;y<h;y++){let s='';for(let x=0;x<w;x++){const c=nr[y][x];
+      s+=(c==='.'&&[[1,0],[-1,0],[0,1],[0,-1]].some(([a,b2])=>{const q=(nr[y+b2]||'')[x+a];return q&&bd(q);}))?'O':c;}nr[y]=s;}
+  B2C.nw=b2Two(bMat(nr,B2P).n);B2C.wm=b2Two(bMat(mk,{W:'#ffffff'}).n);B2C.wpx=px_;
+}
+/* ---- 2 王專屬場景:夜晚荒廢競技場(背景圖在 IMGD.b2arena),冷色月光,4 個火盆以程式畫火 ---- */
+const B2BX=[104,216,296,408],B2BY=102;            // 火盆碗口中心(遊戲座標)
+let B2BG=null;
+function b2BgBuild(){const [c,x]=mkCv(W,H);B2BG={c,ok:0};
+  const top=[12,16,34],bot=[40,50,74];             // 天空:深藍到灰藍,8 階抖色
+  const im=x.createImageData(W,H),d=im.data;
+  for(let y=0;y<H;y++)for(let i=0;i<W;i++){const k=Math.floor((y/224)*8+BAYER[(y&3)*4+(i&3)]/16)/8,q=Math.min(1,k),o=(y*W+i)*4;
+    d[o]=top[0]+(bot[0]-top[0])*q;d[o+1]=top[1]+(bot[1]-top[1])*q;d[o+2]=top[2]+(bot[2]-top[2])*q;d[o+3]=255;}
+  x.putImageData(im,0,0);
+  const mx=388,my=44;                              // 冷色月亮:兩圈抖色光暈加實心月面
+  for(let y=-30;y<=30;y++)for(let i=-30;i<=30;i++){const r=Math.hypot(i,y),o=BAYER[((y+32)&3)*4+((i+32)&3)]/16;
+    if(r<=11){x.fillStyle=(i+y>4&&r>5)?'#8a96ae':((i*3+y*5)%7===0&&r<8?'#94a0b8':'#a8b4cc');x.fillRect(mx+i,my+y,1,1);}
+    else if(r<=19&&o<0.5*(19-r)/8){x.fillStyle='#3a4866';x.fillRect(mx+i,my+y,1,1);}
+    else if(r<=30&&o<0.25*(30-r)/11){x.fillStyle='#2e3a56';x.fillRect(mx+i,my+y,1,1);}}
+  const g=new Image();g.onload=()=>{x.drawImage(g,0,0);B2BG.ok=1;};g.src='data:image/png;base64,'+IMGD.b2arena.replace(/^data:image\/png;base64,/,'');
+}
+function b2Fire(cx,by,t,k,rg){                     // 一團火:k 為火盆編號,rg 紅蓮(竄高轉緋紅)
+  const C=rg?['#ffe0e0','#ff6a6a','#d42a34','#7a0e18']:['#fff2c0','#ffc04a','#ff7a2a','#b8401a'];
+  const Hh=(rg?15:10)+Math.round(2*Math.sin(t*0.23+k*1.7)+1.5*Math.sin(t*0.51+k*0.9));
+  for(let j=0;j<Hh;j++){const q=j/Hh,w=Math.max(1,Math.round((rg?12:7)*(1-q*q*0.9)*(0.8+0.2*Math.sin(t*0.4+j*0.9+k)))),
+      sw=Math.round(Math.sin(t*0.17+j*0.5+k*2)*q*2),x0=cx-(w>>1)+sw,y=by-1-j;
+    px(x0,y,w,1,C[q<0.25?3:q<0.55?2:q<0.8?1:0]);
+    if(w>3&&q<0.6)px(x0+1,y,w-2,1,C[q<0.3?2:1]);
+    if(w>5&&q<0.45)px(x0+2,y,w-4,1,C[0]);}
+  if(((t+k*13)%9)<2)px(cx+Math.round(Math.sin(t+k)*3),by-Hh-2-((t>>1)%4),1,1,C[1]);
+  b2Glow(cx,by-Hh*0.45,rg?13:9,rg?'#ff3a3a':'#ff9a3c',rg?0.34:0.3);
+}
+function b2Glow(x,y,r,c,a){FX.n++;gctx.globalAlpha=a;gctx.fillStyle=c;gctx.beginPath();gctx.arc(x,y,r,0,6.283);gctx.fill();gctx.globalAlpha=1;} // 圓形泛光(方框在低畫質下看得出邊)
+function b2Pose(b){                                // 依招式狀態選姿勢(只讀狀態)
+  const s=b.st;
+  if(s==='dash'||s==='rageDash1'||s==='rageDash2')return 'thrust';
+  if(s==='slam')return b.stT>22?'windup':'plunge';
+  if(b.vz){let w=0;for(const z of b.vz){if(!hazs.includes(z))continue;if(z.t>z.warn)return 'slash';w=1;}
+    if(w)return 'windup';}
+  if(s===''&&Math.abs(P.x-b.x)>54)return (Math.floor(b.x/5)&1)?'walk':'idle';
+  return 'idle';
+}
+function b2Fl(b){return (b.st==='rageDash1'||b.st==='rageDash2')?b.rvx>0:b.face>0;}  // 紅蓮突刺朝衝刺方向(遊戲邏輯的 face 每幀轉向主角)
+function b2Org(b,k){const f=B2F[k],fl=b2Fl(b),X=Math.round(b.x)-17,Y=Math.round(b.y)-16;
+  return {X,Y,fl,dx:fl?56-f.x-B2C[k].W:f.x,y:Y+f.y,i:fl?1:0};}
+function b2Visor(b,k){const f=B2F[k],o=b2Org(b,k),w=f.v[2];return {x:o.X+(o.fl?56-f.v[0]-w:f.v[0]),y:o.Y+f.v[1],w,h:1};}
+function b2Arc(cx,cy,r1,th,d,col,a){               // 新月:朝 d 方向、中間最厚
+  ctx.globalAlpha=a;
+  for(let y=Math.floor(cy-r1);y<=cy+r1;y++)for(let i=0;i<=r1;i++){const x=Math.round(cx)+d*i,dx=i+0.5,dy=y+0.5-cy,R=Math.hypot(dx,dy),an=Math.abs(Math.atan2(dy,dx));
+    if(an>0.55||R>r1)continue;if(R>=r1-th*(1-an/0.55)-0.5)px(x,y,1,1,col);}
+  ctx.globalAlpha=1;
+}
 const B2={
   name:'墮落女武神 希爾德',en:'HILDR, THE FALLEN',tag:'SOULS / 人形近戰',
   arena(){bossArena(()=>{gnd(14);vineAt(4,2,13);vineAt(27,2,13);fillR(9,9,12,9,3);fillR(19,9,22,9,3);});},
@@ -1358,7 +1730,7 @@ const B2={
       if(aabb(playerBox(),{x:b.x,y:14*TS-44,w:b.w,h:44}))hurtPlayer();
       if(b.x<20||b.x>468){
         b.x=clamp(b.x,20,468);shake(6,30);
-        haz(0,13*TS-40,W,40,0,18,'#ff2a2a','ground'); // 全場外圍衝擊波(簡化為整寬瞬發,雙向擴散於此已無實質差異)
+        haz(0,13*TS-40,W,40,0,18,'#ff2a2a','ground').fx='b2rage'; // fx 只給生效期外觀用(v0.19);全場外圍衝擊波(簡化為整寬瞬發,雙向擴散於此已無實質差異)
         if(b.st==='rageDash1'){b.st='rageDash2';b.face*=-1;b.rvx=-b.rvx;}
         else{b.st='rageRest';b.stT=120;}
       }
@@ -1374,16 +1746,16 @@ const B2={
       if(b.stT<=0||b.x<30||b.x>460)b.st='';return;}
     if(b.st==='slam'){b.stT--;b.y+= b.stT>22? -3.2:4.8;
       if(b.y>14*TS-30){b.y=14*TS-30;b.st='';shake(4,18);
-        for(const d of[-1,1]){const z=haz(b.x+10,14*TS-14,22,14,0,80,'#ffb03c','ground');z.vx=d*3.4;}
-        if(p2)haz(b.x-40,14*TS-40,102,40,14,26,'#ff6a2a','area');}
+        for(const d of[-1,1]){const z=haz(b.x+10,14*TS-14,22,14,0,80,'#ffb03c','ground');z.vx=d*3.4;z.fx='b2wave';}
+        if(p2)haz(b.x-40,14*TS-40,102,40,14,26,'#ff6a2a','area').fx='b2burst';}
       return;}
     // 逼近
     if(Math.abs(P.x-b.x)>54)b.x+=b.face*0.6;
     if(aabb(playerBox(),{x:b.x,y:b.y,w:b.w,h:b.h}))hurtPlayer(); // 本體碰撞傷害
     sched(b,[
-      {cd:110,f:()=>{ // 三段斧,第三段延遲
+      {cd:110,f:()=>{ // 三段斬,第三段延遲
         const X=()=>b.face<0?b.x-30:b.x+b.w;
-        haz(X(),b.y+4,32,20,12,10,'#e8e2ff','area');
+        b.vz=[haz(X(),b.y+4,32,20,12,10,'#e8e2ff','area')];b.vz[0].fx='b2slash'; // vz 只給姿勢用:預警期舉劍、生效期橫斬
 
         b.q=[{t:26,d:0},{t:64,d:1}];
       }},
@@ -1394,20 +1766,84 @@ const B2={
       b.qt=(b.qt||0)+1;
       if(b.qt>=b.q[0].t){
         const X=b.face<0?b.x-32:b.x+b.w;
-        haz(X,b.y+2,34,24,b.q[0].d?14:8,12,'#ffd0d0','area');
+        b.vz.push(haz(X,b.y+2,34,24,b.q[0].d?14:8,12,'#ffd0d0','area'));b.vz[b.vz.length-1].fx='b2slash';
         b.q.shift();if(!b.q.length){b.q=null;b.qt=0;}
       }
     }
   },
+  /* ---- v0.19 外觀(純視覺;判定框、招式時間不變) ---- */
+  coreAt(b){if(!B2C)b2Bake();return b2Visor(b,b2Pose(b));},
+  bg(b){                                            // 專屬場景(drawBG 呼叫,取代共用遠景與中景)
+    if(!B2BG)b2BgBuild();ctx.drawImage(B2BG.c,0,0);
+    for(let i=0;i<18;i++){const x=24+(i*131)%460,y=6+(i*53)%58;if(Math.hypot(x-388,y-44)<26)continue;   // 星點(冷色,部分明滅)
+      if(i%3===0)ctx.globalAlpha=0.45+0.55*Math.abs(Math.sin(G.t*0.03+i));px(x,y,1,1,i%4?'#8a98bc':'#c8d4f0');ctx.globalAlpha=1;}
+    b2Glow(388,44,20,'#9fb4e8',0.14);
+    const vd=b.vd||0;if(vd>0){ctx.globalAlpha=vd;px(0,0,W,H,'#04030a');ctx.globalAlpha=1;}  // 紅蓮:背景壓暗(火盆與前景不壓)
+    const rg=b.vr>0;for(let k=0;k<4;k++)b2Fire(B2BX[k],B2BY,G.t,k,rg);
+  },
+  vfx(b){                                           // 每幀視覺狀態:殘影軌跡、落地事件、花瓣粒子(bossFxTick 呼叫)
+    if(!B2C)b2Bake();
+    const k=b2Pose(b),o=b2Org(b,k);(b.vh||(b.vh=[])).push({k,x:o.X+o.dx,y:o.y,i:o.i});if(b.vh.length>10)b.vh.shift();
+    if(b.vp==='slam'&&b.st!=='slam'){const x=b.x+11,y=14*TS;b.vl={x,y,t:0};
+      for(let i=0;i<16;i++){const d=i&1?1:-1;addPart(x+d*(2+b2h(i)*8),y-1,d*(0.8+b2h(i+3)*2.4),-0.4-b2h(i*7)*1.6,['#d8c090','#b89a6a','#8a7656'][i%3],20+(i*5)%14,i%3?2:3);}}
+    b.vp=b.st;if(b.vl&&++b.vl.t>60)b.vl=null;
+    const rgOn=b.st==='rageWait'||b.st==='rageDash1'||b.st==='rageDash2'||b.st==='rageRest';     // 紅蓮期間:場景壓暗 30%、火盆竄高轉緋紅(漸變,不閃)
+    b.vd=clamp((b.vd||0)+(rgOn?0.01:-0.01),0,0.3);b.vr=rgOn?1:0;
+    const T=G.t,rc=['#c41e2c','#ff5a5a','#ff9a3c'];
+    if(b.st==='rageWait'&&T%2===0){const a=T*0.21,r=14+b2h(T)*6;
+      addPart(b.x+11+Math.cos(a)*r,b.y+18+Math.sin(a)*r*0.5,-Math.sin(a)*0.5,-0.7-b2h(T*5)*0.6,rc[T%3],24+T%16,2);}
+    if((b.st==='rageDash1'||b.st==='rageDash2')&&T%2===0)
+      addPart(b.x+11-Math.sign(b.rvx)*8,b.y+6+b2h(T)*20,-Math.sign(b.rvx)*0.6,-0.4-b2h(T*3)*0.6,rc[T%3],18+T%12,2);
+  },
   draw(b){
-    const x=b.x,y=b.y,p2=b.hp<b.max*0.6;
-    const rageFlash=(b.st==='rageWait'||b.st==='rageDash1'||b.st==='rageDash2')&&Math.floor((b.stT||G.t)/6)%2===0;
-    px(x+4,y,14,10,rageFlash?'#ff3a3a':'#cfd6e6');px(x+6,y+3,10,4,'#1a1c26');
-    px(x+3,y+10,16,12,rageFlash?'#ff2a2a':(p2?'#8a2a3a':'#3a4a6a'));
-    px(x+4,y+22,6,8,'#22303f');px(x+12,y+22,6,8,'#22303f');
-    px(x+(b.face<0?-6:18),y+6,8,18,'#6a7488');           // 單翼
-    const ax=b.face<0?x-14:x+18;
-    px(ax,y+2,14,4,p2?'#ff7a2a':'#b9c4d8');px(ax+(b.face<0?0:10),y-4,4,14,'#8a94aa');
+    if(!B2C)b2Bake();
+    if(!b.alive){                                   // 死亡:翅膀白化 → 碎裂(die 噴碎羽)→ 只剩本體
+      const o=b2Org(b,'idle'),t=G.sT;
+      if(t<28){ctx.drawImage(B2C.idle.c[o.i],o.X+o.dx,o.y);ctx.globalAlpha=Math.min(1,t/16);ctx.drawImage(B2C.wm[o.i],o.X+o.dx,o.y);ctx.globalAlpha=1;}
+      else ctx.drawImage(B2C.nw[o.i],o.X+o.dx,o.y);
+      PXD=1;return;}
+    const k=b2Pose(b),c=B2C[k],o=b2Org(b,k),s=b.st,rg=s==='rageDash1'||s==='rageDash2';
+    if((s==='dash'||rg)&&b.vh){const sl=rg?'sr':'sb';                      // 殘影:突刺藍白、紅蓮緋紅
+      for(let i=rg?4:0;i<b.vh.length-1;i+=3){const h=b.vh[i];ctx.globalAlpha=(rg?0.08:0.12)+(rg?0.2:0.3)*i/b.vh.length;ctx.drawImage(B2C[h.k][sl][h.i],h.x,h.y);}
+      ctx.globalAlpha=1;}
+    const p2=b.hp<b.max*0.6;
+    ctx.drawImage((p2?c.hot:c.c)[o.i],o.X+o.dx,o.y);
+    if(s==='rageWait'){const q=0.5+0.5*Math.sin(G.t*0.2);b2Glow(b.x+11,b.y+16,15,'#ff3a3a',0.08+0.08*q);}  // 紅蓮蓄力:穩定呼吸紅光(不閃爍,只在本體範圍)
+    PXD=1;
+  },
+  fx(b){                                            // 畫在魔王層之上(不受閃白影響)
+    const k=b2Pose(b),o=b2Org(b,k),c=B2C[k],d=o.fl?1:-1;
+    if(b.hp<b.max*0.6&&c.bl){const L=c.bl,x=o.fl?o.X+o.dx+c.W-L.x-L.w:o.X+o.dx+L.x;gl(x-1,o.y+L.y-1,L.w+2,L.h+2,'#ff8a3a',0.22);} // 熾熱劍身:只有劍身發光
+    if(k==='slash'&&b.vz){const z=b.vz.find(z=>hazs.includes(z)&&z.t>z.warn);
+      if(z){const p=(z.t-z.warn)/z.live,r1=z.w+11,cx=d>0?z.x-11:z.x+z.w+11,cy=z.y+z.h/2;  // 以預警框為準(連斬中本體仍會前進)
+        b2Arc(cx,cy,r1,4.5-3*p,d,'#f4f6ff',1-p);b2Arc(cx,cy,r1-3,2,d,'#9fb0ff',(1-p)*0.5);
+        gl(d>0?cx:cx-r1,cy-r1*0.55,r1,r1*1.1,'#cfd8ff',0.22*(1-p));}}
+    if(b.st==='slam'&&b.stT<=22){ctx.globalAlpha=0.5;for(let i=0;i<3;i++){const L=6+((G.t+i*3)%4);px(b.x+3+i*8,b.y-14-L,1,L,'#dfe6ff');}ctx.globalAlpha=1;}
+    const V=b.vl;if(V){const t=V.t;
+      if(t<12){const r=6+t*3;ctx.globalAlpha=1-t/12;for(let x=-r;x<=r;x++){const hy=Math.round(Math.sqrt(Math.max(0,1-(x/r)**2))*r*0.25);px(V.x+x,V.y-1-hy,1,1,'#fff6e0');}ctx.globalAlpha=1;}
+      if(t<50){const a=t<6?1:1-(t-6)/44;ctx.globalAlpha=a;
+        for(const e of[-1,1])for(let i=0;i<14;i++)px(V.x+e*(2+i*2),V.y-1+Math.round(Math.sin(i*1.7+e)*0.8),2,1,i<4?'#fff0b0':'#ffb03c');
+        ctx.globalAlpha=1;gl(V.x-30,V.y-6,60,10,'#ffb03c',0.35*a);}}
+  },
+  intro(b,k){                                       // 登場:暗處先閃現眼縫紅光,再由暗影現出全身(k 0~1)
+    if(!B2C)b2Bake();
+    const o=b2Org(b,'idle'),c=B2C.idle,v=b2Visor(b,'idle'),cx=v.x+v.w/2;
+    if(k>=0.45){ctx.globalAlpha=Math.min(1,(k-0.45)/0.3);ctx.drawImage(c.dk[o.i],o.X+o.dx,o.y);ctx.globalAlpha=1;}
+    if(k>=0.75){ctx.globalAlpha=(k-0.75)/0.25;ctx.drawImage(c.c[o.i],o.X+o.dx,o.y);ctx.globalAlpha=1;}
+    if(k>=0.15){const e=Math.min(1,(k-0.15)/0.08),fl=k<0.45?Math.max(0,1-Math.abs(k-0.26)/0.12):0,L=Math.round(2+14*fl);
+      px(v.x,v.y,v.w,1,'#ff5a5a');if(e>=1)px(v.x+1,v.y,1,1,'#ffd0d0');
+      if(L>2){ctx.globalAlpha=0.7*fl;px(cx-L,v.y,L*2,1,'#ff6a6a');ctx.globalAlpha=1;}
+      gl(v.x-4-L,v.y-4,v.w+8+L*2,9,'#ff3a3a',0.25+0.45*fl);}
+    PXD=1;
+  },
+  die(b,t){                                         // 200 幀內完成;第 100 幀起本體隱藏
+    if(t===28){const o=b2Org(b,'idle'),W_=B2C.idle.W;
+      for(const [x,y] of B2C.wpx){const wx=o.X+o.dx+(o.fl?W_-1-x:x),wy=o.y+y,sx=(o.fl?-1:1)*(0.3+b2h(x*7+y)*1.4);
+        addPart(wx,wy,sx,-0.6-b2h(x+y*3)*1.4,b2h(x*3+y)<0.6?'#ffffff':(b2h(y*5+x)<0.5?'#dfe6ff':'#b4b9c4'),40+((x*7+y*3)%30),2);}
+      shake(3,12);}
+    if(t>=36&&t<88&&t%7===1){const r=b.dieR[0];bExplode(r.x+4+b2h(t)*(r.w-8),r.y+4+b2h(t*3)*(r.h-8),4+((t>>3)%3),18);shake(2,8);}
+    if(t===BT_DIE_BIG){const r=b.dieR[0],cx=r.x+r.w/2,cy=r.y+r.h/2;
+      bExplode(cx,cy,22,40);bDebris(cx,cy,24,['#a2a8b6','#6a7080','#d4d8e0','#6c7c94']);bFlash(40);shake(6,40);}
   }
 };
 /* ========== 3-5 深淵孵卵者 歐貝格 ========== */
@@ -2356,6 +2792,7 @@ function drawBG(){
   const t=th(),L=lit();ltBuild();
   const V=-cam.y,bo=p=>Math.round(V*p),gy=L.gy+(L.hz?bo(0.4):0); // v0.9 垂直視差:各層下移量=視野上移量×該層水平視差係數(遠景 10、霧 1 13、中景 18、霧 2 22 像素)
   ctx.drawImage(LT.sky,0,0);PXD=1;                // v0.7:天空漸層(快取)
+  if(boss&&boss.def.bg){boss.def.bg(boss);ltParticles();PXD=1;return;}   // v0.19 魔王專屬場景(王關鏡頭固定,不做視差)
   const sx=Math.round(L.gx-cam.x*0.15);           // 主題光源:與星點同一層視差(0.15),固定在天空上,走遠了會自然離開畫面
   if(sx>-L.gr&&sx<W+L.gr)ctx.drawImage(LT.sun,sx-L.gr,gy-L.gr);
   if(sx>-L.gr&&sx<W+L.gr){gctx.globalAlpha=0.14;gctx.fillStyle=L.c;gctx.beginPath();gctx.arc(sx,gy,L.gr*0.4,0,6.283);gctx.fill();gctx.globalAlpha=1;FX.n++;} // 光源淡淡登記泛光
@@ -3155,6 +3592,13 @@ function loop(ts){
   perfRec(ts,rawDt,performance.now()-j0);
 }
 requestAnimationFrame(loop);
+</script>
+<script>
+/* ========== 內嵌圖片資料區塊(v0.19 起;平常不讀)==========
+   b2arena:2 王競技場背景 512x224(原檔 art-src/boss2-arena.webp,洋紅去背、縮 1/3、壓 10 色) */
+const IMGD={
+b2arena:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAADgCAYAAAB1o95RAAAQAElEQVR4Aeyd3a9eSVbet93t+LQ7bnt66KaZyYRRhlESUNCA1AghjQCBEEhwheaCK/62XOUC5YpIiaIgEiFFCCQyIkqCREZKQDPp6abddpu2j3G3nfN7PY+9Tp2q2lV71/5eo3m6qlatWrXqqa+19/ue19fff//952PQ+f+cAWfAGXAGnAFnYHYGxtzdtL0+u8feoTPgDDgDzoAz4AwszEDXeQCw+BS4A86AM+AMOAPOwPwMeAAwP+feozPgDDgDzoAzsCgDdO4BACw4nAFnwBlwBpyBgzHgAcDBJtyH6ww4A86AM3B0Bl6M3wOAFzz4f50BZ8AZcAacgUMx4AHAoabbB+sMOAPOgDNwdAY0fg8AxISnzoAz4Aw4A87AgRjwAOBAk+1DdQacAWfAGTg6A6/G7wHAKy485ww4A86AM+AMbIaBJ9feGuWrBwCj6PPGzoAz4Aw4A87AdhiwnnoAYNnwvDPgDDgDzoAzcBAGPAA4yET7MJ0BZ8AZcAaOzsDl8XsAcJkPLzkDzoAz4Aw4A5tg4ObzT0f56QHAKPq8sTPgDDgDzoAzsA0GQi89AAgZ8bIz4Aw4A86AM3AABjwAOMAk+xCdAWfAGXAGjs7A1fF7AHCVE5c4A86AM+AMOAO7Z8ADgN1PsQ/QGXAGnAFn4OgMxMbvAUCMFZc5A86AM+AMOAMrZ8B/CXDlE+TuOQPOgDPgDDgDUzBQ/meA8d79DUCcF5c6A86AM+AMOAO7ZsADgF1Prw/OGXAGnAFn4OgMpMbvAUCKGZc7A86AM+AMOAM7ZsADgB1Prg/NGXAGnAFn4OgMpMfvAUCaG69xBpwBZ8AZcAZ2y4AHALudWh+YM+AMOAPOwNEZyI3fA4AcO17nDDgDzoAz4AzslAEPAHY6sT4sZ8AZcAacgaMzkB+/BwB5frzWGXAGnAFnwBnYJQMeAOxyWn1QzoAz4Aw4A3tnoO+ngPvG7wFAH0Ne7ww4A86AM+AM7JABDwB2OKk+JGfAGXAGnIGjM9A/fg8A+jlyDWfAGXAGnAFnYHcMeACwuyn1ATkDzoAz4AwcnYGS8XsAUMKS6zgDzoAz4Aw4AztjwAOAnU2oD8cZcAacAWfgGAzcfP5pYqBlYg8AynhyLWfAGXAGnAFnYFcMeACwq+n0wTgDzoAz4AwcnYHS8XsAUMqU6zkDzoAz4Aw4AztiwAOAHU2mD8UZcAacAWfg6AyUj98DgHKuXNMZcAacAWfAGdgNAx4A7GYqfSDOgDPgDDgDR2egZvweANSw5brOgDPgDDgDzsBOGPAAYCcT6cNwBpwBZ8AZODoDdeP3AKCOL9d2BpwBZ8AZcAZ2wYAHALuYRh+EM+AMOAPOwNEZqB2/BwC1jLm+M+AMOAPOgDOwAwY8ANjBJPoQnAFnwBlwBo7OQP34PQCo58xbOAPOgDPgDDgDm2fAA4DNT6EPwBlwBpwBZ+DoDAwZvwcAQ1jzNs6AM+AMOAPOwMYZ8ABg4xPo7jsDzoAz4AwcnYFh4/cAYBhv3soZcAacAWfAGdg0Ax4AbHr63HlnwBlwBpyBozMwdPweAAxlzts5A86AM+AMOAMbZsADgA1PnrvuDDgDzoAzcHQGho/fA4Dh3HlLZ8AZcAacAWdgswx4ALDZqXPHnQFnwBlwBo7OwJjxewAwhj1v6ww4A86AM+AMbJQBDwA2OnHutjPgDDgDzsDRGRg3fg8AxvHnrZ0BZ8AZcAacgU0y4AHAJqfNnXYGnAFnwBk4OgNjx+8BwFgGvb0z4Aw4A86AM7BBBjwA2OCkucvOgDPgDDgDR2dg/Pg9ABjPoVtwBpwBZ8AZcAY2x4AHAJubMnfYGXAGnAFn4OgMtBi/BwAtWHQbzoAz4Aw4A87AxhjwAGBjE+buOgPOgDPgDBydgTbj9wCgDY9uxRlwBpwBZ8AZmJWBJ9feGtWfBwCj6PPGzoAz4Aw4A87AvAyot5vPP1V2ULpIAPCd3/v95+BXfus7z3MYNCJv5Aw4A86AM+AMOAO9DCwSAHx0/1H3tx/c687Pz7svHn1yBchBr/eu4Aw4A86AM+AMHIqBdoNdJADQ5X7j2ePoSJCfnZ11vB2IKrjQGXAGnAFnwBnYAAO/+9u/+Xwoph7eIgFAyaB4M4AeQYDFt3/515//4q/+znPq1gLrXyy/Fj/dD2fAGShjgHPG7mUOcD62BGUWXMsZ6Lpv/dJvPP/w4ecdGMIH6y5s17K8SADAEz7oGwhBQIi+NnPWE4hwUIR96g1HKPeyM+AMrJsB7enXbn3pkqMff3G746NLoMDgkoIXnIEEAw+fXu/OHz1I1PaLCToJBGLob53XGBUAnN26k7c+UW1J8DBR15fMnj950p0m9/z80vcZ8E+By6UGOy/87C/82nOw82H68HbKAE9r7GmG9+XXHpKcQB6cCv4fZ6CSgWeff1HZ4rL6s4c/NIK22VEBAFFNLCrpk717+/VuLHJ9EDEBReqxtAWNTCx49NmjDsAHdu3YODhyvs5Zh29T44un/9D9zM99+/n7779f9bnX1H65fWcgxwD78BtvX+8A+xdd9i4gD2yessMZKGVgqYflPv9GBQB9xpeqJ2L64Affv/LXBTyVT+kTP8pAEDD0854pfcM2hxypwxlwBl4wwJ4AL0r+X2egLQM8IGKRN8WkY9G6/S4DgNwFPCYI0OeDfO4Prr/+Wgc0KTz9Pvr8TMVDpq/d+EenccNDbh5OSuY/HMK8tQFG7FlnIMoAHzUB3jaxF1k/QxA17kJnoDEDN55+0thiG3PX25hZvxW+1COM+ZLe0+tvnD73V0SnCG/9DEzrIYfwnTeudQRB6kmvUlXuS3lzA3SQ9+l7fTkDfL6tC5NLs/YjGs0JaXmv02my1mT93qdPlPXUGVgVA5yHgAeiv/7wafc3P/z4EnhIApKTByp/796zDrwoX26LbOxgDxMAcOnz9A/4vH4IcXxBCKjtFi9/DvCx4DsVXPgW4kSp3gSoPCS1fg5p721eMcATCAeRJBxIHDQq16R2XsizHkiHgvZ2LSmPHKhs0xp/XdcZWIoBew6y/9h3FgSvQDLyQOWnjx93QOUwHTuuXQYAfA4PiRYP79/vfvDhvRM+ezj+dcwWL38WC4f+WBBEYSsHFjv95HRq6rhcavT3rMtFCB+lQJ8vId16/bwZLcytwHpQfkhK+5hjyEGsDtnY30HHRg34U0AeJAQ+ErSoseW6+2eAtcFHxDYIGDPqKdruMgDgsIuRdXb25ksxr0FfFgozXPpCrgmBx199/7OuBLzG4dAk7QN6wOrZMvk+4DcfX4AHj593OaDTB9seXewL8NDnjx2L8qk2snv0FM65jMRTjA/Vkcbq9yDjS7caxxzjzAUj8sPT4zHAW6oQXP72bTFBQAw33nijA7G6EtlYtncZAEBKirw3b3+pA9TzuahAmz4QzfXp1NbzSoeLkrQP6AGrZ8vkS8ArJcBTeg7o9MG2Rzccf58/dizKh2248EBo+6hl1qG9jAgGgPiweclapnNctrX+smYUQLZKGadFrU+ufwwG7j940IXgY+aSh8VyhqbRHB0ApDabNk6qPibnSxKALz2EkL2SNHwS7aOOierT2XI9wU4tiEpBbbtQvwVvXHigha0t29CX+Ai0uPCEjz74oLv38b2Xb5xO5U+fnD7u4mMv6RFg2fEjL3lLFerQbg0g+LTjYXwtoTFynvDlX0B/PNmFQO5wBsRA7LxCFsLqh3W5stqNTUcHAKkNp82Tqo/J2dCAAy6E7IUpT4Yh+i50ESvyKCtvU94OcOgK2EXXwurvKc9YgcY6dGxhQGDL1mZKbnWOnOcjK/ZGyIF4Q27zlPnIC5BvCfWzhrTluFK22Af2wkcPGSAPqOe1L3mHMwADOjuVIhuKqdqNDgCmcqzULoeiRdhO5Ns01EmVCUJSttn8INW2VF5ziPJEDlJtbJ9Wx8rDvOVFeavDGIGVleaxhy6pQFlgLILqSZHJf/JnN292QO08zTMg7mJpvuWrWtq+Kr3IIQMvSi/+y3yBF6X+/4a6lGsQ9hD6E9a3KrMHLGRXMsoEAXpYUMpDhAVBQvh5cayMPcc2GGANpDylLoaUfp9cttgzfbol9ZsPAEoGmdMRoTmd2joOpT5wsYG3v/x2V4q7d+50IKV/++7d0xdKsDtmgdA2RC0H6MMtqYW1y1hS0Bip55+GBhyU1pbn6xnoW5eqx7LySpFNjdiaifVp1xHrHR9JQyAXVKdyaRrr38rwRWWbl8ymBAnh58W23vPrYoAzJwRBHFBgh8el6xbderxqwfoCryTjcpsKANiwqeFSB1L1Q+TWnvJMNMBe6USgJ9x689bpwudiA9hpBS5JbAr0BVrZb2GHJ3lhiD0245B23uYqA1qTY1JZtTYka51q3421K1/ZG8qPScf6w58VjrXh7adhgLm5gidPOgI5emRNau1QtqDOlteYHx0AcDH2gcibp9OxYMNiK9YfkzCEYNoBvbIjVWSHXH2V2La6+CroQiblki6x1UKHvoD8IB1qFy5qoH7oUxe+xo9PQDq16VGDANZXLVfoa97IMx8C8zEU2KqB9UF50tBGTIZO7jDN1dEWhHZPa/Ls7PRGbSgHaoetzvyPvgQj7vATWJnn18UAZ4sF3+YHXPiC9Zh5tmWb1z6LpayZUqBn7Sqf61s6fenoAMA6QT4GBsCB3wQXnwfH+mCgKTl1fVDbUC8nD3VVpo0dq+RLpdYXfLOYwicOOfVh+27ZF6/g2Kgtba7dFt9HqfWReaANe5CDqNV8YE/AvgV9CsjJkwqsD0GyMSn2QcoGdfJVaUp3qLzGLmMP+wmfMsN6L0/HAOeIwMczdi7Ua2zOVBemWgt2r43OX9x7YT8tyqMDAJxggwHyAiS8jJAvIm3Jx6YnIiciA9/CcSADyC2QgZiMsVO3RmhOpvQNTqbuh3XAGNi4pDnwDwwBdIWc/l7q7DzAF2g1NmwJzDUHJAjt40MoG1K2dmw+Zgs/BHTZj/LVprG2Q2TWJlwA+kzZwidbx5MlT5kWvIkEVs/z0zPAusn1kqtnzk9zf3HfsSZydsrrXmhiD9vghaTNf5sEAHJFBOAkDkveOsU2fQj027qPIfbY2HrKGtKeNv/53//BtT6gNxZwNxVv2K7xz0bcyqu9ymGqelIuddIUPrr/qAOp+jXKecMB9HEUr/9jSPnOlyhr5yFlq0ROfyB3QObs0M5CupJRZn8B8oKtlwwdgTXOeaG6uVL6pG/bn3yyMvKMgdSxPAPMkQ3ErEeaJ6XUsccE5hzZ1HjZX4MH4dEBAIv8JS4in6kHH7MP8ZAiP2I6U8lYDAD7p/4rOeAHXAQufuz0AT21IeWHX7gg+9qF9fAWysaWmYdSG/h8wpMnnd105BkX4N9wCMETU9gHQQAI5akybwRSdWuRx8bZ5xsHGEFon95U9Uv2bcfEOgRTrHHbTy5P3/hgdTgrBOTkSUMwjyCUe7ktAwTZpzPoCc4x1wAAEABJREFU/LwjLbHOvJzO+gYXcF9/uXrWV66+pG58AHBx4eEIKOlwSh18OGGhiaHvkvHxOROXGxf3X/7ZH10TStpKR21IkX30wfc77GG3dCHTLjygkA0BG6LUFv7hpy721CGY+syb32egvWD9JQgIYeuV/+jirQB6aw0ECIIsLxw6ITQWpdQzB6XrUO1sytyEsPV9efo++ZDZg/gpyJ7KSkO5ymEa6lNP/6S1CMcdK9faRJ+9wVwCyoLKGoNN0aEdqWM6BgiyLeiJeSAF5AF5gfXFOgeSbTUdHQAMGTgbi0uwBrQZ0tfUbVgcoHSzMo7v/tf/eLr0/8d/+5NrLfzDzvf+119cI+UJjAUtbkvss6BL9FI6jL1kM8gn/AttwaFAXerypw7YeuzCq0D9HsGFYcEYxRlp6TzCE5wBBVFKFZQpJRChDl3a0WcJStZDiZ1aHdZiTRvGBBgfYwV27JQF1i166Fv09QcXzI/0yFtI7ukyDNg9pXzoieaL8zWs6yuzVlg37CMLZDGgg/z8/LzP9Oj6WQMAiGBwbCiI5klOKXkL5AJy2tC+ZMRsuBK9OXV4bQ/+9I//sMmln/Ld2oc/+C7lLWWzT97HN/2zoPGHuQS6wPlcG/sERQJvNQhmQqAr0AZgB3sc2qwRZPRHumVw4OA/nNmUfAwlFx+8nHDxkQucAfgD2FRKPgR+wPGQt0yhrZIy/QGrSxlY2dA86xFwqQNrN1xjYR/oX8LF6+NQJywzP8wpCOtSZfpI1bl8WgaYJ8C6AOqt76yTHinri/OXfWP3GvsMIItBdbRjv7FnsTcFJg8AcB4SgA5oDYSNxmBVtqmVo0cd7bEDsdhFlgJPQ2y6VH0rOX2c+rr4KCRlk4s/VTeFXBcptuGRhQRnlFNgDCBVn5KXtOEgs5uI+RSwy4VP2gf02JTo0Z6xkRcoM1aVS1I+CijRm1uHdcVYQapv1aHbdzCxX9g/8MOhE7MJp6EcTmMybJWsKXyzcx/aipVj+lZm87Y9azHHAxzgM8CGhbi09sgjFygD2448XHAuYZ/6GPDr5F/mo5GwHdzxMVUo93JbBphfazEsq475Uz6VsgZYX6wH9lls/6TahnKVtb6wK1mrdLIAACIggQOnlbOyw6bjUlE5lbLpUnVzyee+/O24uDB1qLMYmQ9bH8tz6MTkQ2X0yXypPT/kRB7fBMqlILhRO40tbMuGCWVbLlv+7Dgk71vn7MUYJ/AnYDd2WFFPXQh06b/vUMI3DlR0QxuxcqhHGYS6oazkcJaNsC1yZFpXNmW9hUA/htZnEtzRD0FACtQ7xjPAGhVCa7z2L1lfnHXsM9ZSaMOW2VOClfflscte7tOrqZ8kAMBJbQYGymGRcor6VF1ODhkcPvSV02t9oYV9aZOGcspLXv70DzjMSAHzAGfkxwJec5uCeVFf2likHKbWpzF+YIePCWJriL7xYYz9tbSFNwv5hSw3B+jBA4cSeQG+AGU4FOAyhOrQtVB77UNbF8vjq5V/8yd/oovhn3/jn3SlsO2t7VietaAzCV8AehofKeUSoAusruzBN33Zuto8ewvUtnP94QywjmOtmdfcGU8b5pt5Jx8De8UCHewC5JSvIi7RGo7X1kunCQAuPmMMCeXyATEXYyRYGUSBsC19QAgTENapzOSxmYBkLVLs5Q7fvsv//ffffw6+/cu//vx3f/s3X4JvpedgdcnTHjs/83Pffp4aF4c6fIITZ5nPLPv4YtwnZD7yYD64dHjrgE/0ScrlT9oaHMZ2jNinT3zAF8o58KdAPGHldMI6OAfwzzzUgnbgG//y55+D0D7f5TjxfPHKmNTWsxd4KgnlVoc8Y4cH8gJrAL4EyftS9EOO1SbsQ3Kl+Bnir//v/+s++MH3r+DZwx92fbDt/s///p8d+OLRJ+ruSsrhzDmhCnxhLTImyYaktAfMh21PX3BvZTbPuQGsTHl8O+3Bnv11GtPFPmbtArWfI2W9svYBa3gMOLfAHH7H+mAdwHlsPyEHsXaSMc+cM7E9wF5jz7BGQtAvQI6O7MVS7k2BM1VzH9OtlTUPAHDOkoHjcgpCyLNhBAgAkGCBTIAoQBvaW9AXG87Kwnzfhgr1S8rYLNFL6fz5n//5tXt//0X3gw/vdd/93ocv8Rff/e9dDlaXPO2xc37+WaqrK3IW7BWhEeTGRh0w6pey2hB23plH5u+S4gQF+gnN9o0VfY2nJgiAcwD/zEMtaAfoP4VTEHBxEeCfPYjIn2QXdam2dh7CuUi1KZHDMQh12fehTGX5qpSPBR9+8nentQ8HFiU8Wn3mADx4HI9/4YEzQr6QwitpK7C2mRPZo7++M8nqKo8NOFI5ljIebNMHa5s8iOlOJeMvjuAc2LkYkufc4tyfytcSu3D+EhcBN200F8gpx0DQyRywv4DVYY8AK8vl4QBwRwJ0lZK3YO5bzXnzAMA6Sp5BCJQFNg1QuSRFn0gtDAQgJHcAldjeug6bMjcGFqPljYMkp08dvALygE1BmgMbgnrNOf1SngvqTxuStGZt1AQBJWM6O3uzsyhpE9OxB5HNx3QZL/PA2FVPXtxINibFll1P2CpZU+joeyC0aQV+hTBmSwel1jFnSExvrIygwu4P+mOsJXbRRa9vXrHHeKQf8o8Nx3gGxG/OEnNB0Mm+kh559gWQrDZVW+0RztGYDXzEh1hdjaxpAIBDOBZzAHKQM8Axm5CNFmuf6pc+BbtBJRuSpl7fyVbf63/pzZ3Cmw4NLgjmK+UDhxG6IKUTykN7zHWoM1dZG4eUtRH6NtaPvoArZp+nnZi8xFap/+gxXu03+uPJApBvCdaT7NEna4rgAx8kD1PWVat9GNoOy/iCX5JbfyVrmepsgnsAHzn7nCPsL0A+pwunXP7SoQ08gqnHpT6PkvKQyTpNjZe5YG6ZY+lwzrTaY3/5Z390TXNq+1BfpMjxgfwYNA0Acg5BUMsLAVtsAjt4JgZY2Zz5d+7e6mou/5KDv7X/9kDMzRf9criQAvIlmwJd5gWQXwKsjbBfe3iGdVOWufSFFv0wDyk7rH3mlMNBOq0OJdkL05BrPqMMdWLlN29/KSYeJHvnva9eaQcXdq2Hfl5p0FDAWSdzBCHKx1LmE8TqJGMsfGzCeIDkpAQdpHOj1dnVys6c4+cssXuM+Z5ifU1hM+SpWQDAIg2Nq8xlMMVgiJKwrX44/JgclcOUC6xvs4VtwvLY9qG9FhugxkY4D7kDSnwxZvKh7yoz93DPpgDImRvSpcA47dqYwo8a3lP9l9qA/7550BzQF4fS1Jc//QC4JtXc4wflOXD7Sz928RHL2ZWuOAeYfyD/rihNJKA/+C8xf5rXgu9yYAt+AXkCgaUuf/oHpWsX3RjGto/ZbCFjTlJ2OC9tkMs8M98p/SHykjb0q7VQop/SaRYAJDt4/bVuystgStvhmHhNl1oc71w8/Yf6pWU2AijVlx5tgMqlqV2wHCS5dqnx2jYctnYxzjkn1o8wjx9cAMgZJ4EK+ZYYwj/90w6QL0XfXNg5KLXZSo81xaEE+mwyDuaF70b06ebqeYvAnkzpEDCxBlL1U8rhgzGOXXexYArbYEr/S23XrmHZHdpO7ZdIOT/mvvxtEM/eAi3H3iQAgBgugZhjbICYvKXMbgb6I0prab/EFr8o9wf/5l+P+pnfr7z7dgfe/sevdSlQD1puIOYvNsbSoAbOac/itAsW2VrA5chhOsXaYC6+9Y13T3PG3MRg5xP9Ul5ScxO2D8dl90SoO0c59CfWJ+sF3kCOM9WJQ8q0+ea7N2JmO/W99BOygg/WXek8Rgd0IYQrsMb9xXpmTgTNUyxFB/2LIa3y/wSnKcfCO26aPXa1d+acub9aM17SJgCI/N2/XJuLJPVHyoU0dsNhZy7o7/7f+8pXO/D1n/rpLgXqgdqQDvHTzgsHVMwGQQ3y3KbgsOVyRW+NYC3gFxsIP1VG1gLwD67f/vHTnDE3Mdj5RF/o8yHHvdqy1u24ODBUN2fKE6/Q1y9P53feuNbBG8hxpjpxSJk2oAv+Bxc8pYGgarEi6y61x3JOMRbVw6vds5IvnWodMyeC5imWoqM2S/te2z97jHNEqG3fSp/11MpWkwAg5kxLJ2P2+2QlB2efjZr6mi//hXbtD5/k6qyezYdtSsscKtK1h41kJemaDtqYv/bQZOPaMcf0h8rsfJAP7SCLIdQbUg6fTIbYaNGGJ14u9lJbT6+/kVSNcRWTxQwwzyBWN7ds6DnIfrRBA9zO7XtJf7E5kYz2ysdS6rcCHnTm8DXVhz3HUjpD5JMFAGzAqZyODdT2NcUhT/THpoz13UoWPtGwaVrZ7rMz5BKBD+ZZsHPQ19/e65k7EI4znOOwfkxZ8zDGxti2Wke5/cJHSwToN549jnYX4y2qmBEOvXgzJgdV2Tlhv5QagUeNYav7qsU8lvI1tR7rmT6YE7DEnOheY03hSwtMFgC0cK7WBgSB2nYl+lPZpW8uBUBe6Ns86IN/++/+w+DvHfBUwbiA+q1JOaRoC/jb2Zq2c+pqs+LnnP3SF/MIyAvMG+ibu5IfJeJS0eGEfY2V/BLAF94KcUim+tdHS9SLG1IB+Rgwz0t9DBL6zXzgD2C/hPWxsua05UEf66eFjHUMSm2hK5S2mVIvt8cIVOlbT/+5NY3eeNRZaLE+JgkAliSKA6iOxnJtnlrKtcs1+fIg0AFISusPH37eCZQt0KGNlQ3NwxkY2p52S3/hCh9y4ABmjCCnV1vHHICwnebNpugwb/yWfawN9RZcBMDKUvkl91zoEwcTyO0XxvXw6fXub374ccdv+cNTaCdVpg34+IvbV1S4ZGs+hrhiYEJBzdpjvQICiAldGm2adQysIeZSYJ6UJ2X9ow9smy3llwoua9ZPKZ+TBAB0vsSBBEH0S8oBgx8C0RzgUFrrASFflb57+/VOkExp39Oj9PpSuIIzEHLW15Z62pOuHfJz6Dhrx6d5s6lsIFN+TMp6tu0Zmy0vkefSEkr6f/T5WQdqODm7dad7cu2tjvUaoqTPuXVYe2AN8zPH2JlL4Z/++JdfnmHI5ui/tI/c0z827JsqyoDAlnQKlNhkDVmUtMnpNA8AcC7X4Rx1+MBFzwEpqF/KX3vv7e6bP/kTJ3QX/2NzChfFl//nb4ylR0rbECgj45ut5FuCV2Ut7cVswVVMjoxxpUA9nNmU/FrBOEHMv3CMHAwgppuSMVcWKb1SOeuJdco6VpvQT+TUc+Hy2+FLH074EyL0mTI6+M3+SvndxyV/QYCNEKxJ++U5+loarDtg/YCHFKye59sywL4SUvxLrp71kRb7i70m+R7SJgEAG5nPgIFIgSzl50qZHA4UUNsnbQHtOERIAVFgDlaH/BiET/W8LpM9Xp8BXqmFetIZkt6+e7cTOEytjb5xM98g9Q+xWFtL5zVG0r5xDvGVV5q82gd23qwt5g/0zR8HFO3gn1SgHII69h9gLigvCfwQ8CP0lzJyAXP0VDwAABAASURBVF38hhcgORwKklEPKL92K/5Twtha23p85733OsDaw3cADymwPuEFoLsFsKaZGxD6i0xAL6yfq8y+SnEek+MXb5iYN8DaQjYNyqzqXsUfUNYqrdUkAMA8ixZooS9BFhuGJ3XwTuKX+cKJxndd/OTHoPapMdYXF7w2i03RPX/0gKQZvvVLv/EcY8wbIF8D2gDasLlI1wjmBT+FUh9rx/SDD+91zFFuDv/kv/yn7Jc26VNrtNRP6TE+xqry3OnQvvGb7wPAnV3zYZ7xoIMu+RiwhXyoL7RtCeuHfKuxz3qo0V9Sl7kB4fqXT/c+faLs7Ck8sq9qO2bOLuHmzVoTzfQJbAF3rHwaa7xZAGAd4dUlgHQrnzLPRrOXPpMdQ+jD2r4P8PRG/MmGz8/e/LGvd3z+GY5hSNle/kPah23gOpStofyLv/o7pyBniC+MiXVV05b5AcxXiNRTq7VPn7Zcm+eJpbbNWvT5XD/kzJbxk+8LkB4FY9fDnDwxf6x9oH7t/L391nKXZyseuXhrzwRxkUv76qbqc5IAALKFvoG1rFefpKV2+dZwqNvqjUBot7TMRcEvZlnwmSgBDnWldnJ6BD4gp7OHutj8TjkuzRnzFWLKfrG99OU/tH/a8bEbn5OHnNmyXfu0Ycxrx1b8bMEjb321/rn4ydv5a9GH22jLwCQBQFsXj2eNi37OUdOfMGe/e+uLf5xmb2Na63h4Elurb0f1y84JF3/IQ+6jm1D3WOXlRnvoAEA/8JCiP1ZPRG9h2475OWBrZ848Y/nbD+51AmXGPQRz+l3aF285GBP6Ssn3AV2hT7dlvdaQ+q6Zh5Z+DLWFv7m2GpdNc/qpOtqrjnwI1S2d8gYKTu59fK8DYZ5yDrRZegwt+q95K9uiv9CG1kfINfzGYPWopywbpKH9qctT9Tk6AIAYi6mJSNn/4tEnV/4u2PpFHhIFytYWryAFK0fPgg3NnxkB8qrTwW3brjnPD/cAxsBYAHlg/RYnJaltt7Y888TY2MwWyC1UBx8P79/vSOceS24tpeYBH5lPQH4J0DcBl+VTecsrnALmQ6jxFw5oJ9vksffwYr4A+RyHNX2N1eXXNvGXjzcAedlUntSCPzsDtF37DwFpLH0pbxj7dKasZ20CeIZbQD7VJ3WCdFhXQOVWaamdl+v9/LxTvrRtSm90ACCSSOlEjpHOuQn5djUTjA8cCEA+IQPIBMpDwXcEQGh/qL0l29kxkAfyx+YlU8phpjxcrPWgYk0AfGU8+C1IhlxARj0pv/i11LjsOpVvpPi1ZuB36F/oN+sFSC+sl7wmxR5/IgXI17SdWrdvDVl/7dqb2q8j2he/jN3mKTMPAmULu0Z1ntj6qfP0SXBNP+wx/AGUx2B0ACDCSK0jctbK5shDjvoJfZJcqSUQXUH1YcqfGVrwpRfGCULdrZbhgPEAxgf40xMLZDpoyaO79vFqrvFbYKwxUD9kPOGBMsSGbQOvAI5TkL7Gp/JSqfUD30HoOzIBP5kD0hLe0ZE+Nmgn0I/qJFtLit8AHwX2FOcJ45CM3zBBby1+79kP/o5evJMyF0DzobVEKqDXlpM6a/gG8KeFL6MDAAgLgYN1w2qvjQ+hXyrTmz2oKA8BX3oRhrRfYxvxonGRhn4iYwHCcVi3hTK+s3nwPwbqQe1Ypji44ToHfGwdeGCzFeS77KmsVPLalHmjDamgMumaEY7dlhnLmn3fi2/aq+KeVGMjD16Wb97smBcg2VIpfgHuMtKxfowOAMY60Lr9Giap9Zjmsjf0ImmxEOcao/czDwMKJNUbawSofLTUBpT6HlKYihOrK5mnbRjQxQ/Ha1iPbUY13MruAgBRkZtcHU4sAumnUnTBkQKLHHcpnrYkP9JcLjEv7Jcl+qVPPgJcsn98iEE+sbcsrK7kVub5dgz8zM99+3ntQ07JHdHOw/ktTRYA8KWF+YdT16M2ZV0r1947A6wLsIVx1h5oWxhTzsejjTfHhde9YuBnf+HXnqfAxQ/Q1hsA8stjeQ8mCwCWHJo/4dWz7wfrK87gArySXM6lDppcm8sWvDQlA2t+auO1f2zsPP3H5HuS3b7xbLLhsPdSsJ2iY8u5fOwe4Q1Trs3W6nYZANRMAk96QqwdhwmI1blsvwycn38WHRxPEhwiMUQbDBTGDp+cKfzJ1e+lbutPcEe46FNrzX8J8DIzaygdMgDgQhfWMAlr8GHrB2tLDuHi7OzNKpO0AVWNepS3eFmwr3qGNXk1Af3knTTqgDkGjcyt2syUbwBWPfBGzk3x9uGQAYCdDw4swco9n2Yg9Roz3WJdNaUbqeZfEjzKE/i6ZtK92RID/gbAzlZ9vvatYEkPhw8ASkhynWMywM/K8srf4phM+KhbMbD14LkVD1uwE3tQmOISXpILDwCWZH8nfW/tUNvbJt7JMvJhOAOHYWAtA/UAoGAmtvSZYsFwDqnCL//x06uAz1xzQOed997r/GdZD7lUVjHob/3SbzwX+ChKeZsiF6x8FQOIOOHfAYiQsrDIA4CFJ2AP3XOZbmEc9k0F+T5oTK2/3Ce7njoDKQZ46NC/WMe/QEcZIAPkkQuUBf5MNWV3Sbl/B0DsryfdXQCwlctoPUvghSd7/hIbT0c3nj0+DVSX/qnQ8x8OVHgBPape7QxMwgBrD/QZR0fo0/V6Z0AM7C4A0MBapvyVQEt7a7TFUy4o8W3NQRaXPU9AAl/g44np3qdPOj0tpVK+9EedUg7UEj7WoFM6d2vw1X14xYACUpu+qn2VYy0CSchbSH6EVB97KGXPb2nca/LVA4A1zcZGfOGwWqurXPapg9HKY3nGhNym5JcA30BeM89LcEKfmh/yewDBdIg9jGuqMRDQE6BbsOen6m/vdj0A2PsMV46v9G2Hf5O+kthKdfjlYqhs5urOQLe3IGlfU7qu0ewuAPCnpnUtMPfmWAzwvYnaEQ9pU9vH1vT9Et/ajG3T390FANuchm15vcST6bd/+defh9BngJLzenBbTO7P29I3SPsbedsRjf1Oh74Dk0rbeuvWShlYm94hAwCeOIS1TciW/JkrEOBLPnyJL4Q+B5R8S9y19nXLT4ytg4bW9lrP1Rz2WA85zOHDFH0QGIEpbB/R5mQBAE9nRyR062MmMFrbGNbo09o48kNxbTOyXn+2vFb+8s/+6Np6me3zbH31kwUA6xuqe9SSAb6ljr253gLQl+MqAxzm4GqNS5yBfTLgQUC7ed1dADDFheRPoO0W3FBLfskNZW7+dkNfwfPKuoW3a96vU5xPLThzG9MzsMYedhcAlJBcc0Ct+TApGesUOvpLC6X08Su/9Z3npK3Bl5iw2epywNaewFoW1jQufCr1R3vMg7wXjPEnoDX8vWjl/3UG6hnYXQBgL6VaOnQQ2XZsRGBlU+bZ/FPaj9nW+Ej5R3PQeefuLZIoeIq5e+dOR4oCnIMpvvfBxQ/o52iA05Ixs25Bie7UOvgh0FfJGFh36JYC+6W6S+vxBVbAvgIl/rCv2F/8g1RTBEVb3096KCjhcoxO27N4jCfTtZ0sAPjTP/7Dxb6soc+nc7TlDh0OGJBrv5c68cDh9M2f/Inua++93enyJy0BB9Ze+FjTOEp45ZDSHK7Fd3vB9I0B/0GN77nxYou1XGNvKl0uKv1KHTyAkv1kdXJjHeM3vglj7NS0HfOvAeIrf+YL7Pqq6Z9gCvCvfJa2Yz0xb6X6W9ObJACAsKleCecI1hMo0XNKj81FPQh17GYjz+SjBxhTqI8t4Tu/9/uTvAIP+5yinBpfaV885RF0gdI2JXps9hK9vemwlmLrTePUmiMlYGP++CeMtf6lt0TK5Xv77t0Of3JjkG/oAMqlBzv7kjYxwAfA3tIoHU/Kz4/uP0pVjZbjmzDa2AwG8HVMN1z8rE3WJfsF9NljHbHG0CMVKNeihT79t7BjbUwSANgO5srzmo0LyJL0zsVr7BD4g4y0D7KFfgxqz0YFBD1A8rWnRNXWR8YwBPDOkw6w9kryXPL4QRqipP3WdBhrymcuftYPc5DSQU69BTLAPLAPAOW5wdjYMyDXt91LOb1UXc6+eIFLkLKxlFz+laT4OMebSOaNvvaO3LqJjZ05svL7Dx50gP01d7A9VX+jA4AvHn3S8QRoiVJ+KqdlX6n6KYnq1IaUp3zSPrAQcuhrX1PPIV6jP1SXTU9U3eKAGXLxW7/xw5a3mi8dB9zH8Lcf3Ls0dPZVCWiEHmmL+cTOEAzZT/Qj38n3gSe5Ph3qtV/JL4WYr3as5Pswh++s29h65KKLAV3koW+MJZTZ8tPrb9jiZvO8gapzfrw29wL8gvHWXlkYHQA8fBo3gaM4zeU8NeiHg48+Xw2t63QIxNJQ17YrPchsG5vnKU5j5mdq2SwxSIdU9YzD2poyrwMqx0VJ/7KjtKTNUXU4bFO48ezxKZhmPkDIEU8wIJTbMrbnXEPqm/VLHr8tkAlWbvOqL03vfXzv9CTG0xj5GKgD7K0Q+NoHXXKhXmw/oxsD42FP2AtD88f4qU8BPZCqby1n3YQgsI+BvmNrjPVLXWvAbQubcC6U2JOuUtrYuaQ8B1iDth/8seUx+fjtPcbij9pyKZMlnRqxxUjfS4EJevTZow48ePy8CzcR/gLq4YaUMnolPrMhLHh1bssl+ZJ+SnUImDjoSvWlh5/Ke9p1qWAabuxlYPPUsd5IgeYhXBMcIgDOqUuB+j7YttKlbxD6hkzI1UmnNGW/5HSpB+wti4f371/Zj+y7EFyGoYwyPztNaoFuDDn/cnWWJ/ZWTndNdbn1O9RP1hrcDm2faseeAbn6VJ3k7CdB+wB/LZCPhfqzac53q9eXnywA6Ot4DfUcEFP5waIVwj6QS2Z90OGtulyKDQE98qQ5WB0OFsEeOLn2JXUsfhY8qUA5BHXWnxLbe9exTxfMiQVjZ9MLlGNgTiWHX0CZdQbI5yD9mA51wNapbG3jNzpKyQN8J50Kduy2D3wUrHyuPEE+fTF+gTKAoxDIt4D333//0hef+77lP9Ubgim4CueEctgPa16gjjVGOhS0t5Ad+lC+dTpJAMAib+0o9iACkG+B1IHRwnafDU201UNmy6l8Sg95DthTvXi0lw71QyG7tCdPKlAOoTpPLzPAQQMuS/Ml9E+4efOkyLommAQIarkP9VXGVgzUWzn7H3+sLJW3evI3pZuTM+Zc/RJ18ALoG05IGa8Fshy0T3M6c9cxJvDo87OOQD4MBFL+TPGGINVXTA7vMfkQmYK6vrZfPP2HDq5KENqiTShrXW4SAOTImGIBY1MQIRwALSdYdsekHGig1EaJrg6SUpuuNx8DJfOX8ibVlvkGtGN9A/JrBHtSviq1fuK7YOUt8vQNWthyG/tjgPuhxahydx17OESLPkMbLfdQkwAgdNCWWxGPTWyFQA5aPcliqwVYCLJDHqicSxlfrp7Jt/XYjcHqTJ33g7frmIMxPKeifeYbWNuUBStfS77EN+nEAoX90ofJAAAQAElEQVS1jKOFH6wLziaNt4XNtdl4cu2tji9H9vnV9xFBrD38xeRDZZoHpVOvv6F+xtrJ51jdUNnoAIA/vQPWARxFNhf4cQf6tD705dHv86/PRqoe2/gUgp/2DGF1+KGKlE0r55esZMe2t3nVp1J0GT++Wtthng3Ct6w/+uCDLoXU5RXa2lqZw6cEzEdf4KaxY48fyonNS99cyIZNbRvyzClgfkGsnylk9AXwwfrXl0cflK597KFLX3aclFOYYrylNvGJ8eH3ENC+tK+l9PCRP/EDQ8YYtuFjBcD3hmrPltTeYq2E/VCumRtsANqQMu4+jJ0T2ac//G2N0QFAa4eObI/XS3y7eE0c4FPtJlyT/2N80UWjTZhK2ZygJAg4Kpcl8+DclLC0Th3Oib4v+dUGCNtfD+ucK+uVBwCWjQXzPGkv2L133YCBko9CeAPQoKtdmnButj2tfV/yI0DgNxn4nZQUeOrfNgvb8n50AMCPbThe/ETkGB74W+WSC4Tlhd6YvsK2BB8glFOmL/o8KuClFKVPLDwtwS0frZA6HnRwUrLG4Ji9AncWzuH4M2gMh5wTfNehbw6ZO/rRniIPNJfMb5+NXD3rSLaXThmXfCAfg+ptKj0rU151SnNclNSNDgB4Ze14XPTjIjmeWPiAz5NLJi5nq7aOH0cBsXb4VOLPHnVOh8mTJ6fLqSRfyoF4hlvlj55ygZTyB28hjs7f0uNnPvrmjzcE6OEr5w0gD5CDPht99awjgowctJdzOi3qrC/kY4j1I71cnXT6+OirHx0A9HXg9XkGeO0poMnEkubQYqPk7HvddAz43E3HrVtejgHOsOV6f9Vzyf7ijAWvWk2R24ZNDwBWNE9r2UQrosRdcQacgQ0wUHLxhsM4P/8sFHl5ZgY8AJiZ8Fx3JZuIz4JyNrzOGdgiAyVrf4vjcp/TDJydvZmu3HjNVtz3AGBlM9V3EPI3qP6mYGWT9iN3fF5+RMTApG/tY9Y5hoV1gs/Wl/bM10fdDHgAUMdXc20OPQHjvoBhwXFEBnzt73/WjzHH25lHDwC2M1fuqTNweAYIlg9PwkoJGPJTv1MNhR/lAlPZ34vd5gEAER5/yuZ4o6vlAO5KFxa6oLaPPn1slvqwVz04ALXjK7mcsNs3B0etL+UbDoWjcrW2cTMfJb/0xx5B1/pPWbDyIXkufX7BU2uJ8tyYsz+Nc2jaPABggvlBCH4a1XGnq+GAhdM3kXwJEI71s7Q19kt0S3zo83Et9TpAag8XDhD4LeHL6tBP39iZu73uD8YF4EQp+RKg38ed6jU/Q+aoxJc5dRh3DHP6UNqX/Izpl54b7BHmz9pgHgUrH5rne1JD226tnfbE0LR5AGAd4bKysHWejzPQt5FY3GyieGuXWgY4sNjQtYcLHFs7LfN7njt4A/CllHxL7I0/eIqhJWetbMnPsfawM9ZGq/bt76dWns1jZ9IAwE60zc8ztO31woVV4nVfkFBiI6bDZvAfyIgx0y+Du34t1xjLwFRrf6xf3r6MgbXNH/eSUDaCfWlNGgBA1ZHJZfxTYIpL2i+wKWbKbbZmYIq139pHt3dcBrY28skDgK0RsiV/W17aCtTWFqHXzgeviIXatmP1+Xx/rA1v7wzsmQECuJbn1p65mmNszQMADt85HD9yH1w0LTcRtgCc8jHE7bt3O8CX6JBtBfisz/tJCWrm9H0La1/zHOMlVxfTL5FhE5Toluiw9kv0XGdeBjg3anpkTYToa49+n86y9dvrvXkAwBMkvwilf67Q0wddKQfwRoTct4y4aNAFpbZzetgB6JAK+EFfpFsA/3rWaQzn5x2HhQXyEtg25G0bykk8eVJMEX7e+/he8bqwPozNM7cpG7m6VJs+OTZBiV4pgSX2+vrz+vJzqYQr1nTJ/BHAoQuYR4u+ftDt0zlSPWdICec5neYBQK4zr8szUHL55y14LQxwUADywOYp54CuhdW18jBv9XJ5DkCCZJDT87o4A1sKSOMjOLaU+WPtg70xscXxeACwslnjgliZS5t1h0sa53k9CcgvDQ7ApX1Ya/++9tc6M+7XXhnwAGBlM+sXRNsJIQgQ2lp2a60Z8LXfmlG3Nx8D8/fU4i2KBwDzz5v3uFMG/Al2pxPrw3IGdsqABwArmtgWEd2KhnM4V/wJdp4p9+/KzMNz617W9I8FtR7bVu2NDgD40ysLSwSfu1qozsqmytNXaBtZCqFubTllNyWP2U/pxuSx9lPICEq42ELwJ4IphLoqp/RDufRrU35jfAoOcjaZG+pJWwF7IGWPOsHq5GTUWd1YHh0Qq0NGHSAfA3XA1lEWrNzmqbflXD71lgUbFtiw5VQePSGlI3lOT3VhqrakqiMvSEYqWSpFJwe1y+lQJz1SyiGQC2Fdqsw5kaqT/OHT611q/tChT9IQKXlML9SlDIbq0haUtg/1+srWNnnQ16Zl/egAgL+1tuC31wUrJ5+SU9ca9BXaRJZCqFtbTtlNyaP2b94sntto+7OzrrUc//mb+hDIUwh1VU7ph3Lp16atx15iD9/RIy2ZPA5ANjn6KWAP9NWHOpSBbUdZsPJYvk9vSL3akMb6REYdnJTwhw6BHu0sTjbM+qculMXK6AmxeivL6akuTPvaW32rG8tb3VhebWJ1ViY9UitXHrkgWV/KvJSAoJ65jtmjzxp5qEt7YOWUgZWRRwbIC5SByqSUAXkLZOCF7E5HGpaR9cG2IQ/62tj6Es5zOqMDgJxxr5uGgZJoe5qe3epYBjgAx9o4cnvnb/uzzyW3/VHsYwQeAOxjHn0UzoAz4AysnoE9PrysnvSMgx4AZMiZu4o/V5u7T++vDQP8QmAbS8e1wscjxx39/kfOq//9j3JbI/QAYGXzVXII+regVzZpP3KnZO5+pOqJM7ArBkrOpBvPHncletsiZtvejg4AePIB26ZhHd6Xbg4uGjgH6/DcvRjDAPNoMcbWFtsy9lq/aRNCNpAr7+n6GGB+Qlgvw7qwbHXnzId+1JbH+hrrb6zN8QHAkycdr66P9I8wTDVWJrPvS04sAvTgHEzli9ut+8dSmAvmpQT8Qyjil3/Qg7KF6o6Swh0o4Y7g13Jl8+ILW8p7WreOh/JVMnf6M0A7Z+TD+UKWg/WR/SNIrjKpZDZFHoN0bJ1kpDGfrIxxACuzeWyEsH315a0t5Ut4z+mMDgByxr3OGTgSA33Bm+WCtz3AypRHvkXI/75UY7N6yGx5SB4bJeizXWIjptNn1+vjDIRcxrVeSa3+K2l3+niBupgMuWDrbT5WLxmp1Y3l0QGxOmTUhUC+JDwAWJL9AX37n9AMIM2bTMYA3+oWajvhMKxt00Kffi1a2HQbZQzUBMllFpfU2n7fHgBscA59E61z0rgIP7r/aJ3OuVfOgDPgDAQMLB4AeCQezIgXN8sAa3mzzg9wnICHMQulJmgnlLZxPWdgbQzswZ/FA4A9kOhjcAaOyoAuctKjcuDjdga2ysDiAQAHh7BVEt1vZ+AoDGivki49ZnwQxviiNxhKS2ypX5uWtHOdvTCwj3EsHgDsg8Z5R8GfQs3bo/fmDKyLAS7edXnk3jgD22PAA4CVzZlf7iubkAp3SuauRKeiy92ocqH7l1t3M53Rgezpp4CjA9yg0AOAFU2aXw4rmgx3JcmAXpWThkoxWagTK9OO9V/6VxToY4cUkJ8LBCulfeGbUNpmq3r8CE7Od+qZ45zO1uoYD9ia3/J31gCAjaCOPR3GgH4JEC7BMCveaggD8A2GtLVttnxg2HHE8jWXY6y9y179oE2LtTYXnyVrekvjyfO2n9pZAwA/HOILh1djIF57VXp+/lkHl+BqrUumYgC+AfaZLwtkzAtpDujwqhs7WwRjs35TbgW4KbGl/tFVfs6Ufkth/ZqyTant1nraAzV2LSdbz994440OLDWOGt5juqMDAC0AT292d+/c6UAJF+iBk+7ZWVf7C3+0oz0gvwcwFsBYSAH5McDGFGC+LuHmzdj+iso4LGJjwk8rp2xh67aQx3f8JO3DrTdvRbmKCUtt0ie6OaATIqe/hrrQ39Jyn+99dmgf6mgPENTG5ioms3bIz4XQd1vGB5Vt3sqQgxqo/Zg011+M3xrZ6ACgprO96/J6HpSMEz2ALukLfNaVPgXZduT3gBccnJ+GYvMnwcD/yM7k6ZMnAz181QwfX5W6i7Vwfgm2bgt5jYe0F5X89do7f8FdH08xO31tlq6P+Vwi6/O7zwbtUzp8BFDzil92sDkX1GcsxQfJbd7KkNdC7cektX3W6HsAUMPWxLpnZ29evAl4c+Je3PzSDBDRL+2D9+8MzM0AQULNA87c/pX1ty8tDwAWnM8bzx4v2Lt37Qw4A86AM3BkBmYLALjsvvrm024M+LxpzZNVO8Z3b79+iY9br794/V0yRrigvxLdNeswBoExhVAdqR0HepSVkl8SNU/1/DnUEr7CVQh4zSHUX8Jv2ydPkEvxZ/0gH/IWchWWpR/KsXUE8D0B3nLCQ8hBSZl2YEmuSvu248FnwcrDfHg3Ul/a31C90QHA1957u+sDA+OyG+qk2n35tYcdRKq8trTFGEvHBBdz9lfqV40eC5wxCIwphOpIWUcCeuSVkl/z2qjhpbUuPAO4CgGvOYT68Iyt1j5uzR5rLeQt5CosSz+UH5HTkIOSsviDe7DWNYNvdjzym9TKw3w4HupZG7n7NWxTWx4dADx7+MOuD7VO5fQhEYJzOkvUtfDp0ednS7i+SJ9cIizwlp0vuTbW8lSa4rM118xfqq8a+VA7LfZbjZ+hLmstlI0pt56fMb4MbctftwxtW9MO7kFNmza6ZVZa+5a7X8s8SmuNDgDSpqergeBcZERdCmE0FdMLdWLlsB0+TTfitGX5EfMxJbNtbD6l31JOf9ib6sBjHtQH/bQGti1k//aNZ+lJCmrQlQ21nzJtzTX2QAuf37l76/QG8cbTTwKW0kX4Y55b9D/URtq74TWsiaH+LN2OUdf8FQD6YwFfFktxEPowdlxztt9kACCCUpGR6mNp2KZEJ2xDOdZurIzPN4fawKdSqA/0bZ7y1KA/+iCdEvQxBUKf1cf5owdhVbJsddV+yjTpyMiKlj7XuCL+WvZfa6vG3xrdWj/Wol/z/aUaPmp0p+YiZd/6iI4trz0/OgD4mx9+3Fl8+PDzDoSytRPRwj/GHBs7sj7QFh9KgwDsoe9wBpwBZ2BJBjiL7v39Fx1/5tfnR+n51mfH69swMDoAYOItfvDhvQ6Esr/6/meXAgUuvKFoM/T2Vs5u3enuffqk47P8J9fe6sDDp9c7gR6VD1N0qe+DPvvkKYiN16e/1np8Z/5Ja6DxpNqo3tNXDMAVXI+F9jD2Xllvk2PvtLE0jxU4GMsn7afkdB4myntRgMDZxdjHAP7Le26hWW5jzLhsW9YG+O73PuyUkrco9yquOToAiJu9KiXysxfjVY3udGGGFyFlQFuCClImf41gYWtcfCEGqMznQ7WNXQAABBJJREFUlsorRSagy5/IANXH0qfX3ziJ4YH+1shDiU/4znyegsWLoImyQBAVQnXaILYeGwCdkr6n0DlNSsV/pvAhZRNe4BqwbkDMVfYZsHXoCtrD1Kf6GirHR9Y+3wnAfgz8mhpy/BnaT2k7rbOUvvywnOIX8hrAKTZ4IEj1tXZ5zXjRDXmiHANrEdg6uAKsl7Xygr/4SMp4c2B8wOrQDrA2AHVKybfEbAGAnL7zxrUOEPGHQA6snDJ4+60Xv7UOERz2awSTjn+MlYudVGCDA5XDtPQLNC/fAJx/1tHfGnko8QnfLQd2zpnrELaevOr5hzhkB5slfU+hQ9/yI5dyybG5CWCm8CNm0/om3uAwBPsMWLn0SfGd9R3rY6gMHgCc5Hizda19iPkOZyBWJxl+wAncCJa7krzG9fCTvzu9OZXtraUaR2nKpSd+xB0p+1lgLQLkguz3zU1r/mrssS7w8/S7BxdvhTXOWMr4gK1jrLSfA7MHAHMMamt9PHj8/BQU/fS/+GcdyPn/3le+2n3rG+92X/v6N3Jqm6pjowx1mECLQ3ho+xbt6J/5+Plv/asu9wRLHfMLWvS7Bxs6LN95773etX/6lvfFuodrON/D+Pcwhttf+rGOtd+3rqlHL3fBsZ8BvOQemKhfO3iru3of1+7gXv3TIh8yvuu3f/zUbC+H4BY2yonwzH+43DPVXpVhgCCglD/0QMacV83MAP/SXU2Xr9360ukLg1zwINZW52OqPtZmOtl+LfsbgBnnlkUt0C2Lm6d/vhxDHpmjnAF9H6K8xXo0ufTW483ynnx0/9HyTrgHszLw9HH+30LhrJzVoQN25gHAhJNuF7DN2y65/LkMan4Ixbbfy1sAO6bSvL4PUao/lR7zN5XtNdmdcpz+VL+mmZ7Wly8efdKxlkBfT6lzs69dy/o92/IAYKLZ5YkesIBB2A11RMB8HsbnYl//qZ8OVbJlDkw+U+Oz06ziASpLDpIpaCD4Yu5ArX3aAGzUtt2LPmOHA1A7JtY+34XBRm1b12/DwFfeffv02T9nUY1FvsfEnNOeM5C3oDXtXbcdAx4AtONykCU+Dxvz+pPNt/VDsPQvIAYRPGGj2uCLeRbkVq0Ntdt6ypodO3a+C3P77t2tU7FJ/5k/LvIhzvNreYCzj2/8r/s7QENGuJ02HgBMPFc86ee6eOfurZffHA8vh67gf7QpUHOVxgxwAMZMMh8pWH10bPnoefjoQ4yjof+YUMyWy+oYSM1XzIrVJXADnH0xXZfNx4AHABNxzWt/gHmCgBDIQ7AhQCjPlWv1c7aWqtviE4A+drAHG/mlOJyj31TQM6TvkL+cDdY4kA48C/pxINV5Og8DqT/dZZ40N0rxCLlNyQu8AeR8VHlN6d59+f8AAAD///PPsHsAAAAGSURBVAMADf+O4P+a0OMAAAAASUVORK5CYII='
+};
 </script>
 </body>
 </html>
