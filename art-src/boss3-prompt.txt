@@ -1,0 +1,65 @@
+【3 王 深淵孵卵者 歐貝格:四則。第 1~3 則同一個對話依序送(第 1 則附上 boss3-body-template.png);第 4 則場景另開一個對話,附上 boss3-arena-template.png】
+
+【第 1 則:本體(附 boss3-body-template.png)】
+
+Boss art for one fixed screen of a 2D side-scrolling pixel-art run-and-gun game. Use the attached guide image as an exact layout template. The result will be shrunk 3 times (to 512 x 341 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Magenta #FF00FF = empty. Keep every area you do not paint as flat solid magenta #FF00FF.
+- Grey areas and the blue water band = drawn by the game. Keep them exactly as they are; draw nothing there.
+- White dashed columns = climbable tentacles that the game draws later. Do not draw anything inside them.
+- Orange box = THE BOSS BODY. Paint the creature inside this box only. It is cut off by the top edge of the image: most of its body is hidden above the screen, we only see its lower half.
+- Red box = THE EYE. It must sit exactly inside the red box.
+
+Creature: an original, deeply unsettling abyssal cephalopod horror that clings to the ceiling of an underground cavern. Its huge soft body is curled up tightly into itself, a heavy coiled mass of thick tentacles wrapped around each other in the center of the orange box, as if the whole creature is hunched and huddled. A few small round egg sacs are tucked between the coils (5 to 7 sacs, each one simple, translucent pale violet, with a faint dark dot inside).
+Key identifying feature (the most important thing in the image): ONE single enormous eye in the middle of the body, set deep inside a horizontal fleshy eyelid slit, like the creature's whole body exists to hold this eye. The eye is wrong and disturbing:
+- The eyeball is dull sickly off-white with a few thick dark veins.
+- The iris is made of uneven concentric rings of golden yellow and dark amber.
+- The pupil is a tall vertical slit, and from inside the pupil a bright yellow flame-like light pours outward, in 4 to 6 thick curling tongues that spill over the iris and onto the eyelids. Draw these flame tongues as big simple solid shapes, not soft glow.
+- Yellow is used ONLY in the eye. Nothing else in the image is yellow, orange or red.
+Colors of the body: dark violet flesh with deep plum shadows, the underside of the tentacles is pale pinkish violet with one row of round suckers. Wet, glossy look shown only by a few simple light highlight shapes. No green, no blue on the creature.
+Do not draw any tentacle hanging below the orange box (the game draws the hanging tentacles).
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color illustration with dark outlines of even thickness (about 4 pixels).
+- 4 to 5 tones per material for large areas (light to dark steps). No gradients, no soft shading, no texture noise, no glow halo, no rim light, no particle effects.
+- No shape or gap smaller than 12 pixels across. A few big readable shapes; no thin wisps, no fine wrinkles.
+- The design must be original and must not resemble any existing game, film, anime, toy or brand character.
+
+【第 2 則:眼睛三態(第 1 張滿意後送出,只當 Claude 手繪的參考)】
+
+Now draw only the eye of the same creature, same design, same colors and same style, as a close-up sheet: three versions in one horizontal row, all the same size, evenly spaced, on the same flat magenta #FF00FF background. Include a little of the surrounding eyelid flesh. No text, no labels.
+1. Closed: the eyelid slit is shut, only a thin dark seam with a faint yellow light leaking out of it.
+2. Open: exactly like the first image, the yellow flame light pouring out of the vertical slit pupil.
+3. Charging a beam: the same open eye, but the flame tongues and the iris have turned bright pinkish violet instead of yellow, and the pupil is opened wider.
+
+【第 3 則:剪影(第 1 張滿意後送出)】
+
+Now output exactly the same image as the first one, same canvas and same positions, as a pure black silhouette (#000000) on the flat magenta #FF00FF background. Only the eye stays in full color. No outlines, no interior details. Keep the grey areas and the blue water band unchanged.
+
+【第 4 則:場景(另開對話,附 boss3-arena-template.png)】
+
+Background art for one fixed screen of a 2D side-scrolling pixel-art run-and-gun game: the boss arena of a giant tentacled eye creature. Use the attached guide image as an exact layout template. It will be shrunk 3 times (to 512 x 341 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Grey areas and the blue water band = drawn by the game (ground, side walls, water surface and its reflection). Keep them exactly as they are; draw nothing there.
+- Cyan line = the water line. The back of the cave meets the still water along this line.
+- Yellow dashed box = a jagged crack in the cave ceiling. Keep the inside of the crack flat solid magenta #FF00FF (the game draws the night sky and moonlight there). Only the crack's rocky edges are painted.
+- Orange dashed box = the boss hangs here and covers it during the fight. Paint plain, low-detail cave ceiling rock behind it (it is revealed when the boss dies). No stalactites inside this box.
+- White dashed columns = near tentacles that the game draws later. Do not draw anything inside them, and keep the background behind them simple.
+
+Scene: a deep underground cavern with a dark abyssal pool. Everything outside the boxes is painted (no magenta left except inside the yellow crack).
+- Big simple stalactites hang from the ceiling outside the orange box; low rock shelves and boulders at the water line.
+- Far in the back, two HUGE distant tentacles of the same creature reach in from beyond the far left and far right edges of the cave, rising from the dark water in the distance and climbing up toward the ceiling. They lead toward the two outer white dashed columns, as if the near tentacles are the closer ends of these distant ones. Paint them in pale, hazy, desaturated blue-violet, clearly further back than the rock.
+- Clusters of glowing cave fungi on the rocks, drawn as small groups of flat pale cyan caps (no glow effect; the game adds the glow).
+- No people, no buildings, no bones, no text.
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color pixel-art-friendly illustration. Use only 3 or 4 tones per material. No gradients, no soft shading, no texture noise, no glow, no rim light, no fog, no mist, no light rays (the game draws them).
+- No shape or gap smaller than 12 pixels across. Big simple shapes; no fine cracks, no small pebbles, no thin drips.
+- Colors: cold moonlit cavern, muted blue-grey and slate teal. Low contrast overall. The darkest color must not be darker than #1e2836 and the lightest must not be lighter than #7a8ea0 (the boss is dark violet flesh and must stand out against the cave). No yellow, no orange, no red, no green anywhere (yellow is reserved for the boss eye, green for its projectiles).
+- Things further back are lighter and greyer; the nearest rocks at the water line are the darkest.
+- Strict side view, flat horizon, no perspective distortion, no vanishing point.
+- The design must be original and must not resemble any existing game, film or real place photo.
