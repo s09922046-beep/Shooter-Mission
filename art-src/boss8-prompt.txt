@@ -1,0 +1,36 @@
+【8 王 巫妖王 阿茲拉克:三則依序送,同一個對話(建議與 2 王分開另開一個對話)】
+
+【第 1 則:主設計圖】
+
+Boss concept for a 2D side-scrolling pixel-art run-and-gun game. This image is a design reference that will later be redrawn as a small sprite about 46 pixels tall, so it must read clearly when shrunk 18 times.
+
+Character: an original sinister lich sorcerer, floating in the air, full body, strict side view, FACING LEFT.
+Key identifying features (all three must be obvious in a pure black silhouette):
+1. A huge, wide, deep hood with a tall pointed peak that leans forward. Inside the hood is pure black emptiness; the face cannot be seen at all, only two tiny dim pale-green eye points.
+2. A very broad, heavy robe that widens downward like a tall triangle and has no visible feet. The bottom of the robe breaks apart into 3 or 4 large, irregular, smoke-like blobs that float below it (big solid shapes, not thin wisps).
+3. A faceted gem floating in front of the chest, not touching the robe, glowing solid bright red. This gem is the ONLY red element in the whole image.
+Details:
+- Robe: ink black with dark purple folds, drawn as a few large fold shapes.
+- Hands: two long skeletal hands in bone ivory coming out of wide sleeves; the front hand is raised, fingers spread, casting a spell (no magic effect drawn).
+- To the right of the lich, at about one quarter of its height, draw ONE separate small floating bone lantern: a cage made of a few thick bones with a small skull on top, a bright green soul flame inside. The green flame is drawn as one simple solid shape.
+- No staff, no crown, no visible skull face, no jewelry other than the gem.
+
+Output rules:
+- Canvas 1536 x 1024. The lich fills about 80% of the canvas height, slightly left of center; the lantern is on the right side with clear empty space between them.
+- Background is one flat solid magenta #FF00FF. No floor, no shadow, no text, no labels, no frame.
+- Clean flat-color illustration with bold dark outlines of even thickness (about 8 pixels). Where the black robe touches the outline, use a dark purple outline so the shape stays readable.
+- 4 to 5 tones per material for large areas (light to dark steps). No gradients, no soft shading, no texture noise, no glow halo, no rim light, no particle effects.
+- No shape or gap smaller than 40 pixels across. Prefer a few big readable shapes over many small details. No thin spikes, no fine runes, no chains, no tattered cloth strips.
+- The design must be original and must not resemble any existing game, film, anime, toy or brand character.
+
+【第 2 則:姿勢表(第 1 張滿意後送出)】
+
+Now draw exactly the same lich, same design, same colors and same style, as a pose sheet: three full-body poses in one horizontal row, all FACING LEFT, all at the same scale, evenly spaced, on the same flat magenta #FF00FF background. Do not draw the lantern. No text, no labels, no effects.
+1. Idle floating (same as before).
+2. Summoning: both hands raised high above the hood, robe flaring out wider.
+3. Pointing: front arm stretched straight forward, palm open toward the left, as if firing a spell.
+The floating red gem stays in front of the chest in every pose.
+
+【第 3 則:剪影(第 1 張滿意後送出)】
+
+Now output exactly the same image as the first one (lich and lantern), same canvas and same positions, as a pure black silhouette (#000000) on the flat magenta #FF00FF background. Only the chest gem stays red and the lantern flame stays green. No outlines, no interior details.

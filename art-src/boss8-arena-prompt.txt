@@ -1,0 +1,23 @@
+【8 王荒廢墓地背景:附上 boss8-arena-template.png 一起送出,一則即可】
+
+Background art for one fixed screen of a 2D side-scrolling pixel-art run-and-gun game: the boss arena of a lich (an undead sorcerer). Use the attached guide image as an exact layout template. It will be shrunk 3 times (to 512 x 341 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Magenta #FF00FF = open sky. Keep every magenta area that you do not paint as flat solid magenta #FF00FF in the output (the game draws its own overcast sky and low fog there).
+- Grey areas = covered by the game's ground and side walls. Fill them with flat dark grey #303030, no details.
+- Cyan line = the ground line. Everything on the ground stands on this line.
+- Blue dashed box = keep this upper band open sky. Only the top of the tallest distant ruin or tree may reach into it.
+- White dashed boxes = floating platforms and rope ladders that the game draws later. Do not draw them, and keep the background behind them simple and low in detail.
+- Yellow boxes = small floating lanterns that the game draws later. Do not draw them; keep the area behind them simple.
+- Orange box = THE BIG TOMBSTONE. Draw one large, tall, upright old stone grave monument exactly filling the orange box, standing on the bottom edge of the box (it rests on the middle floating platform). It is the largest grave in the scene: a thick stone slab with a heavy pointed or rounded top, chipped corners, and one simple carved round emblem near the top. No text, no letters, no cross on it. Keep solid magenta sky all around it (nothing else behind or touching it), so it can be cut out as a separate piece.
+
+Scene: an abandoned, overgrown graveyard in the wild at night, under a heavy overcast sky. Along the ground line: tall clumps of wild grass and weeds drawn as big chunky blade shapes, many small old headstones and a few stone crosses, tilted, sunken or broken. Two or three dead leafless trees with thick twisted trunks and only a few thick branches. Far in the back: low hills and the silhouette of a small ruined stone chapel with a broken bell tower. No people, no animals, no bones, no fence, no text.
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color pixel-art-friendly illustration. Use only 3 or 4 tones per material. No gradients, no soft shading, no texture noise, no glow, no rim light, no fog, no mist (the game draws the fog).
+- No shape or gap smaller than 12 pixels across. Big simple shapes; no fine cracks, no thin twigs, no small debris, no individual thin grass blades.
+- Colors: cold overcast night, grey-violet. Stone is muted grey-violet, grass and weeds are dull grey-olive (not bright green), trees and the chapel are dark grey-violet. Low contrast overall. The darkest color must not be darker than #2a2633 (nothing pure black, because the boss is a black-robed figure that must stand out), and the lightest color must not be lighter than #7a7488. No red, no bright green anywhere.
+- Things further back are lighter and greyer; the nearest graves and grass at the ground line are the darkest.
+- Strict side view, horizon flat, no perspective distortion, no vanishing point.
+- The design must be original and must not resemble any existing game, film or real landmark photo.

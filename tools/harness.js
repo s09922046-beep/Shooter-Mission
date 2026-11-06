@@ -95,6 +95,7 @@ async function shot(w,s,frames,outp,sp,file){
   const {br,pg,errs}=await open(file,{width:1024,height:576});
   await pg.evaluate(([w,s,f,sp])=>{HX.go(w,s);HX.run(s===5?320:20);if(s<5){HX.crowd();HX.run(60);}
     if(sp){G.charge=100;HX.press();if(G.modal&&G.modal.spPick)spPick('avg');}HX.run(f,false);HX.warm();render();},[+w,+s,+frames,+sp]);
+  await pg.waitForTimeout(300);await pg.evaluate(()=>render());   // v0.20:魔王專屬場景的內嵌圖是非同步載入,等載入後再畫一次
   await pg.screenshot({path:outp});console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();
 }
 async function sheet(s,q,outp,file,opt){              // 10 大關對照拼圖:同一小關、同一畫質,鏡頭移到敵人最密段
@@ -314,6 +315,96 @@ async function strand(fa,fb,outp){
     await br.close();}
   return bad;}
 
+// v0.20:魔王姿勢截圖。各王列出幾個情境(姿勢、朝向、核心狀態),每個情境 render 後裁出魔王周圍放大拼成一張
+const BPOSE={8:[
+  ['待機朝左',b=>{P.x=b.x-120;b.v8=null;b.rayCd=200;}],['待機朝右',b=>{P.x=b.x+140;b.v8=null;b.rayCd=200;}],
+  ['召喚',b=>{P.x=b.x-120;b.v8={k:'summon',t:G.t};}],['前指',b=>{P.x=b.x-120;b.v8={k:'point',t:G.t};}],
+  ['前指朝右',b=>{P.x=b.x+140;b.v8={k:'point',t:G.t};}],['命匣全毀 核心全亮',b=>{P.x=b.x-120;b.v8=null;b.rayCd=200;for(const p of b.ph)p.alive=false;}],
+  ['本體受擊閃白',b=>{P.x=b.x-120;b.v8=null;b.rayCd=200;for(const p of b.ph)p.alive=false;b.hf={core:4};}],
+  ['前指受擊閃白',b=>{P.x=b.x-120;b.v8={k:'point',t:G.t};for(const p of b.ph)p.alive=false;b.hf={core:4};}],
+  ['命匣受擊(提燈移到旁邊)',b=>{P.x=b.x-120;b.v8=null;b.rayCd=200;b.ph[0].alive=true;b.ph[0].x=b.x-44;b.ph[0].y=b.y+10;b.hf={ph0:4};}]]};
+async function bpose(outp,w,file){
+  const {br,pg,errs}=await open(file,{width:1024,height:576});
+  const d=await pg.evaluate(async([w,L])=>{HX.go(w,5);HX.run(320);
+    const cv=document.querySelector('canvas'),sc=cv.width/512,cw=150,ch=110,o=document.createElement('canvas');
+    o.width=cw*2*3;o.height=(ch*2+24)*Math.ceil(L.length/3);const x=o.getContext('2d');x.imageSmoothingEnabled=false;x.fillStyle='#000';x.fillRect(0,0,o.width,o.height);
+    for(let i=0;i<L.length;i++){ebul.length=0;hazs.length=0;ens.length=0;const b=boss;b.x=232;eval('('+L[i][1]+')')(b);
+      for(const q of[bul])q.length=0;b.vf=undefined;bossFxTick();render();
+      const X=(b.x+13-cw/2),Y=(b.y+17-ch/2-6),c=i%3,r=Math.floor(i/3);
+      x.drawImage(cv,X*sc,Y*sc,cw*sc,ch*sc,c*cw*2,r*(ch*2+24)+24,cw*2,ch*2);
+      x.fillStyle='#fff';x.font='16px sans-serif';x.fillText(L[i][0],c*cw*2+6,r*(ch*2+24)+18);}
+    return o.toDataURL().split(',')[1];},[+w,BPOSE[+w].map(([n,f])=>[n,f.toString()])]);
+  fs.writeFileSync(outp,Buffer.from(d,'base64'));console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();}
+
+// v0.20:王關爬繩梯到頂再往旁邊走,回報落腳處;8 王另測站在新平台往上射能打到右上命匣
+async function bclimb(w,col,dir,file){const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(([w,col,dir])=>{HX.go(w,5);HX.run(320);ebul.length=0;hazs.length=0;ens.length=0;
+    const z=()=>{ebul.length=0;hazs.length=0;ens.length=0;if(boss){boss.cd=999;boss.rayCd=999;}};
+    let bot=0;for(let y=0;y<GH;y++)if(T(col,y)===2)bot=y;
+    P.x=col*16+3;P.y=bot*16-14+16;P.vx=0;P.vy=0;K.u=1;for(let i=0;i<400;i++){z();HX.run(1);}
+    const top={y:P.y,climb:P.climb};K.u=0;K[dir]=1;K.j=1;for(let i=0;i<40;i++){if(i===6)K.j=0;z();HX.run(1);}K[dir]=0;for(let i=0;i<40;i++){z();HX.run(1);}
+    const o={top,end:{x:Math.round(P.x),y:Math.round(P.y),row:Math.round((P.y+14)/16),col:Math.floor((P.x+5)/16),climb:P.climb}};
+    if(w===8){const ph=boss.ph[5];P.x=ph.x+2;P.y=3*16-14;P.vy=0;const h0=ph.hp;K.u=1;K.f=1;for(let i=0;i<60;i++){z();HX.run(1);}K.u=0;K.f=0;
+      o.shootUp={dmg:+(h0-ph.hp).toFixed(1),alive:ph.alive,py:Math.round(P.y)};}
+    return o;},[+w,+col,dir]);
+  console.log(JSON.stringify(r),'錯誤',errs.length?errs:'無');await br.close();return errs.length;}
+
+// v0.20:8 王死亡射線各階段截圖(預兆 90 幀內、預警、竄出前中後),裁下畫面下半部(y 150~250)上下拼接;同時檢查判定範圍不變
+async function b8ray(outp,file){const {br,pg,errs}=await open(file,{width:1024,height:576});
+  const r=await pg.evaluate(()=>{HX.go(8,5);HX.run(320);const b=boss;P.x=60;b.x=300;
+    const cv=document.querySelector('canvas'),sc=cv.width/512,o=document.createElement('canvas');const st=[];
+    const z0=()=>{ebul.length=0;ens.length=0;b.cd=999;};
+    b.rayCd=95;const shots=[60,10,1];let row=0,log=[];
+    o.width=1024;o.height=200*7;const x=o.getContext('2d');x.imageSmoothingEnabled=false;
+    const grab=(lab)=>{HX.warm();render();x.drawImage(cv,0,150*sc,512*sc,100*sc,0,row*200,1024,200);x.fillStyle='#fff';x.font='18px sans-serif';x.fillText(lab,8,row*200+20);row++;};
+    while(b.rayCd>1){P.inv=999;z0();update();if(shots.includes(b.rayCd))grab('預兆 rayCd='+b.rayCd);}
+    let z=null;for(let i=0;i<80;i++){P.inv=999;z0();P.x=60;update();z=z||hazs.find(h=>h.fx==='b8ray');if(!z)continue;
+      if(z.t===8)grab('預警第 8 幀');if([z.warn+5,z.warn+25,z.warn+45].includes(z.t)){grab('竄出第 '+(z.t-z.warn)+' 幀');log.push([z.x,z.y,z.w,z.h].map(Math.round).join(','));}}
+    return {d:o.toDataURL().split(',')[1],log,warn:z&&z.warn};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,'預警幀數',r.warn,'判定框',r.log.join(' / '),'錯誤',errs.length?errs:'無');await br.close();}
+
+// v0.20:王關站在地面某欄、跳起並按住上,回報跳躍最高點與能否抓住繩梯(每欄重開一次關卡)
+async function bjump(w,cols,file){const {br,pg,errs}=await open(file);let bad=0;
+  for(const col of cols){const r=await pg.evaluate(([w,col])=>{HX.go(w,5);HX.run(320);
+    const z=()=>{ebul.length=0;hazs.length=0;ens.length=0;if(boss){boss.cd=999;boss.rayCd=999;}P.inv=999;};
+    P.x=col*16+3;for(let i=0;i<30;i++){z();update();}let minY=999,g=-1;
+    for(let i=0;i<60;i++){z();K.j=i<14?1:0;K.u=i>3?1:0;update();minY=Math.min(minY,P.y);if(P.climb&&g<0)g=Math.round(P.y);}
+    K.u=0;K.j=0;return {col,top:Math.round(minY),grab:g};},[+w,+col]);
+    console.log('欄',r.col,'跳躍最高 y',r.top,r.grab>=0?'抓住繩梯 y='+r.grab:'沒抓到');}
+  console.log('錯誤',errs.length?errs:'無');await br.close();return errs.length;}
+
+// v0.20:8 王召喚、時間停滯、扇形彈特效截圖(各階段裁 256x144 遊戲像素、放大 2 倍拼成 2 欄);同時回報招式結果與舊版一致的數字
+async function b8fx(outp,file){const {br,pg,errs}=await open(file,{width:1024,height:576});
+  const r=await pg.evaluate(()=>{HX.go(8,5);HX.run(320);const b=boss;P.x=60;
+    const cv=document.querySelector('canvas'),sc=cv.width/512,o=document.createElement('canvas');o.width=1024;o.height=288*4;const x=o.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=(lab,cx,cy)=>{HX.warm();render();const X=Math.max(0,Math.min(256,cx-128)),Y=Math.max(0,Math.min(144,cy-72));
+      x.drawImage(cv,X*sc,Y*sc,256*sc,144*sc,(n%2)*512,Math.floor(n/2)*288,512,288);x.fillStyle='#fff';x.font='16px sans-serif';x.fillText(lab,(n%2)*512+6,Math.floor(n/2)*288+18);n++;};
+    const z0=()=>{P.inv=999;b.rayCd=999;hazs.length=0;};const log={};
+    // 召喚
+    ens.length=0;ebul.length=0;b.cd=0;b.ai=0;z0();update();log.skel=ens.length;const s0=b.vsum[0];
+    for(let i=1;i<=10;i++){z0();update();if(i===3)grab('召喚 第 3 幀',s0.x,200);if(i===10)grab('召喚 第 10 幀',s0.x,200);}
+    // 時間停滯
+    ens.length=0;ebul.length=0;b.cd=0;b.ai=1;z0();update();log.ring=ebul.length;const bx=b.x+13,by=b.y+17;
+    for(let i=1;i<=75;i++){z0();update();if(i===20)grab('停滯 第 20 幀',bx,by);if(i===60)grab('停滯 第 60 幀',bx,by);if(i===72){grab('停滯結束後 3 幀',bx,by);log.spd=+Math.hypot(ebul[0].vx,ebul[0].vy).toFixed(3);}}
+    // 扇形彈
+    ens.length=0;ebul.length=0;P.x=b.x-120;b.cd=0;b.ai=2;z0();update();log.fan=ebul.length;log.fanSpd=+Math.hypot(ebul[0].vx,ebul[0].vy).toFixed(3);
+    for(let i=1;i<=14;i++){z0();update();if(i===2)grab('扇形彈 第 2 幀',b.x,b.y+20);if(i===6)grab('扇形彈 第 6 幀',b.x+13,b.y+17);if(i===14)grab('扇形彈 第 14 幀(以子彈為中心)',ebul[2].x,ebul[2].y);}
+    return {d:o.toDataURL().split(',')[1],log};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
+
+// v0.20:魔王登場與死亡逐幀截圖。intro 幀號為登場時間軸 t(0~299),die 幀號為死亡後第 n 幀;裁 [x,y,w,h] 區域放大 3 倍拼成 4 欄
+async function bseq(outp,w,ins,dies,reg,file){const {br,pg,errs}=await open(file,{width:1024,height:576});
+  await pg.evaluate((w)=>{HX.go(w,5);render();},+w);await pg.waitForTimeout(300);     // 先畫一幀觸發內嵌圖載入,再等載入
+  const d=await pg.evaluate(([w,ins,dies,reg])=>{const [rx,ry,rw,rh]=reg,cv=document.querySelector('canvas'),sc=cv.width/512,Z=3,C=4,L=ins.length+dies.length;
+    const o=document.createElement('canvas');o.width=rw*Z*C;o.height=(rh*Z+20)*Math.ceil(L/C);const x=o.getContext('2d');x.imageSmoothingEnabled=false;x.fillStyle='#000';x.fillRect(0,0,o.width,o.height);
+    let n=0;const grab=lab=>{HX.warm();render();const c=n%C,r=Math.floor(n/C);x.drawImage(cv,rx*sc,ry*sc,rw*sc,rh*sc,c*rw*Z,r*(rh*Z+20)+20,rw*Z,rh*Z);x.fillStyle='#fff';x.font='14px sans-serif';x.fillText(lab,c*rw*Z+4,r*(rh*Z+20)+15);n++;};
+    for(const t of ins){HX.go(w,5);for(let i=0;i<t;i++)update();grab('登場 t='+t);}
+    if(dies.length){HX.go(w,5);for(let i=0;i<300;i++)update();HX.run(30);ebul.length=0;hazs.length=0;ens.length=0;
+      for(const q of bossParts())if(boss.alive)bossDamage(q,1e7);if(boss.ph)for(const p of boss.ph)p.alive=false;for(const q of bossParts())if(boss.alive)bossDamage(q,1e7);
+      let k=0;for(const t of dies){while(k<t){update();k++;}grab('死亡 第 '+t+' 幀');}}
+    return o.toDataURL().split(',')[1];},[+w,ins,dies,reg]);
+  fs.writeFileSync(outp,Buffer.from(d,'base64'));console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();}
+
 (async()=>{const [cmd,...a]=process.argv.slice(2);let bad=0;
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
@@ -326,6 +417,12 @@ async function strand(fa,fb,outp){
   else if(cmd==='espr')bad=await espr(a[0]);
   else if(cmd==='boss')bad=await bosst(a[0]);
   else if(cmd==='bshot')await bshot(a[0],a[1],a[2],a[3],a[4]);
+  else if(cmd==='bpose')await bpose(a[0],a[1]||8,a[2]);
+  else if(cmd==='bclimb')bad=await bclimb(a[0]||8,a[1]||27,a[2]||'r',a[3]);
+  else if(cmd==='b8ray')await b8ray(a[0],a[1]);
+  else if(cmd==='bjump')bad=await bjump(a[0]||8,(a[1]||'9,18,27').split(','),a[2]);
+  else if(cmd==='b8fx')await b8fx(a[0],a[1]);
+  else if(cmd==='bseq')await bseq(a[0],a[1]||8,(a[2]||'').split(',').filter(v=>v).map(Number),(a[3]||'').split(',').filter(v=>v).map(Number),(a[4]||'0,0,512,288').split(',').map(Number),a[5]);
   else if(cmd==='strand')bad=await strand(a[0],a[1],a[2]);
   else if(cmd==='vshift')await vshift(a[0]||50,a[1]||'vshift',a[2]||undefined,a[3]);
   else{console.log(require('fs').readFileSync(__filename,'utf8').split('\n').slice(0,10).join('\n'));}
