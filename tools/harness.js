@@ -339,7 +339,7 @@ async function bpose(outp,w,file){
 // v0.20:王關爬繩梯到頂再往旁邊走,回報落腳處;8 王另測站在新平台往上射能打到右上命匣
 async function bclimb(w,col,dir,file){const {br,pg,errs}=await open(file);
   const r=await pg.evaluate(([w,col,dir])=>{HX.go(w,5);HX.run(320);ebul.length=0;hazs.length=0;ens.length=0;
-    const z=()=>{ebul.length=0;hazs.length=0;ens.length=0;if(boss){boss.cd=999;boss.rayCd=999;}};
+    const z=()=>{ebul.length=0;hazs.length=0;ens.length=0;if(boss){boss.cd=999;boss.rayCd=999;if(w===3&&!boss.vinesGone)boss.retract=-10;}};   // v0.21:3 王暫停觸手抽回
     let bot=0;for(let y=0;y<GH;y++)if(T(col,y)===2)bot=y;
     P.x=col*16+3;P.y=bot*16-14+16;P.vx=0;P.vy=0;K.u=1;for(let i=0;i<400;i++){z();HX.run(1);}
     const top={y:P.y,climb:P.climb};K.u=0;K[dir]=1;K.j=1;for(let i=0;i<40;i++){if(i===6)K.j=0;z();HX.run(1);}K[dir]=0;for(let i=0;i<40;i++){z();HX.run(1);}
@@ -392,6 +392,25 @@ async function b8fx(outp,file){const {br,pg,errs}=await open(file,{width:1024,he
     return {d:o.toDataURL().split(',')[1],log};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
 
+// v0.21:3 王招式特效截圖(整個畫面,2 欄)並核對招式數字:下刺範圍、彈雨卵數與彈速、光束範圍、下砸落點
+async function b3fx(outp,file){const {br,pg,errs}=await open(file,{width:1024,height:576});
+  await pg.evaluate(()=>{HX.go(3,5);render();});await pg.waitForTimeout(300);
+  const r=await pg.evaluate(()=>{HX.go(3,5);HX.run(320);const b=boss;P.x=60;
+    const cv=document.querySelector('canvas'),o=document.createElement('canvas');o.width=1024;o.height=288*6;const x=o.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=lab=>{HX.warm();render();x.drawImage(cv,0,0,cv.width,cv.height,(n%2)*512,Math.floor(n/2)*288,512,288);x.fillStyle='#fff';x.font='16px sans-serif';x.fillText(lab,(n%2)*512+20,Math.floor(n/2)*288+40);n++;};
+    const z0=()=>{P.inv=999;b.retract=-10;};const log={};const go=ai=>{ebul.length=0;hazs.length=0;b.eggs.length=0;b.cd=0;b.ai=ai;z0();update();};
+    go(0);const z=hazs[0];log.stab=[hazs.length,z.y,z.h,z.w,z.warn,z.live];
+    for(let i=1;z.t<z.warn+z.live-1;i++){z0();update();const d=z.t-z.warn;if(d===2)grab('下刺 刺到底');if(d===9)grab('下刺 停留');if(d===15)grab('下刺 收回(土石崩碎)');}
+    go(1);log.eggs=b.eggs.length;for(let i=1;i<=80;i++){z0();update();if(i===40)grab('彈雨 卵在頂端鼓動');if(i===61)log.eggSpd=ebul.length+'發 vy='+ebul[0].vy+' y0='+ebul[0].y;if(i===80)grab('彈雨 落下中');}
+    P.y=150;go(2);const zb=hazs[0];log.beam=[zb.x,zb.y,zb.w,zb.h,zb.warn,zb.live];
+    for(let i=1;i<=zb.warn+20;i++){z0();update();if(i===zb.warn-20)grab('光束 預警');if(i===zb.warn+12)grab('光束 生效');}
+    P.y=192;go(3);log.slamTx=b.slamTx;let land=0;
+    for(let i=1;i<=150;i++){z0();update();if(b.slamPhase==='fall'&&!land){land=1;grab('下砸 拉出眼窩');}if(b.slamPhase==='center'&&land===1){land=2;update();update();grab('下砸 落水第 3 幀');}if(land===2&&i===land+60){}}
+    for(let i=0;i<40;i++){z0();update();}b.hf={core:4};grab('下砸停留 受擊閃白');b.hf=null;
+    hazs.length=0;b.slamPhase='';b.eyeY=null;b.slamTx=null;b.retract=-270;b.cd=999;for(let i=0;i<2;i++)update();b.cd=999;grab('觸手抽回預警(抽回前約 28 幀)');
+    return {d:o.toDataURL().split(',')[1],log};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
+
 // v0.20:魔王登場與死亡逐幀截圖。intro 幀號為登場時間軸 t(0~299),die 幀號為死亡後第 n 幀;裁 [x,y,w,h] 區域放大 3 倍拼成 4 欄
 async function bseq(outp,w,ins,dies,reg,file){const {br,pg,errs}=await open(file,{width:1024,height:576});
   await pg.evaluate((w)=>{HX.go(w,5);render();},+w);await pg.waitForTimeout(300);     // 先畫一幀觸發內嵌圖載入,再等載入
@@ -422,6 +441,7 @@ async function bseq(outp,w,ins,dies,reg,file){const {br,pg,errs}=await open(file
   else if(cmd==='b8ray')await b8ray(a[0],a[1]);
   else if(cmd==='bjump')bad=await bjump(a[0]||8,(a[1]||'9,18,27').split(','),a[2]);
   else if(cmd==='b8fx')await b8fx(a[0],a[1]);
+  else if(cmd==='b3fx')await b3fx(a[0],a[1]);
   else if(cmd==='bseq')await bseq(a[0],a[1]||8,(a[2]||'').split(',').filter(v=>v).map(Number),(a[3]||'').split(',').filter(v=>v).map(Number),(a[4]||'0,0,512,288').split(',').map(Number),a[5]);
   else if(cmd==='strand')bad=await strand(a[0],a[1],a[2]);
   else if(cmd==='vshift')await vshift(a[0]||50,a[1]||'vshift',a[2]||undefined,a[3]);

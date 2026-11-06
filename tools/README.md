@@ -24,6 +24,7 @@
 | `node tools/harness.js bjump [大關] [欄,欄...] [檔案]` | 王關站在地面某欄跳起並按住上,回報跳躍最高點與能否抓住繩梯(v0.20) |
 | `node tools/harness.js b8ray <輸出.png> [檔案]` | 8 王死亡射線各階段截圖(預兆、預警、竄出),並印出射線判定框與預警幀數(v0.20) |
 | `node tools/harness.js b8fx <輸出.png> [檔案]` | 8 王召喚、時間停滯、扇形彈特效截圖,並印出骷髏數、環狀彈數、停滯後彈速、扇形彈數與彈速(對照舊版程式)(v0.20) |
+| `node tools/harness.js b3fx <輸出.png> [檔案]` | 3 王觸手下刺、綠彈雨、橫向光束、豎瞳下砸、受擊閃白、抽回預警截圖,並印出下刺範圍、卵數與彈速、光束範圍、下砸落點(v0.21);`bclimb 3` 會暫停觸手抽回 |
 | `node tools/harness.js vshift <每關種子數> <輸出前綴> [檔案] [FX設定]` | 視野壓力測試(v0.9):固定種子生成大量一般小關,輸出地表高度統計與每大關地形最低段落的對照圖 |
 
 檔案參數省略時測試 repo 根目錄的 `index.html`。Chrome 預設路徑:Windows `C:\Program Files\Google\Chrome\Application\chrome.exe`、macOS `/Applications/Google Chrome.app`、Linux `/usr/bin/google-chrome`;不在預設位置時,用環境變數 `CHROME` 指定。
