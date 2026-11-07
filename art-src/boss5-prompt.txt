@@ -1,0 +1,37 @@
+【5 王 機械蜂巢母體 奧米茄巢:三則,同一個對話依序送。第 1 則附上 boss5-body-template.png;第 1 張滿意後再送第 2、3 則。場景由程式畫,不生圖】
+
+【第 1 則:主設計(附 boss5-body-template.png)】
+
+Boss art for a 2D side-scrolling pixel-art run-and-gun game. Use the attached guide image as an exact layout template. The result will be shrunk 12 times (to about 85 x 85 pixels), so it must read clearly at that tiny size.
+
+Guide image legend:
+- Magenta #FF00FF = empty. Keep every area you do not paint as flat solid magenta #FF00FF.
+- White dashed box = the collision area. The game draws a faint force-field shell along this line. Paint nothing outside the orange box.
+- Orange box = THE BOSS. Paint the whole machine inside this box only, filling most of it.
+- Red box = THE LENS EYE (the core). It must sit exactly inside the red box, in the exact center of the machine.
+- Yellow circle = one of the hive hatches. A hatch must sit exactly on the yellow circle.
+
+Machine: an original floating mechanical hive mothership, the mother of a swarm of small robot bees. Overall shape: a wide HEXAGON seen from the front, thick and heavy, like an armored honeycomb fortress hovering in the air.
+Key identifying features (they must be readable even as a black silhouette):
+- The hexagonal outline, with short stubby thruster pods sticking out of the lower left and lower right corners.
+- In the exact center, ONE large round laser lens eye inside a thick armored ring, like a camera lens or a cannon muzzle. The lens is the only red thing in the image: deep red glass with one simple white highlight. It fires a ring-shaped laser outward in every direction, so it should look like a powerful emitter.
+- Around the lens, SIX honeycomb hatches arranged in a ring (hexagonal doors, shut, each with a simple seam line). Small robot bees launch from these hatches. One hatch must be on the yellow circle.
+Colors: pale ceramic-white armor plates, dark graphite-grey frame and joints, a few thin cyan light lines along the panel seams. No red anywhere except the lens. No yellow, no orange.
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1024 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color illustration with dark outlines of even thickness (about 10 pixels).
+- 4 to 5 tones per material for large areas (light to dark steps). No gradients, no soft shading, no texture noise, no glow halo, no rim light, no particle effects, no background.
+- No shape or gap smaller than 24 pixels across. Few big readable shapes; no tiny bolts, no fine greebles, no text, no logos.
+- The design must be original and must not resemble any existing game, film, anime, toy or brand character or vehicle.
+
+【第 2 則:三態表(第 1 張滿意後送出,只當 Claude 手繪的參考)】
+
+Now draw the same machine three times in one horizontal row, all the same size, evenly spaced, same design, same colors and same style, on the same flat magenta #FF00FF background. No text, no labels.
+1. Idle: exactly like the first image.
+2. Launching bees: all six honeycomb hatches are swung open, showing dark hexagonal holes with a faint cyan light inside.
+3. Charging the big cannon: the armored ring around the lens has opened outward like petals, and the lens glows bright amber-white instead of red (this is the only time it is not red).
+
+【第 3 則:剪影(第 1 張滿意後送出)】
+
+Now output exactly the same image as the first one, same canvas and same positions, as a pure black silhouette (#000000) on the flat magenta #FF00FF background. Only the red lens stays in full color. No outlines, no interior details.
