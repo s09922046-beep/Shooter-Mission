@@ -1,0 +1,81 @@
+【10 王 終末:五則。第 1~4 則同一個對話依序送(第 1 張滿意後再送第 2~4 則);第 5 則場景另開一個新對話,附上 boss10-arena-template.png】
+
+【第 1 則:主設計圖(雕像覺醒後)】
+
+Boss concept for a 2D side-scrolling pixel-art run-and-gun game. This image is a design reference that will later be redrawn as a small sprite about 46 pixels tall, so it must read clearly when shrunk 20 times.
+
+Character: the final boss, an original ancient colossal knight-king statue that has awakened. Full body, strict side view, FACING LEFT, standing still in a calm, dignified pose. The mood is majestic, solemn and desolate, like the last guardian at the end of the world. Not evil, not demonic, not grinning, no horns, no skulls.
+Key identifying features (all three must be obvious in a pure black silhouette):
+1. A huge two-handed greatsword with a very broad straight blade, as long as the statue is tall. In this pose the statue holds it with both hands on the hilt, the blade pointing straight down, its tip resting on the ground in front of the feet.
+2. A long heavy stone cape hanging from broad shoulders down to the ankles, falling in 3 or 4 big straight folds.
+3. A simple broken crown: a plain circlet with 5 blunt short points, two of them snapped off.
+Details:
+- Body material: polished black obsidian with cool grey-violet highlights. A few large patches of the old pale grey stone shell still cling to the shoulders, cape and legs (as if the stone coating has mostly cracked away).
+- Thin glowing cyan cracks (#40e0d0 like) run across the obsidian in 5 to 7 long simple lines. Cyan is used only for these cracks.
+- A visible face, carved like a statue: calm, expressionless, eyes half closed, no pupils, no glow in the eyes.
+- On the chest: one round polished red gem breastplate (a heart-protecting mirror disc), about the size of the face. This disc is the ONLY red element in the whole image.
+- Broad, heavy, powerful proportions, about 6 heads tall, wider and heavier than a normal knight. No wings, no helmet, no fins on the head, no mechanical parts.
+
+Output rules:
+- Canvas 1536 x 1024. The character (including sword and cape) fills about 80% of the canvas height, centered.
+- Background is one flat solid magenta #FF00FF. No floor, no shadow, no text, no labels, no frame.
+- Clean flat-color illustration with bold dark outlines of even thickness (about 8 pixels).
+- 4 to 5 tones per material for large areas (light to dark steps). No gradients, no soft shading, no texture noise, no glow halo, no rim light, no particle effects.
+- No shape or gap smaller than 40 pixels across. Prefer a few big readable shapes over many small details. No thin spikes, no fine engraving, no chains, no tattered cloth strips.
+- The design must be original and must not resemble any existing game, film, anime, toy or brand character.
+
+【第 2 則:姿勢表(第 1 張滿意後送出)】
+
+Now draw exactly the same character, same design, same colors and same style, as a pose sheet: six full-body poses in two rows of three, all FACING LEFT, all at the same scale, evenly spaced, on the same flat magenta #FF00FF background. No text, no labels, no motion lines, no effects.
+Top row:
+1. Idle: standing upright, the greatsword held low in both hands, blade angled diagonally down and forward so its tip almost touches the floor in front.
+2. Walking: one heavy step forward, same sword angle as pose 1, cape swinging slightly back.
+3. Horizontal slash: the greatsword swung forward at chest height, blade extended horizontally in front, arms fully stretched.
+Bottom row:
+4. Lunge: a low forward dash, body leaning far forward, sword thrust straight ahead horizontally at full reach.
+5. Casting: standing upright, both hands resting on the pommel, the blade planted vertically into the ground in front of the body, head slightly bowed, eyes closed.
+6. Defeated: down on one knee, head bowed, leaning on the sword planted in the ground.
+Keep the cape, the broken crown and the red chest disc visible in every pose. Each pose fits inside its own sixth of the canvas.
+
+【第 3 則:剪影(第 1 張滿意後送出)】
+
+Now output exactly the same design as the first image, same canvas and same position, as a pure black silhouette (#000000) on the flat magenta #FF00FF background. Only the red chest disc stays red. No outlines, no interior details.
+
+【第 4 則:巨大面容三案(第 1 張滿意後送出;只當 Claude 手繪第 2 段的參考,選一案)】
+
+Now draw the face of this same statue as a separate giant floating fragment: the second form of the boss. The statue has shattered and only its colossal face remains, floating in the air. Same style, same colors, same outline thickness, flat magenta #FF00FF background.
+Draw three versions side by side in one row, evenly spaced, each fitting inside its own third of the canvas, each a front view, roughly square overall. No text, no labels.
+Common to all three:
+- The same calm face, now enormous: majestic, solemn and desolate, like the ruined face of an ancient colossus. Not evil, not angry, no fangs, no grin.
+- The broken crown circlet stays on the forehead.
+- The eyes are half closed, and a thin bright red light shines out of the narrow gap of both eyelids. This red light is the ONLY red element.
+- Black obsidian with patches of pale grey stone, and glowing cyan cracks across it.
+Differences:
+1. The right third of the face (the viewer's right) is broken away with a clean jagged edge; calm expression.
+2. The lower half (mouth and chin) is broken away, only the upper face with eyes and crown remains.
+3. The face is whole, but split by one big vertical crack through the middle, the two halves slightly apart; a faint sorrowful expression.
+Keep every shape big and simple: no shape or gap smaller than 40 pixels across.
+
+【第 5 則:第 1、2 段場景(另開新對話,附上 boss10-arena-template.png)】
+
+Background art for one fixed screen of a 2D side-scrolling pixel-art run-and-gun game: the arena of the final boss, at the edge of the end of the world. Use the attached guide image as an exact layout template. It will be shrunk 3 times (to 512 x 341 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Magenta #FF00FF = open sky. Keep every magenta area that you do not paint as flat solid magenta #FF00FF in the output (the game draws its own sky and a broken moon there).
+- Grey areas = covered by the game's ground and side walls. Fill them with flat dark grey #303030, no details.
+- Cyan line = the ground line, a perfectly flat horizon floor of polished black stone that reaches to the far distance.
+- Blue dashed box = the horizon band. Paint the scenery mainly inside this band, sitting on the ground line.
+- Yellow dashed circle = where the game draws a broken moon. Keep it and the sky around it magenta.
+- White dashed boxes = floating platforms and rope ladders that the game draws later. Do not draw them, and keep the background behind them simple and low in detail.
+- Orange dashed box = where the boss statue stands (the game draws it). Keep the background behind it simple.
+
+Scene: the end of the world seen across a vast, perfectly flat plain. Far away on the horizon, the silhouettes of a ruined city (towers, domes, broken spires) are dissolving: their upper parts break into big floating blocks that drift upward and fade into the sky. Behind and between the ruins, the horizon itself is cracking open: a few large jagged rifts in the distance glow with cold cyan light from the void beyond.
+Mood: silent, majestic, desolate, cold. Nothing is burning.
+Colors: cold grey-blue and grey-violet for the ruins, cyan only for the glowing rifts. No red, no orange, no yellow, no green. The horizon band must be noticeably lighter (mid-tone cold grey-blue, never darker than #3a3c50) so that a black statue standing in front of it reads clearly as a silhouette.
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color illustration with dark outlines of even thickness (about 4 pixels).
+- 4 to 5 tones per material for large areas. No gradients, no soft shading, no texture noise, no glow halo, no fog, no particles.
+- No shape or gap smaller than 12 pixels across. A few big readable shapes; no thin wisps, no fine details.
+- Original design, not resembling any existing game, film or landmark.

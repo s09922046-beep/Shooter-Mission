@@ -32,6 +32,8 @@ async function open(file,vp){
   await pg.evaluate(()=>{
     window.HX={
       go(w,s){resetRun();G.world=w;G.sub=s;startLevel();G.modal=null;G.state='play';},
+      // v0.22:10 王第 n 段(新版三段分開打用 startBoss(0,n);v0.21 以前用血量觸發型態切換)。回傳時登場已結束
+      p3(){if(BOSSES[9].segs){HX.go(10,5);startBoss(0,3);G.state='play';HX.run(185);}else{HX.go(10,5);HX.run(320);boss.ph=2;boss.hp=boss.max*0.3;HX.run(2);}},
       run(n,draw){for(let i=0;i<n;i++){P.inv=999;P.lives=5;update();if(draw)render();}},
       press(){K.s=1;update();K.s=0;update();},
       crowd(){let best=0,bx=0;for(let x=0;x<map.w*16;x+=32){const k=ens.filter(e=>e.x>x+100&&e.x<x+500).length;if(k>best){best=k;bx=x;}}
@@ -61,7 +63,7 @@ async function special(file){
       const n=ens.length;G.charge=100;HX.press();HX.run(260);
       o.push(`${w}-${s} 敵${n} 剩${ens.length} 回充${Math.floor(G.charge)}(應為${n*5>100?100:n*5}) 飛彈殘${bombs.length} 飛機${plane?'未離場':'已離場'}`);}
     for(let w=1;w<=10;w++){if(w===6)continue;HX.go(w,5);HX.run(320);const h=boss.hp;G.charge=100;HX.press();
-      const ok=!G.noSpecial;HX.run(400);o.push(`王${w} 扣${HX.pct(h,boss.hp,boss.max)}(應為 8.00%)${ok?'':' noSpecial'}`);}
+      const ok=!G.noSpecial;HX.run(400);o.push(`王${w} 扣${HX.pct(h,boss.hp,boss.max0||boss.max)}(應為 8.00%${boss.max0?",以原總血量計,v0.22 起 10 王分三條血條":""})${ok?'':' noSpecial'}`);}
     for(const pk of['k','c','avg','cancel']){HX.go(6,5);HX.run(320);const k0=boss.kh,c0=boss.ch;G.charge=100;HX.press();
       const m=!!(G.modal&&G.modal.spPick);if(pk==='cancel')G.modal=null;else spPick(pk);HX.run(400);
       o.push(`王6 ${pk} 選單${m?'有':'無'} 騎士扣${HX.pct(k0,boss.kh,boss.max)} 詠嘆者扣${HX.pct(c0,boss.ch,boss.max)} 特攻量${G.charge}`);}
@@ -146,7 +148,7 @@ async function vine(n,file){
         if(!q.up||q.stand===false||q.down===false)sum.fail.push(`${tag} x${s.x} 列${s.t}~${s.b} 上${q.up?'O':'X'} 站${q.stand===null?'-':q.stand?'O':'X'} 下${q.down===null?'-':q.down?'O':'X'}`);}};
     for(let k=1;k<=N;k++)for(let w=1;w<=10;w++)for(let s=1;s<=4;s++){seed(k*1000+w*10+s);HX.go(w,s);run(`種子${k} ${w}-${s}`);}
     for(let w=1;w<=10;w++){const prep=()=>{seed(w);HX.go(w,5);HX.run(320);clr();};prep();run(`王${w}`,prep);} // 王關每條重新進關,避免測試途中被魔王招式(如 3 王觸手抽回)打斷
-    {const prep=()=>{seed(99);HX.go(10,5);HX.run(320);boss.ph=2;boss.hp=boss.max*0.3;HX.run(2);clr();};prep();run('王10 第三型態',prep);}
+    {const prep=()=>{seed(99);HX.p3();clr();};prep();run('王10 第三型態',prep);}
     return sum;},+n);
   console.log(`欄段 ${r.seg}:爬到頂 ${r.up};頂端有立足處 ${r.standT},站上 ${r.stand};從頂端爬回底部 ${r.down}`);
   console.log(r.fail.length?'未通過 '+r.fail.length+' 條:\n'+r.fail.slice(0,40).join('\n'):'全部通過');
@@ -281,7 +283,7 @@ async function strandRun(file){const {br,pg,errs}=await open(file);
     const o={log:[],ns:{},sync:'-',rf:'-',ms:{}};
     const keys=i=>{K.r=i%240<120?1:0;K.l=i%240>=150&&i%240<200?1:0;K.u=i%90<40?1:0;K.j=i%70<6?1:0;K.f=i%50<30?1:0;};
     for(const [nm,w,ph] of [['3王',3,0],['10王',10,0],['10王第三型態',10,3]]){seed(7+w+ph);HX.go(w,5);
-      if(ph===3){HX.run(320);boss.ph=2;boss.hp=boss.max*0.3;}
+      if(ph===3)HX.p3();
       const L=[];let bad=0,tot=0,onF=0,offOK=1;
       for(let i=0;i<1800;i++){keys(i);P.inv=999;P.lives=5;update();render();if(i%30===0)L.push(st());
         if(w===3&&boss&&boss.def.strands&&typeof stTiles==='function'){const S=boss.def.strands(boss);
@@ -299,7 +301,9 @@ async function strandRun(file){const {br,pg,errs}=await open(file);
   await br.close();return {r,errs};}
 async function strand(fa,fb,outp){
   const A=await strandRun(fa),B=await strandRun(fb);let bad=A.errs.length+B.errs.length;
-  for(let i=0;i<A.r.log.length;i++){const [n,a]=A.r.log[i].split(':'),b=B.r.log[i].split(':')[1];const same=a===b;if(!same)bad++;
+  for(let i=0;i<A.r.log.length;i++){const [n,a]=A.r.log[i].split(':'),b=B.r.log[i].split(':')[1];const same=a===b;
+    if(n.startsWith('10王')&&process.env.STRAND10!=='1'){console.log(n+' v0.22 起三段分開打(機制已授權改動),不比對舊新版;設 STRAND10=1 強制比對');continue;}
+    if(!same)bad++;
     let d=-1;if(!same){const x=a.split('|'),y=b.split('|');d=x.findIndex((v,j)=>v!==y[j])*30;}
     console.log(`${n} 舊新版邏輯狀態(每 30 幀,共 1800 幀)${same?'完全相同':'不同,第 '+d+' 幀起'}`);}
   console.log(B.r.sync);for(const k in B.r.ms)console.log(k,B.r.ms[k]);if(B.r.sync.includes('NG'))bad++;
@@ -309,7 +313,7 @@ async function strand(fa,fb,outp){
     for(const sc of ['slam','retract','b10','b10p3']){await pg.evaluate(sc=>{HX.go(sc==='slam'||sc==='retract'?3:10,5);HX.run(320);ebul.length=0;hazs.length=0;
       if(sc==='slam'){boss.slamPhase='center';boss.slamT=180;boss.slamTx=15*16;boss.eyeY=13*16-44;P.x=60;P.y=13*16-14;for(let i=0;i<20;i++)render();}
       if(sc==='retract'){boss.retract=-299;boss.eye=0;for(let i=0;i<6;i++)update();} // 判定消失後第 6 幀(抽回動畫進行到一半)
-      if(sc==='b10p3'){boss.ph=2;boss.hp=boss.max*0.3;HX.run(2);HX.run(60);}
+      if(sc==='b10p3'){HX.p3();HX.run(60);}
       if(sc!=='slam')for(let i=0;i<20;i++)render();},sc);
       await pg.evaluate(()=>HX.warm());const f=outp.replace(/\.png$/,'')+'-'+sc+'.png';await pg.screenshot({path:f});console.log('已存',f);}
     await br.close();}
@@ -322,13 +326,22 @@ const BPOSE={8:[
   ['前指朝右',b=>{P.x=b.x+140;b.v8={k:'point',t:G.t};}],['命匣全毀 核心全亮',b=>{P.x=b.x-120;b.v8=null;b.rayCd=200;for(const p of b.ph)p.alive=false;}],
   ['本體受擊閃白',b=>{P.x=b.x-120;b.v8=null;b.rayCd=200;for(const p of b.ph)p.alive=false;b.hf={core:4};}],
   ['前指受擊閃白',b=>{P.x=b.x-120;b.v8={k:'point',t:G.t};for(const p of b.ph)p.alive=false;b.hf={core:4};}],
-  ['命匣受擊(提燈移到旁邊)',b=>{P.x=b.x-120;b.v8=null;b.rayCd=200;b.ph[0].alive=true;b.ph[0].x=b.x-44;b.ph[0].y=b.y+10;b.hf={ph0:4};}]]};
+  ['命匣受擊(提燈移到旁邊)',b=>{P.x=b.x-120;b.v8=null;b.rayCd=200;b.ph[0].alive=true;b.ph[0].x=b.x-44;b.ph[0].y=b.y+10;b.hf={ph0:4};}]],
+  // v0.22 10 王第 1 段:六姿勢、朝向、閃白、核心狀態(z 為揮砍範圍,t 設在生效期)
+  10:[['待機朝左',b=>{P.x=b.x-120;b.vlx=b.x;b.st='';b.v10=undefined;}],['待機朝右',b=>{P.x=b.x+140;b.vlx=b.x;b.st='';b.v10=undefined;}],
+  ['走路',b=>{P.x=b.x-120;b.vlx=b.x+1;b.st='';b.v10=undefined;G.t=8;}],
+  ['揮砍',b=>{P.x=b.x-120;b.vlx=b.x;b.st='';const z=haz(b.x-34,b.y,36,28,10,10,'#ffe0a0','area');z.fx='b10slash';z.d=-1;z.t=z.warn+4;}],
+  ['突刺',b=>{P.x=b.x-120;b.vlx=b.x;b.st='dash';b.stT=20;b.vtr=null;}],
+  ['拄劍施法',b=>{P.x=b.x-120;b.vlx=b.x;b.st='';b.v10=G.t;}],
+  ['受擊閃白',b=>{P.x=b.x-120;b.vlx=b.x;b.st='';b.v10=undefined;b.hf={core:4};}],
+  ['核心暗灰(無敵)',b=>{P.x=b.x-120;b.vlx=b.x;b.st='';b.v10=undefined;b.invin=1;}],
+  ['突刺朝右',b=>{P.x=b.x+140;b.vlx=b.x;b.st='dash';b.face=1;b.vtr=null;b.invin=0;}]]};
 async function bpose(outp,w,file){
   const {br,pg,errs}=await open(file,{width:1024,height:576});
-  const d=await pg.evaluate(async([w,L])=>{HX.go(w,5);HX.run(320);
+  const d=await pg.evaluate(async([w,L])=>{HX.go(w,5);HX.run(320);render();await new Promise(r=>setTimeout(r,300));HX.warm();   // v0.22:等專屬場景內嵌圖載入
     const cv=document.querySelector('canvas'),sc=cv.width/512,cw=150,ch=110,o=document.createElement('canvas');
     o.width=cw*2*3;o.height=(ch*2+24)*Math.ceil(L.length/3);const x=o.getContext('2d');x.imageSmoothingEnabled=false;x.fillStyle='#000';x.fillRect(0,0,o.width,o.height);
-    for(let i=0;i<L.length;i++){ebul.length=0;hazs.length=0;ens.length=0;const b=boss;b.x=232;eval('('+L[i][1]+')')(b);
+    for(let i=0;i<L.length;i++){ebul.length=0;hazs.length=0;ens.length=0;const b=boss;b.x=232;b.hf=null;b.invin=0;b.vslE=undefined;eval('('+L[i][1]+')')(b);
       for(const q of[bul])q.length=0;b.vf=undefined;bossFxTick();render();
       const X=(b.x+13-cw/2),Y=(b.y+17-ch/2-6),c=i%3,r=Math.floor(i/3);
       x.drawImage(cv,X*sc,Y*sc,cw*sc,ch*sc,c*cw*2,r*(ch*2+24)+24,cw*2,ch*2);
@@ -411,6 +424,43 @@ async function b3fx(outp,file){const {br,pg,errs}=await open(file,{width:1024,he
     return {d:o.toDataURL().split(',')[1],log};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
 
+// v0.22:10 王三段分開打。逐項核對血量、特攻、暗紅傳送門、登場長度、補給、接續點、平台龜裂預警、第 3 段開場位置、擊破分數
+async function b10seg(file){const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;const ck=(n,ok,v)=>{o.push(`${ok?'OK':'NG'} ${n}${v!==undefined?'('+v+')':''}`);if(!ok)bad++;};
+    const kill=()=>{for(const q of bossParts())if(boss.alive)bossDamage(q,1e7);};
+    const toPortal=()=>{let n=0;while(G.state==='win'&&n<260){update();n++;}return n;};
+    const enter=()=>{P.x=portal.x+6;P.y=portal.y+10;P.vy=0;uE=true;updatePortal();uE=false;let n=0;while(G.state==='intro'&&n<100){update();n++;}};
+    resetRun();G.world=10;G.sub=5;P.lives=3;wlvl=1;startLevel();G.modal=null;G.state='play';
+    const it1=items.length,snap=JSON.stringify(bossSnapshot);
+    ck('第 1 段血量為原總血量 1/3',boss.max===8000,boss.max);ck('第 1 段登場 300 幀',boss.introT===300);ck('第 1 段給補給',it1>0,it1);
+    HX.run(300);ck('第 1 段可用特攻',!G.noSpecial);
+    const sc0=G.score;kill();ck('第 1 段打倒不給擊破分數',G.score===sc0);ck('不顯示 VICTORY(bSegMid)',bSegMid());
+    let n=toPortal();ck('第 1 段傳送門為暗紅並指向第 2 段',!!portal&&portal.seg===2,'第 '+n+' 幀');
+    enter();ck('進傳送門開第 2 段',boss&&boss.seg===2&&boss.alive);ck('第 2 段登場 180 幀',boss.introT===180,boss.introT);
+    ck('第 2 段血條重新填滿',boss.hp===boss.max&&boss.max===8000);ck('第 2 段禁用特攻',G.noSpecial);ck('第 2 段不給補給',items.length===0,items.length);
+    ck('接續點維持第 1 段',JSON.stringify(bossSnapshot)===snap);
+    const bx0=boss.x,by0=boss.y;HX.run(180);update();ck('第 2 段解鎖時不瞬移',Math.abs(boss.x-bx0)<2&&Math.abs(boss.y-by0)<2,(boss.x-bx0).toFixed(2)+','+(boss.y-by0).toFixed(2));
+    // 平台龜裂預警:直接觸發扇形彈那一招
+    boss.cd=0;boss.ai=2;HX.run(1);const pc=boss.pc&&boss.pc.c;const solid=()=>T(pc[0],pc[1])===3;
+    let keep=0;for(let i=0;i<39;i++){HX.run(1);if(solid())keep++;}const before=solid();HX.run(1);
+    ck('平台龜裂 40 幀後才消失',!!pc&&keep===39&&before&&!solid(),pc?'第 '+pc[0]+'~'+pc[2]+' 欄':'無');
+    kill();n=toPortal();ck('第 2 段傳送門指向第 3 段',!!portal&&portal.seg===3);
+    enter();ck('第 3 段登場 180 幀',boss.seg===3&&boss.introT===180);
+    const vOK=boss.vxs&&boss.vxs.length===8;HX.run(185);
+    {const c=Math.floor((P.x+5)/16);ck('第 3 段主角站在左上平台(v0.22 平台隨藤蔓平移)',!P.climb&&T(c,6)===3&&Math.abs(P.y+14-6*16)<1,Math.round(P.x)+','+Math.round(P.y));}
+    ck('第 3 段 8 條藤蔓',vOK);ck('第 3 段禁用特攻',G.noSpecial);
+    const sc1=G.score;kill();ck('第 3 段打倒給擊破分數 5000',G.score===sc1+5000);ck('第 3 段顯示 VICTORY',!bSegMid());
+    n=toPortal();ck('第 3 段為一般傳送門',!!portal&&!portal.seg);
+    P.x=portal.x+6;P.y=portal.y+10;uE=true;updatePortal();uE=false;ck('進入後通關',G.state==='finish');
+    // 第 3 段陣亡後接續:回到第 1 段
+    resetRun();G.world=10;G.sub=5;P.lives=3;startLevel();G.modal=null;G.state='play';const lv=P.lives;
+    HX.run(300);kill();toPortal();enter();HX.run(200);kill();toPortal();enter();HX.run(200);
+    P.inv=0;P.lives=1;hurtPlayer();ck('第 3 段陣亡進入 GAME OVER',G.state==='over'&&G.overBoss);
+    G.world=bossSnapshot.world;G.sub=bossSnapshot.sub;P.lives=bossSnapshot.lives;startBoss(1);
+    ck('接續挑戰回到第 1 段',boss.seg===1&&boss.max===8000&&P.lives===lv,'命數 '+P.lives);
+    return {o,bad};});
+  console.log(r.o.join('\n'));console.log('錯誤',errs.length?errs.slice(0,3):'無');await br.close();return errs.length+r.bad;}
+
 // v0.20:魔王登場與死亡逐幀截圖。intro 幀號為登場時間軸 t(0~299),die 幀號為死亡後第 n 幀;裁 [x,y,w,h] 區域放大 3 倍拼成 4 欄
 async function bseq(outp,w,ins,dies,reg,file){const {br,pg,errs}=await open(file,{width:1024,height:576});
   await pg.evaluate((w)=>{HX.go(w,5);render();},+w);await pg.waitForTimeout(300);     // 先畫一幀觸發內嵌圖載入,再等載入
@@ -419,11 +469,106 @@ async function bseq(outp,w,ins,dies,reg,file){const {br,pg,errs}=await open(file
     let n=0;const grab=lab=>{HX.warm();render();const c=n%C,r=Math.floor(n/C);x.drawImage(cv,rx*sc,ry*sc,rw*sc,rh*sc,c*rw*Z,r*(rh*Z+20)+20,rw*Z,rh*Z);x.fillStyle='#fff';x.font='14px sans-serif';x.fillText(lab,c*rw*Z+4,r*(rh*Z+20)+15);n++;};
     for(const t of ins){HX.go(w,5);for(let i=0;i<t;i++)update();grab('登場 t='+t);}
     if(dies.length){HX.go(w,5);for(let i=0;i<300;i++)update();HX.run(30);ebul.length=0;hazs.length=0;ens.length=0;
-      for(const q of bossParts())if(boss.alive)bossDamage(q,1e7);if(boss.ph)for(const p of boss.ph)p.alive=false;for(const q of bossParts())if(boss.alive)bossDamage(q,1e7);
+      for(const q of bossParts())if(boss.alive)bossDamage(q,1e7);if(Array.isArray(boss.ph))for(const p of boss.ph)p.alive=false;for(const q of bossParts())if(boss.alive)bossDamage(q,1e7);
       let k=0;for(const t of dies){while(k<t){update();k++;}grab('死亡 第 '+t+' 幀');}}
     return o.toDataURL().split(',')[1];},[+w,ins,dies,reg]);
   fs.writeFileSync(outp,Buffer.from(d,'base64'));console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();}
 
+// v0.22:10 王第 1 段招式特效、場景與暗紅傳送門整張截圖(2×2 拼接);同時核對招式數字(範圍與時間)不變
+async function b10fx(outp,file){const {br,pg,errs}=await open(file,{width:1024,height:576});
+  await pg.evaluate(()=>{HX.go(10,5);render();});await pg.waitForTimeout(300);
+  const r=await pg.evaluate(()=>{HX.go(10,5);HX.run(320);const b=boss,cv=document.querySelector('canvas'),L=[],o=document.createElement('canvas');
+    o.width=1024*2;o.height=(576+24)*4;const x=o.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,o.width,o.height);let n=0,num={};
+    const grab=lab=>{HX.warm();render();const c=n%2,rw=Math.floor(n/2);x.drawImage(cv,0,0,cv.width,cv.height,c*1024,rw*600+24,1024,576);x.fillStyle='#fff';x.font='18px sans-serif';x.fillText(lab,c*1024+6,rw*600+18);n++;};
+    const z0=()=>{ebul.length=0;hazs.length=0;ens.length=0;b.cd=9999;};
+    const fresh=()=>{HX.go(10,5);HX.run(320);z0();P.inv=999;};
+    fresh();P.x=120;boss.x=300;HX.run(20);grab('場景(待機)');
+    fresh();P.x=120;boss.x=300;boss.ai=2;boss.cd=0;HX.run(1);const g=hazs.find(z=>z.fx==='b10fis');num.fis=g?[g.w,g.h,g.warn,g.live]:null;HX.run(g?g.warn+6:1);grab('地裂噴青焰');
+    HX.run(80);ebul.forEach(q=>{});grab('火流星懸停(拄劍施法)');num.met=ebul.filter(q=>q.meteor).length;
+    HX.run(40);grab('火流星落下');
+    fresh();P.x=120;boss.x=300;boss.ai=0;boss.cd=0;HX.run(1);const s=hazs.find(z=>z.fx==='b10slash');num.sl=s?[s.w,s.h,s.warn,s.live]:null;HX.run(s?s.warn-8:1);grab('揮砍預警(預備動作、劍尖一閃)');HX.run(12);grab('揮砍刃光');HX.run(8);grab('揮砍收招');
+    fresh();P.x=60;boss.x=300;boss.ai=0;boss.cd=0;HX.run(1);const s2=hazs.find(z=>z.fx==='b10slash');if(s2){const x0=boss.x,g0=boss.x-(s2.x+s2.w);let mv=0,xl=x0;while(hazs.includes(s2)){update();if(hazs.includes(s2))xl=boss.x;}mv=+(xl-x0).toFixed(2);num.walkSl=[mv,+g0.toFixed(2)];}   // 行進間揮砍:期間魔王位移應為 0(v0.22 授權站定),框與身體距離固定
+    fresh();for(const q of bossParts())bossDamage(q,1e7);for(let i=0;i<260;i++)update();grab('暗紅傳送門(死亡後第 260 幀)');
+    return {d:o.toDataURL().split(',')[1],num};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.num),'錯誤',errs.length?errs:'無');await br.close();return errs.length;}
+
+async function b10fx2(mode,outp,file){const {br,pg,errs}=await open(file,{width:1024,height:576});   // v0.22 10 王第 2 段:mode=fx 招式特效、seq 登場與死亡
+  await pg.evaluate(()=>{HX.go(10,5);startBoss(0,2);G.state='play';render();});await pg.waitForTimeout(400);
+  const r=await pg.evaluate(mode=>{const cv=document.querySelector('canvas'),o=document.createElement('canvas');
+    o.width=1024*2;o.height=(576+24)*4;const x=o.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,o.width,o.height);let n=0,num={};
+    const grab=lab=>{HX.warm();render();const c=n%2,rw=Math.floor(n/2);x.drawImage(cv,0,0,cv.width,cv.height,c*1024,rw*600+24,1024,576);x.fillStyle='#fff';x.font='18px sans-serif';x.fillText(lab,c*1024+6,rw*600+18);n++;};
+    const seg2=()=>{HX.go(10,5);startBoss(0,2);G.state='play';};
+    const fresh=()=>{seg2();HX.run(185);ebul.length=0;hazs.length=0;ens.length=0;boss.cd=9999;P.x=60;};
+    if(mode==='fx'){
+      fresh();HX.run(20);grab('場景(待機)');
+      fresh();boss.ai=0;boss.cd=0;HX.run(1);num.ring=ebul.filter(q=>q.vk==='b10c').length;HX.run(5);grab('環狀彈:裂縫迸出光環、黑曜碎晶彈');
+      fresh();boss.ai=1;boss.cd=0;HX.run(1);const z=hazs.find(q=>q.fx==='b10col');num.col=z?[hazs.length,z.w,z.h,z.warn,z.live]:null;HX.run(z?Math.round(z.warn*0.7):1);grab('縱柱預警:天頂裂縫');HX.run(z?z.warn-Math.round(z.warn*0.7)+6:1);grab('縱柱生效:青白光柱');
+      fresh();boss.ai=2;boss.cd=0;HX.run(1);num.fan=ebul.filter(q=>q.vk==='b10s').length;num.pc=boss.pc?[boss.pc.t,...boss.pc.c]:null;HX.run(3);grab('扇形彈:眼縫迸紅光,平台開始龜裂');
+      HX.run(30);grab('平台龜裂末期(閃爍)');HX.run(10);grab('平台消失:碎塊落下');const pc0=num.pc&&num.pc.slice(1);HX.run(60);boss.pc={c:pc0,t:40};HX.run(20);num.goneCrack=boss.pc&&T(pc0[0],pc0[1])===3?'平台仍在':'平台已消失';grab('同一座平台已消失時再被挑中:不畫龜裂');
+      fresh();boss.hf={core:6};HX.run(0);grab('受擊閃白');
+    }else{
+      seg2();num.spawnY=P.y;let land=-1;for(let i=0;i<180;i++){HX.run(1);if(land<0&&P.onG)land=i;if(i===14)grab('登場 k=0.15:暗紅裂口、主角落下');if(i===45)grab('登場 k=0.45:碎塊由天空聚合');if(i===75)grab('登場 k=0.75');if(i===92)grab('登場 k=0.92:眼縫睜開');}
+      num.land=land;num.unlockY=Math.round(P.y);
+      seg2();HX.run(185);ebul.length=0;hazs.length=0;boss.cd=9999;for(const q of bossParts())bossDamage(q,1e7);
+      for(let i=1;i<=230;i++){update();if(i===30)grab('死亡 30:紅裂紋爬滿');if(i===50)grab('死亡 50:崩落成碎塊');if(i===110)grab('死亡 110:紅光飄向傳送門');if(i===190)grab('死亡 190:地面裂出暗紅裂口');}
+      grab('死亡後第 230 幀:暗紅傳送門');
+    }
+    return {d:o.toDataURL().split(',')[1],num};},mode);
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.num),'錯誤',errs.length?errs:'無');await br.close();return errs.length;}
+
+async function b10fx3(mode,outp,file){const {br,pg,errs}=await open(file,{width:1024,height:576});   // v0.22 10 王第 3 段:mode=fx 心跳、三招子彈與藤蔓閃光、受擊閃白;seq 登場與死亡
+  await pg.evaluate(()=>{HX.go(10,5);startBoss(0,3);G.state='play';render();});await pg.waitForTimeout(400);
+  const r=await pg.evaluate(mode=>{const cv=document.querySelector('canvas'),o=document.createElement('canvas');
+    o.width=1024*2;o.height=(576+24)*6;const x=o.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,o.width,o.height);let n=0,num={};
+    const grab=lab=>{HX.warm();render();const c=n%2,rw=Math.floor(n/2);x.drawImage(cv,0,0,cv.width,cv.height,c*1024,rw*600+24,1024,576);x.fillStyle='#fff';x.font='18px sans-serif';x.fillText(lab,c*1024+6,rw*600+18);n++;};
+    const seg3=()=>{HX.go(10,5);startBoss(0,3);G.state='play';};
+    const fresh=()=>{seg3();HX.run(185);ebul.length=0;hazs.length=0;ens.length=0;boss.cd=9999;};
+    const per=()=>{let last=-1,ps=[];for(let i=0;i<400;i++){HX.run(1);P.inv=999;if(boss.vbp<last)ps.push(i);last=boss.vbp;}return ps.length>1?Math.round((ps[ps.length-1]-ps[0])/(ps.length-1)):0;};
+    if(mode==='fx'){
+      fresh();boss.vbp=0.5;HX.run(1);grab('場景與心臟(靜止)');
+      fresh();boss.vbp=0.99;HX.run(2);num.beat=boss.vbp.toFixed(2);grab('強拍');
+      fresh();num.per100=per();boss.hp=Math.round(boss.max*0.3);num.per30=per();boss.hp=Math.round(boss.max*0.05);num.per5=per();
+      const shot=(ai,lab)=>{fresh();boss.ai=ai;boss.cd=0;HX.run(1);const B=ebul.filter(q=>q.vk==='b10h');num['b'+ai]=[B.length,B[0]&&B[0].c,B[0]&&+Math.hypot(B[0].vx,B[0].vy).toFixed(2),B[0]&&B[0].r,B[0]&&B[0].life];
+        num['beat'+ai]=b10Beat(boss);num['near'+ai]=b10Near(boss).join('/');HX.run(10);grab(lab);};
+      shot(0,'螺旋彈(冷青):最近 2 條藤蔓閃光、強拍');shot(1,'缺口環(淡紫)');shot(2,'瞄準扇形(粉紅)');
+      fresh();boss.hf={core:6};HX.run(0);grab('受擊閃白');
+    }else{
+      seg3();for(let i=0;i<180;i++){HX.run(1);if(i===8)grab('登場 k=0.08:主角頭上暗紅裂口');if(i===35)grab('登場 k=0.35:藤蔓由上往下長出');if(i===70)grab('登場 k=0.70:碎片覆住心臟');if(i===88)grab('登場 k=0.88:碎片散開、第一下強拍');}
+      num.unlock=boss.introT;num.ks=boss.def.strands(boss).map(q=>q.k).join(',');
+      seg3();HX.run(185);ebul.length=0;hazs.length=0;boss.cd=9999;for(const q of bossParts())bossDamage(q,1e7);
+      for(let i=1;i<=230;i++){update();if(i===12)grab('死亡 12:外側藤蔓斷裂閃光');if(i===40)grab('死亡 40:心臟連串小爆炸');if(i===76)grab('死亡 76:塌縮');if(i===90)grab('死亡 90:白光淡出');if(i===130)grab('死亡 130:褪成黎明前深藍');if(i===190)grab('死亡 190');}
+      grab('死亡後第 230 幀');let vt=0,vs=0;for(let x=1;x<31;x++)for(let y=0;y<GH;y++)if(T(x,y)===2){if(y>=5)vt++;else vs++;}num.vineAfter='第 5 列以下可攀格 '+vt+'、殘段 '+vs;
+    }
+    return {d:o.toDataURL().split(',')[1],num};},mode);
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.num),'錯誤',errs.length?errs:'無');await br.close();return errs.length;}
+
+async function b10hop(file){const {br,pg,errs}=await open(file);   // v0.22 10 王第 3 段平台(使用者 11/7):藤蔓五種平移下,三座平台的位置規則與「中央跳右方」不靠藤蔓的成功率
+  const r=await pg.evaluate(()=>{const out=[];let bad=0;
+    for(let sh=0;sh<=4;sh++){const mr=Math.random;Math.random=()=>(sh+0.5)/5;HX.go(10,5);startBoss(0,3);Math.random=mr;G.state='play';HX.run(185);boss.cd=1e9;
+      const seg=row=>{const L=[];for(let x=1;x<31;x++)if(T(x,row)===3&&T(x-1,row)!==3){let e=x;while(T(e+1,row)===3)e++;L.push([x,e]);}return L;};
+      const Lf=seg(6),M=seg(12),Rt=seg(10),v4=B10.vxs[3];
+      const rule=Lf.length===1&&M.length===1&&Rt.length===1&&Lf[0][1]-Lf[0][0]===3&&M[0][1]-M[0][0]===2&&Rt[0][1]-Rt[0][0]===3&&M[0][0]+1===v4&&M[0][0]-Lf[0][1]===2&&Rt[0][0]-M[0][1]===2;
+      const sp=Math.round(P.x);   // 開場點(取完登場後的位置前先記:HX.run 之後主角應仍在左上平台)
+      const onL=P.onG&&Math.abs(P.y+14-6*TS)<1.5&&P.x+5>=Lf[0][0]*TS&&P.x+5<(Lf[0][1]+1)*TS;
+      for(let x=1;x<31;x++)for(let y=0;y<GH;y++)if(T(x,y)===2)setT(x,y,0);   // 移除藤蔓(只看平台)
+      const [c0,c1]=M[0],top=12*TS,goal=10*TS;
+      const set=sx=>{P.x=sx;P.y=top-14;P.vx=0;P.vy=0;P.climb=false;ebul.length=0;for(const k in K)K[k]=0;HX.run(6);return Math.abs(P.y+14-top)<1.5;};
+      const land=()=>P.onG&&Math.abs(P.y+14-goal)<1.5;
+      const trial=(jd,mode)=>{let jumped=false;for(let i=0;i<200;i++){K.r=mode==='walk'||(jumped&&i>=jd)?1:0;
+          K.j=(!jumped&&(mode!=='walk'||i>=jd)&&P.onG)?1:0;if(K.j)jumped=true;
+          if(mode==='walk'&&!jumped&&i>=1&&!P.onG&&P.vy>0.8)return null;   // 沒跳就走出平台:不算一次嘗試
+          P.inv=999;update();K.j=0;if(jumped&&i>2&&land())return 1;if(P.y>300)break;}return 0;};
+      let ok=0,tot=0,zo=0,zt=0;
+      for(let sx=c0*TS-5;sx<=c1*TS+11;sx++){if(!set(sx))continue;const z=sx+5>=c0*TS+19;   // z:主角中心在平台左端 19 像素以外
+        const add=g=>{tot++;ok+=g;if(z){zt++;zo+=g;}};
+        for(let jd=0;jd<60;jd++){set(sx);const g=trial(jd,'walk');if(g===null)break;add(g);}   // 按住右走,第 jd 幀起跳
+        for(let rd=0;rd<=4;rd+=2){set(sx);add(trial(rd,'stand'));}}   // 原地起跳,rd 幀後才按右
+      for(const k in K)K[k]=0;
+      if(!rule||!onL||zo!==zt)bad++;
+      out.push(`平移 ${sh}:左上 ${Lf[0]} 中央 ${M[0]}(第 4 根藤蔓 ${v4})右方 ${Rt[0]} 規則${rule?'OK':'NG'} 開場在左上平台${onL?'OK':'NG'} 中央跳右方:左端 19 像素外 ${zo}/${zt}${zo===zt?' OK':' NG'}、全部 ${ok}/${tot}`);}
+    return {out,bad};});
+  console.log(r.out.join('\n'),'\n錯誤',errs.length?errs:'無');
+  await br.close();return errs.length+r.bad;}
 (async()=>{const [cmd,...a]=process.argv.slice(2);let bad=0;
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
@@ -442,6 +587,11 @@ async function bseq(outp,w,ins,dies,reg,file){const {br,pg,errs}=await open(file
   else if(cmd==='bjump')bad=await bjump(a[0]||8,(a[1]||'9,18,27').split(','),a[2]);
   else if(cmd==='b8fx')await b8fx(a[0],a[1]);
   else if(cmd==='b3fx')await b3fx(a[0],a[1]);
+  else if(cmd==='b10seg')bad=await b10seg(a[0]);
+  else if(cmd==='b10fx')bad=await b10fx(a[0],a[1]);
+  else if(cmd==='b10fx2')bad=await b10fx2(a[0]||'fx',a[1],a[2]);
+  else if(cmd==='b10hop')bad=await b10hop(a[0]);
+  else if(cmd==='b10fx3')bad=await b10fx3(a[0]||'fx',a[1],a[2]);
   else if(cmd==='bseq')await bseq(a[0],a[1]||8,(a[2]||'').split(',').filter(v=>v).map(Number),(a[3]||'').split(',').filter(v=>v).map(Number),(a[4]||'0,0,512,288').split(',').map(Number),a[5]);
   else if(cmd==='strand')bad=await strand(a[0],a[1],a[2]);
   else if(cmd==='vshift')await vshift(a[0]||50,a[1]||'vshift',a[2]||undefined,a[3]);

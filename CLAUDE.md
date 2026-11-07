@@ -27,7 +27,7 @@
 
 ## 測試(提交前)
 - `git diff` 核對只動到預期位置,沒有混入預覽用的控制列或暫存檔。
-- 必跑 `node tools/harness.js smoke` 與 `special`;依工作項目加跑 `vine`、`edraw`、`eface`、`espr`、`boss`、`bshot`、`strand`、`vshift`、`sheet`、`shot`(說明見 `tools/README.md`)。
+- 必跑 `node tools/harness.js smoke` 與 `special`;依工作項目加跑 `vine`、`edraw`、`eface`、`espr`、`boss`、`bshot`、`strand`、`vshift`、`b10seg`、`sheet`、`shot`(說明見 `tools/README.md`)。
 - 新行為需要驗證時,在 `tools/harness.js` 加子指令,不寫一次性腳本。
 - 需要 Node 18 以上、playwright、Chrome(Chrome 不在預設位置時設 `CHROME` 環境變數)。沙盒數字只作新舊版相對比較,不能代替測試機。
 - 地面快取只在 render 時烘焙,自寫截圖流程要先連畫數幀。
@@ -35,7 +35,7 @@
 ## Git 與備份
 - 工作正本是 `dev` 分支。每個版本一個提交,推送到 `origin/dev`。
 - `design-decisions.md`、`CLAUDE.md`、`claude/`、`tools/` 都要納入版控。它們就是長期記憶,不在 git 裡就沒有備份。
-- 每個版本提交後打 tag `vX.Y`,方便退版(搬遷時補打 `v0.13`)。
+- 每個版本提交後打 tag `vX.Y`,方便退版。
 - 不得 force push,不得改寫 `dev` 或 `main` 的歷史,不刪除遠端分支(需要刪時請使用者在 GitHub 操作)。
 - `main` 是發佈分支,只在使用者明確說「發佈」時把 `dev` 合併進去,平時不碰。使用者已決定:全部工作項目做完才發佈,中途不發佈。目前 `main` 仍是 9/29 視覺升級前的舊版。
 - 未定案的預覽與實驗推到 `wip/...` 分支,不推 `dev`;定案後再以正式版本提交 `dev`。用完的 `wip` 分支請使用者刪除。
