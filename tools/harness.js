@@ -569,6 +569,47 @@ async function b10hop(file){const {br,pg,errs}=await open(file);   // v0.22 10 �
     return {out,bad};});
   console.log(r.out.join('\n'),'\n錯誤',errs.length?errs:'無');
   await br.close();return errs.length+r.bad;}
+// 5 王判定稽核(11/7):在遊戲畫面上疊出實際會扣血的範圍(紅)與實際安全範圍(綠),對照畫面上看到的東西;並統計魔王飄移範圍與衝撞位移
+async function b5hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  const r=await pg.evaluate(()=>{HX.go(5,5);HX.run(320);const b=boss;
+    const cv=document.querySelector('canvas'),CW=640,CH=360,S=CW/512,o=document.createElement('canvas');o.width=CW*2;o.height=CH*3;const x=o.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const cell=()=>[(n%2)*CW,Math.floor(n/2)*CH];
+    const grab=(lab,ov)=>{P.inv=0;HX.warm();render();const [ox,oy]=cell();x.drawImage(cv,0,0,cv.width,cv.height,ox,oy,CW,CH);
+      x.save();x.beginPath();x.rect(ox,oy,CW,CH);x.clip();x.translate(ox,oy);x.scale(S,S);x.lineWidth=1/S*2;ov&&ov();x.restore();
+      x.fillStyle='rgba(0,0,0,.7)';x.fillRect(ox,oy,CW,26);x.fillStyle='#fff';x.font='15px sans-serif';x.fillText(lab,ox+8,oy+18);n++;};
+    const ctr=()=>[b.x+b.w/2,b.y+b.h/2];
+    const band=(R,c)=>{const [cx,cy]=ctr();x.fillStyle=c;x.beginPath();x.arc(cx,cy,R+11,0,6.283);x.moveTo(cx+Math.max(0,R-11),cy);x.arc(cx,cy,Math.max(0,R-11),0,2*Math.PI,true);x.fill('evenodd');};
+    const safe=p=>{x.strokeStyle='#3fff6a';x.setLineDash([3,2]);x.strokeRect(p.x*TS-6,p.y*TS-40+7,p.w*TS+12,80);x.setLineDash([]);
+      x.fillStyle='rgba(63,255,106,.18)';x.fillRect(p.x*TS-6,p.y*TS-40+7,p.w*TS+12,80);};
+    const body=()=>{x.strokeStyle='#ff3030';x.strokeRect(b.x,b.y,b.w,b.h);};
+    const hold=()=>{P.inv=999;b.cd=999;};
+    P.x=4*TS;P.y=12*TS-14;b.ringCd=999;b.cannonCd=999;b.cd=999;
+    // 1 平時
+    for(let i=0;i<5;i++){hold();update();}
+    grab('1 平時:紅框=本體碰撞判定(76×60,碰到就扣血)',body);
+    // 2 掃描警示
+    b.ringCd=121;hold();update();for(let i=0;i<60;i++){hold();update();}
+    grab('2 掃描警示:綠=主角中心在這範圍內才安全(畫面是半圓罩)',()=>{for(const i of b.shieldPlats)safe(b.plats[i]);});
+    // 3 環狀掃描進行
+    for(let i=0;i<60+44;i++){hold();update();}
+    grab('3 環狀掃描:紅帶=主角中心落在帶內就扣血(帶寬 22)',()=>{band(b.ring,'rgba(255,40,40,.35)');for(const i of b.shieldPlats)safe(b.plats[i]);});
+    for(let i=0;i<120;i++){hold();update();}
+    // 4 無限大砲警示
+    b.ring=-1;b.ringWarn=0;b.cannonCd=1;hold();update();for(let i=0;i<120;i++){hold();update();}
+    grab('4 大砲警示:唯一安全區=新出現的黃色平台(綠)',()=>safe(b.extraPlat));
+    b.cannonT=1;hold();update();for(let i=0;i<36;i++){hold();update();}
+    grab('5 大砲發射:紅帶=扣血(速度 5,共兩發間隔 90 幀)',()=>{band(b.fireRing,'rgba(255,40,40,.35)');safe(b.extraPlat);});
+    while(b.cannonPhase){hold();update();}
+    // 6 衝撞
+    b.ringCd=999;b.cannonCd=999;b.ai=1;b.cd=0;P.x=3*TS;P.y=12*TS-14;const x0=b.x,y0=b.y,tr=[];
+    for(let i=0;i<36;i++){P.inv=999;update();tr.push([b.x,b.y]);}
+    const ch={dx:+(b.x-x0).toFixed(1),dy:+(b.y-y0).toFixed(1)};
+    grab(`6 衝撞(無預警):白線=實際 34 幀位移 dx ${ch.dx} dy ${ch.dy}`,()=>{x.strokeStyle='#fff';x.beginPath();x.moveTo(x0+b.w/2,y0+b.h/2);for(const [a,c] of tr)x.lineTo(a+b.w/2,c+b.h/2);x.stroke();x.strokeStyle='rgba(255,48,48,.6)';x.strokeRect(x0,y0,b.w,b.h);body();});
+    // 統計:正常出招 20000 幀的本體 x 範圍與每次衝撞位移
+    HX.go(5,5);HX.run(320);let mn=1e9,mx=-1e9;const cs=[];let lastSt='';
+    for(let i=0;i<20000;i++){P.inv=999;const bx=boss.x;update();if(boss.st==='charge'&&lastSt!=='charge')cs.push(boss.cvx.toFixed(2)+'/'+boss.cvy.toFixed(2));lastSt=boss.st;mn=Math.min(mn,boss.x);mx=Math.max(mx,boss.x+boss.w);}
+    return {d:o.toDataURL().split(',')[1],log:{xRange:[Math.round(mn),Math.round(mx)],charges:cs.length,sampleV:cs.slice(0,8),plats:boss.plats.length}};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
 (async()=>{const [cmd,...a]=process.argv.slice(2);let bad=0;
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
@@ -591,6 +632,7 @@ async function b10hop(file){const {br,pg,errs}=await open(file);   // v0.22 10 �
   else if(cmd==='b10fx')bad=await b10fx(a[0],a[1]);
   else if(cmd==='b10fx2')bad=await b10fx2(a[0]||'fx',a[1],a[2]);
   else if(cmd==='b10hop')bad=await b10hop(a[0]);
+  else if(cmd==='b5hit')await b5hit(a[0],a[1]);
   else if(cmd==='b10fx3')bad=await b10fx3(a[0]||'fx',a[1],a[2]);
   else if(cmd==='bseq')await bseq(a[0],a[1]||8,(a[2]||'').split(',').filter(v=>v).map(Number),(a[3]||'').split(',').filter(v=>v).map(Number),(a[4]||'0,0,512,288').split(',').map(Number),a[5]);
   else if(cmd==='strand')bad=await strand(a[0],a[1],a[2]);
