@@ -579,8 +579,8 @@ async function b5hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
       x.fillStyle='rgba(0,0,0,.7)';x.fillRect(ox,oy,CW,26);x.fillStyle='#fff';x.font='15px sans-serif';x.fillText(lab,ox+8,oy+18);n++;};
     const ctr=()=>[b.x+b.w/2,b.y+b.h/2];
     const band=(R,c)=>{const [cx,cy]=ctr();x.fillStyle=c;x.beginPath();x.arc(cx,cy,R+11,0,6.283);x.moveTo(cx+Math.max(0,R-11),cy);x.arc(cx,cy,Math.max(0,R-11),0,2*Math.PI,true);x.fill('evenodd');};
-    const safe=p=>{x.strokeStyle='#3fff6a';x.setLineDash([3,2]);x.strokeRect(p.x*TS-6,p.y*TS-40+7,p.w*TS+12,80);x.setLineDash([]);
-      x.fillStyle='rgba(63,255,106,.18)';x.fillRect(p.x*TS-6,p.y*TS-40+7,p.w*TS+12,80);};
+    const safe=p=>{const old=typeof b5Safe!=='function',cx=(p.x+p.w/2)*TS,cy=p.y*TS,r=p.w*TS/2;x.strokeStyle='#3fff6a';x.setLineDash([3,2]);x.fillStyle='rgba(63,255,106,.18)';   // v0.22 以前為長方形,v0.23 起為半圓(主角中心)
+      if(old){x.strokeRect(p.x*TS-6,p.y*TS-40+7,p.w*TS+12,80);x.fillRect(p.x*TS-6,p.y*TS-40+7,p.w*TS+12,80);}else{x.beginPath();x.arc(cx,cy,r,Math.PI,0);x.closePath();x.stroke();x.fill();}x.setLineDash([]);};
     const body=()=>{x.strokeStyle='#ff3030';x.strokeRect(b.x,b.y,b.w,b.h);};
     const hold=()=>{P.inv=999;b.cd=999;};
     P.x=4*TS;P.y=12*TS-14;b.ringCd=999;b.cannonCd=999;b.cd=999;
@@ -610,6 +610,52 @@ async function b5hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
     for(let i=0;i<20000;i++){P.inv=999;const bx=boss.x;update();if(boss.st==='charge'&&lastSt!=='charge')cs.push(boss.cvx.toFixed(2)+'/'+boss.cvy.toFixed(2));lastSt=boss.st;mn=Math.min(mn,boss.x);mx=Math.max(mx,boss.x+boss.w);}
     return {d:o.toDataURL().split(',')[1],log:{xRange:[Math.round(mn),Math.round(mx)],charges:cs.length,sampleV:cs.slice(0,8),plats:boss.plats.length}};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
+// v0.23 5 王:fx 為場景、各招特效、登場、死亡逐格截圖(2 欄);並核對半圓防護罩判定、機身不出畫面、衝撞預兆框與實際落點、招式數字
+async function b5fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;const ck=(n,ok,v)=>{o.push(`${ok?'OK':'NG'} ${n}${v!==undefined?'('+v+')':''}`);if(!ok)bad++;};
+    const cv=document.querySelector('canvas'),CW=640,CH=360,cel=document.createElement('canvas');cel.width=CW*2;cel.height=CH*10;const x=cel.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=(lab,c)=>{const pi=P.inv;P.inv=0;HX.warm();render();P.inv=pi;const sc=cv.width/512,q=c||[0,0,512,288];   // c:以遊戲座標裁切放大(預設整個畫面)
+      x.drawImage(cv,q[0]*sc,q[1]*sc,q[2]*sc,q[3]*sc,(n%2)*CW,Math.floor(n/2)*CH,CW,CH);
+      x.fillStyle='rgba(0,0,0,.7)';x.fillRect((n%2)*CW,Math.floor(n/2)*CH,CW,24);x.fillStyle='#fff';x.font='15px sans-serif';x.fillText(lab,(n%2)*CW+8,Math.floor(n/2)*CH+17);n++;};
+    const fresh=()=>{HX.go(5,5);HX.run(320);const b=boss;b.ringCd=9999;b.cannonCd=9999;b.cd=9999;P.x=4*TS;P.y=12*TS-14;return b;};
+    // 1 半圓判定(直接核對 b5Safe 與實際掃描是否扣血)
+    let b=fresh();const p=b.plats[2],cx=(p.x+p.w/2)*TS,cy=p.y*TS,R=p.w*TS/2;
+    const at=(X,Y)=>{P.x=X-5;P.y=Y-7;return b5Safe(p);};
+    ck('站在平台正中安全',at(cx,cy-7));ck('站在邊緣仍在罩內安全',at(cx+R-2,cy-7));ck('超出罩外 1 像素不安全',!at(cx+R+1,cy-7));
+    ck('平台下方不安全',!at(cx,cy+10));ck('跳高超出罩頂不安全',!at(cx,cy-R-1));
+    const scan=(X,Y)=>{b=fresh();b.shieldPlats=[2];b.ring=0;let hit=0;for(let i=0;i<140;i++){P.x=X-5;P.y=Y-7;P.vy=0;P.inv=0;P.lives=5;const l=P.lives;update();if(P.lives<l)hit=1;if(b.ring<0)break;}return hit;};
+    ck('掃描:罩內站著不扣血',!scan(cx,cy-7));ck('掃描:罩外平台邊緣扣血',scan(cx+R+3,cy-7));
+    // 2 機身不出畫面
+    let mn=1e9,mx=-1e9;for(const px_ of[20,480]){b=fresh();b.ringCd=300;b.cannonCd=520;b.cd=0;for(let i=0;i<12000;i++){P.inv=999;P.x=px_;P.y=40;P.vy=0;update();mn=Math.min(mn,b.x);mx=Math.max(mx,b.x+b.w);}}
+    ck('機身水平範圍在 0~512',mn>=0&&mx<=512,Math.round(mn)+'~'+Math.round(mx));
+    // 3 衝撞預兆框 vs 實際落點(主角站在左、右、下方)
+    let dmax=0;for(const [X,Y] of[[60,178],[440,98],[200,130]]){b=fresh();b.ai=1;b.cd=30;let pr=null;
+      let was=0;for(let i=0;i<80;i++){P.inv=999;P.x=X;P.y=Y;P.vy=0;update();if(b.cd===0&&b.st===''&&!pr)pr=b5Pred(b);   // 衝撞前一幀的預兆框
+        if(was&&b.st===''){dmax=Math.max(dmax,Math.abs(pr.x-b.x),Math.abs(pr.y-b.y));break;}was=b.st==='charge';}}
+    ck('預兆框與實際衝撞結束位置差 2 像素內',dmax<=2,dmax.toFixed(2));
+    // 4 主角在正下方時延後衝撞(v0.23 授權):3000 幀內正下方 0 次衝撞且仍召喚;站左側照常衝撞
+    const cnt=below=>{b=fresh();b.ai=0;b.cd=0;let c=0,m=0,was='',ai=b.ai;for(let i=0;i<3000;i++){P.inv=999;if(below){P.x=b.x+b.w/2-5;P.y=12*TS-14;}else{P.x=20;P.y=178;}P.vy=0;update();
+      if(b.st==='charge'&&was!=='charge')c++;was=b.st;if(b.ai!==ai&&(b.ai-1)%2===0)m++;ai=b.ai;}return [c,m];};
+    // 5 掃描環不會在空中停住(v0.23 修正:原本衝撞期間停 34 幀);主角左右來回讓衝撞與掃描重疊
+    {b=fresh();b.ringCd=300;b.cannonCd=520;b.cd=0;let prev=-1,st=0,ov=0;for(let i=0;i<20000;i++){P.inv=999;P.x=40+((i>>9)&1)*400;P.y=178;P.vy=0;update();
+      if(b.ring>=0&&prev>=0){if(b.ring===prev)st++;if(b.st==='charge')ov++;}prev=b.ring;}ck('掃描環 20000 幀內從不停住(含衝撞重疊幀)',st===0&&ov>0,'停住 '+st+' 幀、重疊 '+ov+' 幀');}
+    const [c1,m1]=cnt(1),[c2,m2]=cnt(0);ck('正下方 3000 幀不衝撞、照常召喚',c1===0&&m1>=5,'衝撞 '+c1+' 召喚 '+m1);ck('站左側照常衝撞',c2>=5,'衝撞 '+c2+' 召喚 '+m2);
+    // 截圖
+    b=fresh();grab('平時(力場殼=碰撞範圍、推進光、浮空板推進光)');
+    b.ringCd=121;update();for(let i=0;i<70;i++){P.inv=999;update();}grab('掃描警示:鏡頭亮起與紅色脈衝、光槽轉紅、六角罩');
+    for(let i=0;i<95;i++){P.inv=999;update();}grab('環狀掃描:連續雷射環(光暈寬 22=判定)、光槽標出雷射掃過處');
+    b=fresh();b.cannonCd=1;update();for(let i=0;i<180;i++){P.inv=999;update();}grab('大砲警示 3/4:警報色、裝甲環張開、琥珀聚能、琥珀罩與燈條');
+    b.cannonT=1;update();for(let i=0;i<40;i++){P.inv=999;update();}grab('大砲發射:琥珀雷射環');
+    b=fresh();b.ai=1;b.cd=12;P.x=60;P.y=178;for(let i=0;i<3;i++){P.inv=999;update();}grab('衝撞預兆:橘紅框=衝撞結束時機身位置、推進器點火');
+    for(let i=0;i<30;i++){P.inv=999;update();}grab('衝撞中');
+    b=fresh();b.ai=0;b.cd=4;for(let i=0;i<10;i++){P.inv=999;update();}grab('召喚:6 個艙門打開、出口迸光(放大)',[b.x-82,0,240,135]);
+    b=fresh();b.hp=b.max*0.4;for(let i=0;i<40;i++){P.inv=999;update();}grab('受損 40%:2 條裂縫與火花(放大)',[b.x-82,0,240,135]);
+    b=fresh();b.hp=b.max*0.2;for(let i=0;i<40;i++){P.inv=999;update();}grab('受損 20%:4 條裂縫、火花加黑煙(放大)',[b.x-82,0,240,135]);
+    for(const [t,lab] of[[138,'登場 k0.18:天花板艙門開啟'],[170,'登場 k0.5:由中央艙門降下'],[204,'登場 k0.84:艙門一格格亮起'],[214,'登場 k0.94:鏡頭眼睜開']]){HX.go(5,5);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab+'(放大)',[128,0,240,135]);}
+    for(const [t,lab] of[[30,'死亡 30:鏡頭過載、小爆炸、艙門熄燈脫落'],[78,'死亡 78:墜入深井'],[119,'死亡 119:落底悶響揚塵'],[132,'死亡 132:井底爆炸(火光減輕)']]){b=fresh();b.introT=0;bossDamage(bossParts()[0],1e8);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab,t<60?[b.x-82,0,240,135]:null);}
+    o.push('招式數字:掃描間隔 340、預警 120、環速 3.4;大砲預警 240、環速 5、間隔 90(程式未改,見 diff)');
+    return {d:cel.toDataURL().split(',')[1],o,bad};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log(r.o.join('\n'));console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();return r.bad+errs.length;}
 (async()=>{const [cmd,...a]=process.argv.slice(2);let bad=0;
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
@@ -632,6 +678,7 @@ async function b5hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
   else if(cmd==='b10fx')bad=await b10fx(a[0],a[1]);
   else if(cmd==='b10fx2')bad=await b10fx2(a[0]||'fx',a[1],a[2]);
   else if(cmd==='b10hop')bad=await b10hop(a[0]);
+  else if(cmd==='b5fx')bad=await b5fx(a[0],a[1]);
   else if(cmd==='b5hit')await b5hit(a[0],a[1]);
   else if(cmd==='b10fx3')bad=await b10fx3(a[0]||'fx',a[1],a[2]);
   else if(cmd==='bseq')await bseq(a[0],a[1]||8,(a[2]||'').split(',').filter(v=>v).map(Number),(a[3]||'').split(',').filter(v=>v).map(Number),(a[4]||'0,0,512,288').split(',').map(Number),a[5]);

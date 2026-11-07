@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.22 魔王 10 終末:三段分開打(暗紅傳送門、三條獨立血條、第 2 段也禁用特攻、陣亡回第 1 段);第 1 段雙手大劍雕像(六姿勢精靈、石殼崩解登場、跪地碎裂死亡、揮砍刃光、突刺殘影、地裂青焰、燃燒黑曜火流星,火流星與揮砍期間站定)與世界盡頭平原場景(碎裂冷月、廢墟、黑曜鏡面地面與倒影);第 2 段黑曜裂面(眼縫核心、繞行碎片、光環、天頂裂縫光柱、碎晶彈、平台龜裂預警、碎塊聚合登場、崩落與紅光下沉死亡,主角自空中落下)與裏側背景;第 3 段裸露心臟(一強一弱心跳、黑曜鏈、繞行裂面殘片、三色光球加蓄力預兆、藤蔓閃光、藤蔓長出登場、斷藤塌縮白光與黎明死亡)與虛空深處場景;第 3 段平台隨藤蔓平移、藤蔓斷後真的斷掉;依使用者授權改動的機制見 design-decisions 第 1 節 -->
+<!-- VERSION: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:GPT 主設計縮圖手修的六角蜂巢母艦(六角艙門、獨立鏡頭眼核心,開艙、大砲蓄能、熄燈三態由程式推導,白瓷青光);環狀掃描與無限大砲改連續雷射環(光暈寬 22 = 判定帶,碰到防護罩的部分消融並迸火花);六角格半圓防護罩(掃描藍、大砲琥珀,判定改半圓,使用者授權);衝撞橘紅預兆框(衝撞結束時機身位置)、主角正下方時延後衝撞(使用者授權);修正掃描環在衝撞期間停住 34 幀(使用者要求);機身不出左右畫面(使用者授權);淡六角格力場殼標出本體碰撞範圍;受損裂縫、火花、黑煙;程式畫高科技密室(對齊合金磚、光槽光流、掃描轉紅、大砲琥珀警報、深井、浮空板推進光);天花板中央大型艙門開啟後降下、艙門逐格亮起、鏡頭睜開登場;鏡頭過載、艙門熄燈脫落、墜入深井、落底悶響後井底爆炸死亡;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
 <!-- 前版: v0.17 魔王共用工具:部件閃白、火焰燒紅邊、發光核心三狀態、預警四樣式、死亡零件與單次閃光、登場時間軸(鎖主角、血條填充、重挑縮短)、傳送門延後 30 幀、RotSprite、殘影;判定框不變 -->
 <!-- 前版: v0.16.1 清理:移除舊方塊雜兵 eRects -->
@@ -2196,6 +2196,176 @@ const B4={
   }
 };
 /* ========== 5-5 機械蜂巢母體 奧米茄巢 ========== */
+/* ========== 5 王「機械蜂巢母體 奧米茄巢」外觀(v0.23,純視覺;判定框 76×60 不變) ==========
+   精靈:art-src/boss5-gen/(down.js 由 GPT 主設計自動縮圖、build.js 手修六角艙門並抽出鏡頭眼)產生的 B5F;開艙、大砲蓄能、熄燈三態由 b5Bake 從本體推導。
+   色號:O 外框、A~D 灰階由暗到亮、W 白瓷面板、F 青色燈線、K 黑洞;鏡頭 G/H 紅、E 高光(由 coreDraw 另畫,才能呼吸與蓄能變色)。
+   重點(使用者 11/7):畫面準確表達傷害判定。環狀掃描與無限大砲為連續雷射環,外圈光暈寬 22 = 判定帶;防護罩半圓 = 判定(第 1 節授權);
+   衝撞前 30 幀以橘紅框標出衝撞結束時機身 76×60 的位置;框邊淡六角格力場殼 = 本體碰撞範圍。純視覺不用 Math.random(花紋用 b2h)。 */
+const B5F={body:[
+'...............OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO...............',
+'...............OWWWWWWOBBBWWWWWWWWWWWWWWWWWWOBBAWWWWWWO...............',
+'..............ODDWWWWWWOBBOOOOOOOOOOOOOOOOOOBBBWWWWWWDCO..............',
+'..............ODDDWWDDDDBBBOFFFFFFFFFFFFFFOBBBDDDDDWDDDOO.............',
+'.............ODDDWWWDOOOOOOOFFFFFFFFFFFFFFOOOOOOOODDDDDCO.............',
+'............OODDDWWWOAAAAAAAOOOOOOOOOOOOOOOAAAAAAAODDDDDCO............',
+'............OCDDWWWOAOOOOOOOAOWWWWWWWWWWWOAOOOOOOOAODDDDCO............',
+'...........ODDDWWWOAOWWWWWWWOAOWWWWWWWWWOAOWWWWWWWOAODDDCCO...........',
+'...........OCDDWWOAOWWWWWWWWWOAODDDDDDDOAOWWWWWWWWWOAODDCCOO..........',
+'..........OOCDWWWOAOWWWWWWWWWOAODDDDDDDOAOWWWWWWWWWOAODDCCOO..........',
+'.........OOAODWWWOAOOOOOOOOOOOAODDDDDDDOAOOOOOOOOOOOAODDCOAOO.........',
+'.........OAAAAAAOOAODDDDDDDDDOAODDDDDDOOAODDDDDDDDDOAOAAAAAAO.........',
+'........OWOAAAAAAOAODDDDDDDDDOAODDDDDDDOAODDDDDDDDDOAOAAAAAOWO........',
+'........OWWOAAAAAOOAODDDDDDDOAODDDDDDDDOOAODDDDDDDOAOAAAAAOWWO........',
+'.......OWWWOOAAAAAOOAOOOOOOOAODDOOOOOODDOOAOOOOOOOAOAAAAAOOOWWO.......',
+'......OOWWOFFOAAOOOOOAAAAAAAOOOOOAAAAOOOOOOAAAAAAAOOAAAOOFFOWWOO......',
+'......OWWOFFOODDDDDOAOOOOOOOOOAAAAAAAAAAOOAOOOOOOOODDDDDDOFFOWWO......',
+'.....OOWWOFFODDDDDDDOOOOOOOOOAAAAAAAAAAAAAOOOOOOOODDDDDDDOFFOWWWO.....',
+'.....OWWOFFODDDDDDDDDDDDDOOAAAAOOOOOOOOAAAAOODDDDDDDDDDDDDOFFOWWO.....',
+'....OWWWOFFODDDDDDDDDDDDDOAAAAOOOOOOOOOOAAAAODDDDDDDDDDDDDOFFOWWWO....',
+'....OWWOFFODOOOOOOOODDDDOOAAAOOOOOOOOOOOOAAAOODDDDDOOOOOOODOFFOWWOO...',
+'...OWWOFFFOOOAAAAAAAODDDOAAAOOOOOOOOOOOOOOAAAODDDDOAAAAAAAOOFFFOWWO...',
+'..OOWWOFFODOAOOOOOOOAODOOAAOOOOOOOOOOOOOOOOAAOODDOAOOOOOOOAOOFFOWWOO..',
+'..OWWOFFODOAOWWWWWWWOAOOAAAOOOOOOOOOOOOOOOOAAAODOAOWWWWWWWOAOOFFOWWO..',
+'.OWWWOFFOOAOWWWWWWWWWOAOAAOOOOOOOOOOOOOOOOOOAAOOAOWWWWWWWWWOAOFFOWWWO.',
+'.OWWOFFODOAOWWWWWWWWWOAOAAOOOOOOOOOOOOOOOOOOAAOOAOWWWWWWWWWOAOOFFOWWO.',
+'OWWWOFFODOAOOOOOOOOOOOAOAAOOOOOOOOOOOOOOOOOOAAOOAOOOOOOOOOOOAOOFFFOWWO',
+'OCCCFFFODOAODDDDDDDDDOAOAAOOOOOOOOOOOOOOOOOOAAOOAODDDDDDDDDOAOOFFFOCCO',
+'.OCCOFFODOAODDDDDDDDDOAOAAOOOOOOOOOOOOOOOOOOAAOOAODDDDDDDDDOAOOFFOCCOO',
+'.OCCCOFFODOAODDDDDDDOAOOAAOOOOOOOOOOOOOOOOOOAAOWOAODDDDDDDOAOOFFOCCCO.',
+'..OCCOFFODOOAOOOOOOOAOWOAAAOOOOOOOOOOOOOOOOAAAOWOOAOOOOOOOAODOFFOCCOO.',
+'..OCCCOFFODOOAAAAAAAOWWOOAAOOOOOOOOOOOOOOOOAAOOWWOOAAAAAAAODOFFOCCCO..',
+'...OCCOFFOOOOOOOOOOODDDDOAAAOOOOOOOOOOOOOOAAAODDDDOOOOOOOOODOFFOCCOO..',
+'...OCCCOFFODOOOOOOOODDDDOOAAOOOOOOOOOOOOOOAAOODDDDOOOOOOOODOFFOCCCO...',
+'....OCCCOFFODDDDDDDDDDDDDOAAAAOOOOOOOOOOAAAAODDDDDDDDDDDDDOFFFOCCO....',
+'....OCCCOFFODDDDDDDDDDDDDDOAAAAOOOOOOOOAAAAOODDDDDDDDDDDDDOFFOCCCO....',
+'.....OCCCOFFODDDDDDDOOOOOOOOAAAAAAAAAAAAAAOOOOOOOODDDDDDDOFFOCCCOO....',
+'.....OCCCOFFODDDDDDOOAAAAAAAOOAAAAAAAAAAOOOAAAAAAAODDDDDDOFFOCCCO.....',
+'......OCCCOFFOOOOOOOAOOOOOOOAOOOOAAAAOOOOOAOOOOOOOAOOOOOOFFOCCCOO.....',
+'......OCCCOFOAAAAAOAOWWWWWWWOAODOOOOOODDOAOWWWWWWWOAOAAAAOFOCCCO......',
+'.......OCCCOOAAAAOAOWWWWWWWWWOAOWWWWWWWOAOWWWWWWWWWOAOAAAAOCCCOO......',
+'.......OCCCOAAAAAOAOWWWWWWWWWOAOWWWWWWWOAOWWWWWWWWWOAOAAAAOCCCO.......',
+'......OOOOOAAAAAOOAOOOOOOOOOOOAOWWWWWWOOAOOOOOOOOOOOAOAAAAAOOOOO......',
+'......OAAAAAOCWWWOAODDDDDDDDDOAOWWWWWWWOAODDDDDDDDDOAOWWCOAAAAAO......',
+'.....OOOOOAACCWWWOAODDDDDDDDDOAOWWWWWWWOAODDDDDDDDDOAOWWCCAAOOOOO.....',
+'....OOWWWWOACCCWWWOAODDDDDDDOAOWWWWWWWWWOAODDDDDDDOAOWWCCCAOWWWWOO....',
+'...OOWWWWWCOACCWWWWOAOOOOOOOAOWWWWWWWWWWOOAOOOOOOOAOWWWCCAOCWWWWWOO...',
+'..OOWWWWWWCCOCCCWWWOOAAAAAAAOCCCDDCCCCCCCOOAAAAAAAOWWWCCCOCCWWWWWWOO..',
+'..OOWWWWWCCCCOCCWWWWOOOOOOOOCCCCCDCCCCCCCCOOOOOOOOWWWWCCOCCCCWWWWWOO..',
+'..OOBBBBBOCCCOOCCWWWDDDDOAAACCCCCCCCCCCCCCAAAODDDDWWWCCOOCCCOOOOBBOO..',
+'.OOBBBBBBBOCCOOCCCWWDDDDOAAOOOOOOOOOOOOOOOOAAAODDDWWCCCOOCCOBBBBBBBOO.',
+'.OBBBBBBBBBOOOAOCCCCCCCOAAAOFFFFFFFFFFFFFFFOAAOCCCCCCCOAOOOBBBBBBBBBO.',
+'.OBOOOOOOBBBOOAOCCCCCCOAAAOOOOOOOOOOOOOOOOOOAAAOCCCCCCOAOOBBBOOOOOOBO.',
+'..OOOOOOOOBBOOOAOCCCCCOAAODDDDDDDDDDDDDDDDDDOAAOCCCCCOAOOOBBOOOOOOOO..',
+'..OOOOOOOOBO...OACCCCOAAAODDDDDDDDDDDDDDDDDDCAAAOCCCCOOO..OBOOOOOOOO..',
+'...OOOOOOOOO....OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO....OOOOOOOOOO..'],
+lens:['...................','...................','......GGGGGG.......','....GGEEEGGGGG.....','...GGEEEEGGGGGG....','...GEEEEGGGGGGG....','..GEEEEGGGGGGGGG...','..EEEEGGGGGGGGHH...','.GEEEGGGGGGGGGHHH..','.GEEGGGGGGGGGGHHH..','.GGGGGGGGGGGGGHHH..','.GGGGGGGGGGGGHHHH..','..GGGGGGHHHHHHHH...','..GGGGGGHHHHHHHH...','...GGGGHHHHHHHHH...','...HHHHHHHHHHHH....','....HHHHHHHHHH.....','......HHHHHH.......','...................']};
+const B5OX=3,B5OY=4,B5LX=29,B5LY=21;          // 本體、鏡頭矩陣左上在判定框內的位置
+const B5HC=[[27,14],[49,14],[19,30],[57,30],[27,46],[49,46]];   // 艙門中心(判定框座標);[2] 對齊小蜂出口 (20,30)
+const B5HT=['....OOOOOOO....','...OAAAAAAAO...','..OAOOOOOOOAO..','.OAOEEEEEEEOAO.','OAOEEEEEEEEEOAO','OAOEEEEEEEEEOAO','OAOOOOOOOOOOOAO',
+  'OAODDDDDDDDDOAO','OAODDDDDDDDDOAO','.OAODDDDDDDOAO.','..OAOOOOOOOAO..','...OAAAAAAAO...','....OOOOOOO....'];   // 六角門樣板(與 build.js 相同,推導開艙用)
+const B5PALS=[                                  // 配色:使用者 11/7 定案白瓷青光(未採用暗銀灰、黑鋼冷白)
+  {name:'白瓷青光',O:'#141414',A:'#4a505c',B:'#6a707c',C:'#9aa1ad',D:'#c2c7cf',W:'#dcdfe4',F:'#3ee8f0',K:'#05070a'}];
+let B5PI=0,B5C=null;
+const B5CR=[[[17,37],[20,39],[23,38],[26,40]],[[48,22],[51,20],[54,22],[57,21]],[[24,48],[27,50],[30,49]],[[33,6],[36,8],[40,7]]];   // 受損裂縫(判定框座標折線):前 2 條 50% 以下、全部 25% 以下
+const B5SLOT=[72,200,312,440];                  // 牆面 4 道直向光槽中心 x
+const B5DOOR=[[248,96]];                        // 天花板大型艙門 [中心 x, 寬](使用者 11/7:只留中央一座,原左右各一座 64 寬)
+const B5BOOM=128;                               // 死亡:井底爆炸那一幀(使用者 11/7 要求比共用的第 96 幀晚)      // 天花板大型艙門 [中心 x, 寬]
+function b5Bake(){
+  const pal=B5PALS[B5PI],body=B5F.body.map(r=>[...r]),H_=body.length,W_=body[0].length;
+  const open=body.map(r=>r.slice()),can=body.map(r=>r.slice()),dead=body.map(r=>r.slice());
+  const inner=(j,i)=>[[0,1],[0,-1],[1,0],[-1,0]].some(([a,c])=>'ED'.includes((B5HT[j+a]||'')[i+c]||'.'));
+  const ring=[];                                // 每個艙門門框(A)像素,登場時逐格亮起用
+  B5HC.forEach(([cx,cy],h)=>{ring.push([]);B5HT.forEach((r,j)=>[...r].forEach((ch,i)=>{if(ch==='.')return;const Y=cy-6+j-B5OY,X=cx-7+i-B5OX;
+    if(ch==='A')ring[h].push([X,Y]);
+    const v='ED'.includes(ch)?'K':(ch==='O'&&inner(j,i)?(j===6?'K':'F'):null);if(v){open[Y][X]=v;dead[Y][X]=v==='F'?'A':'K';}}));});
+  const lc=[38-B5OX,30-B5OY];                   // 大砲蓄能:鏡頭外圈裝甲環沿 6 道縫裂開並外推 1 像素(花瓣張開)
+  for(let y=lc[1]-14;y<=lc[1]+14;y++)for(let x=lc[0]-14;x<=lc[0]+14;x++){if(!can[y]||can[y][x]===undefined)continue;
+    const d=Math.hypot(x-lc[0],y-lc[1]),a=(Math.atan2(y-lc[1],x-lc[0])*180/Math.PI+390)%60,gap=Math.min(a,60-a)<9;
+    if(d>8.3&&d<=12.3)can[y][x]=gap?'O':(d>11.3?'A':body[y][x]==='O'&&d>10.8?'A':body[y][x]);else if(d>12.3&&d<=13.2&&!gap)can[y][x]='O';}
+  const mk=(m,wh)=>{const [c,x]=mkCv(W_,H_);for(let y=0;y<H_;y++)for(let i=0;i<W_;i++){const ch=m[y][i];if(ch==='.')continue;
+    x.fillStyle=wh&&!'OK'.includes(ch)?'#ffffff':pal[ch];x.fillRect(i,y,1,1);}return c;};
+  const C={W:W_,H:H_,ring};for(const [k,m] of [['body',body],['open',open],['cannon',can],['dead',dead]])C[k]={n:mk(m),w:mk(m,1)};
+  C.cr=[1,2].map(n=>{const [c,x]=mkCv(W_,H_);for(const L of B5CR.slice(0,n*2))for(let s=0;s<L.length-1;s++){const [x0,y0]=L[s],[x1,y1]=L[s+1],N=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));
+      for(let i=0;i<=N;i++){const X=Math.round(x0+(x1-x0)*i/N)-B5OX,Y=Math.round(y0+(y1-y0)*i/N)-B5OY;x.fillStyle=pal.O;x.fillRect(X,Y,1,1);x.fillRect(X+1,Y,1,1);x.fillStyle=i%3===1?'#ff8a3a':pal.O;x.fillRect(X,Y-1,1,1);x.fillStyle=pal.W;x.fillRect(X,Y+1,2,1);}}return c;});   // 裂縫:2 像素暗線、上緣間隔透橘光、下緣亮邊
+  const L=(g,h,e)=>{const [c,x]=mkCv(19,19);B5F.lens.forEach((r,j)=>[...r].forEach((ch,i)=>{const v=ch==='G'?g:ch==='H'?h:ch==='E'?e:null;if(v){x.fillStyle=v;x.fillRect(i,j,1,1);}}));return c;};
+  C.lens={red:[L('#b01424','#7a0c16','#e8b0b0'),L('#d01a2a','#901220','#ffd0d0'),L('#f03040','#b01a28','#ffffff')],
+    amb:[L('#a86a20','#7a4a14','#e8c890'),L('#e09a30','#a86a20','#ffe0a0'),L('#ffc860','#e09a30','#fff4d8'),L('#fff0c8','#ffd080','#ffffff')],
+    wh:L('#ffffff','#e8e8e8','#ffffff'),dim:L('#3a2a2c','#241a1c','#5a4a4c')};
+  {const [c,x]=mkCv(76,60);                     // 力場殼:判定框邊緣 5 像素內的淡六角格(= 本體碰撞範圍,使用者選 B)
+   for(let y=0;y<60;y++)for(let i=0;i<76;i++){const e=Math.min(i,75-i,y,59-y);if(e>=5)continue;
+     const hl=((i+((Math.floor(y/6)%2)*4))%8===0)||(y%6===0)||e===0;if(hl&&e<4){x.fillStyle=e===0?'rgba(95,240,255,.20)':'rgba(95,240,255,'+(0.13-e*0.025)+')';x.fillRect(i,y,1,1);}}C.shell=c;}   // 使用者 11/7:虛化融入背景(原外框 .42、內格 .24)
+  C.dome={};B5C=C;
+}
+function b5Dome(w,amb){const k=w+(amb?'a':'b');if(B5C.dome[k])return B5C.dome[k];   // 半圓防護罩(六角格,使用者選定):半徑=平台寬一半,與判定相同
+  const r=w*TS/2,[c,x]=mkCv(2*r+3,r+2),col=amb?'255,192,96':'143,224,255';
+  for(let y=0;y<=r+1;y++)for(let i=0;i<=2*r+2;i++){const dx=i-r-1,dy=r+1-y,d=Math.hypot(dx,dy);if(d>r+0.5||dy<0)continue;
+    let al=0.12;if(d>r-1.5)al=0.9;else{const r6=dy%6===0,c6=(dx+60+(Math.floor(dy/6)%2)*3)%6===0;if(r6||c6)al=0.32;}
+    x.fillStyle=`rgba(${col},${al})`;x.fillRect(i,y,1,1);}
+  return B5C.dome[k]=c;}
+function b5Dq(p){return {cx:(p.x+p.w/2)*TS,cy:p.y*TS,r:p.w*TS/2};}
+function b5Safe(p){if(!p)return false;const q=b5Dq(p),x=P.x+5,y=P.y+7;return y<=q.cy&&Math.hypot(x-q.cx,y-q.cy)<=q.r;}   // v0.23 授權:主角中心在半圓內且不低於平台頂面
+const [B5RC,B5RX]=mkCv(W,H);
+function b5Ring(cx,cy,R,amb,dq){                // 連續雷射環:外圈光暈 R±11 = 判定帶(主角中心落在帶內扣血)
+  // 使用者 11/7:雷射碰到防護罩的部分直接消融。先畫進暫存畫布,罩內整塊擦掉、罩外 6 像素內擦成半淡(多個罩重疊時自然取聯集),接觸點罩緣發亮並往外迸火花
+  const x=B5RX,cs=amb?['#ff9a20','#ffc060','#fff0c8']:['#ff2a3a','#ff6a6a','#ffe0e0'];x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,W,H);
+  const st=(lw,a,c,r)=>{x.lineWidth=lw;x.globalAlpha=a;x.strokeStyle=c;x.beginPath();x.arc(cx,cy,Math.max(0.5,r),0,6.2832);x.stroke();};
+  st(22,0.24,cs[0],R);st(1,0.7,cs[0],R-10.5);st(1,0.7,cs[0],R+10.5);st(8,0.5,cs[1],R);st(4,1,cs[1],R);st(2,1,cs[2],R);
+  x.globalCompositeOperation='destination-out';x.fillStyle='#000';
+  const semi=(q,r)=>{x.beginPath();x.moveTo(q.cx+r,q.cy);x.arc(q.cx,q.cy,r,0,Math.PI,true);x.closePath();x.fill();};
+  for(const q of dq){x.globalAlpha=0.55;semi(q,q.r+6);x.globalAlpha=1;semi(q,q.r);}
+  x.globalCompositeOperation='source-over';x.globalAlpha=1;
+  ctx.drawImage(B5RC,0,0);
+  for(const q of dq){const d=Math.hypot(q.cx-cx,q.cy-cy);if(d<1e-3||d>R+q.r+11||d<Math.abs(R-q.r)-11)continue;   // 接觸點:雷射環中心線與罩緣兩圓交點(上半圓)
+    for(const off of[-8,0,8]){const RR=R+off,aa=(RR*RR-q.r*q.r+d*d)/(2*d),h2=RR*RR-aa*aa;if(h2<0)continue;const h=Math.sqrt(h2),ux=(q.cx-cx)/d,uy=(q.cy-cy)/d;
+      for(const sg of[-1,1]){const px_=cx+ux*aa-uy*h*sg,py_=cy+uy*aa+ux*h*sg;if(py_>q.cy)continue;const th=Math.atan2(py_-q.cy,px_-q.cx);
+        if(off===0){ctx.globalAlpha=0.9;ctx.strokeStyle=cs[2];ctx.lineWidth=2;ctx.beginPath();ctx.arc(q.cx,q.cy,q.r,th-0.22,th+0.22);ctx.stroke();ctx.globalAlpha=1;gl(px_-7,py_-7,14,14,cs[1],0.4);}
+        for(let i=0;i<3;i++){const k=b2h(G.t*7+i*13+off+sg*5),dd=2+k*7;px(Math.round(px_+Math.cos(th)*dd+(b2h(G.t+i)-0.5)*4),Math.round(py_+Math.sin(th)*dd+(b2h(G.t*3+i)-0.5)*4),1,1,i?cs[1]:cs[2]);}}}}
+  for(let i=0;i<12;i++){const a=i/12*6.2832+G.t*0.01,x_=cx+Math.cos(a)*R,y_=cy+Math.sin(a)*R;if(x_>-8&&x_<W+8&&y_>-8&&y_<H+8&&!dq.some(q=>Math.hypot(x_-q.cx,y_-q.cy)<q.r+6&&y_<=q.cy))gl(x_-6,y_-6,12,12,cs[1],0.22);}
+}
+function b5Pred(b){                             // 衝撞預兆:照 upd 的公式模擬 34 幀(含飄移與畫面限制),回傳衝撞結束時判定框左上;方向用此刻主角位置(衝撞那一幀才真正決定)
+  if(b.st==='charge'){let x=b.x;for(let i=1;i<=b.stT;i++){x=clamp(x+Math.sin((G.t+i)*0.012)*0.7,0,W-b.w);x=clamp(x+b.cvx,0,W-b.w);}
+    return {x,y:34+Math.sin((G.t+b.stT)*0.02)*10+b.cvy};}
+  const f=b.cd+1,dx=P.x+5-(b.x+b.w/2),dy=P.y+7-(b.y+b.h/2),n=Math.hypot(dx,dy)||1,vx=dx/n*3,vy=dy/n*3;let x=b.x;
+  for(let i=1;i<=f;i++)x=clamp(x+Math.sin((G.t+i)*0.012)*0.7,0,W-b.w);
+  for(let i=1;i<=34;i++){x=clamp(x+Math.sin((G.t+f+i)*0.012)*0.7,0,W-b.w);x=clamp(x+vx,0,W-b.w);}
+  return {x,y:34+Math.sin((G.t+f+34)*0.02)*10+vy};}
+function b5Tele(b){return b.alive&&b.introT<=0&&!b.cannonPhase&&(b.st==='charge'||(b.ai%2===1&&b.cd<=30));}
+function b5Open(b){return (!b.cannonPhase&&b.st!=='charge'&&b.ai%2===0&&b.cd<=24)||(b.vsum!==undefined&&G.t-b.vsum<36);}
+function b5Thr(X,Y,L){                          // 左右推進器噴焰(L 長度)
+  for(const nx of[X+8,X+66]){for(let j=0;j<L;j++){const c=j<1?'#fff4d8':j<L*0.5?'#ffc860':'#e07020';px(nx,Y+59+j,3,1,c);}
+    gl(nx-3,Y+57,9,L+5,'#ffb050',0.12+L*0.025);}}
+function b5Doors(o){                            // 天花板:機械艙蓋帶(高 22)與中央大型艙門(o 0 關、1 全開);使用者 11/7 要求加厚:門框外擴、下緣門檐、兩側鉸鏈塊、斜紋門板(預先烘焙 B5BG.leaf)
+  const T=22,L=B5BG.leaf;px(0,0,W,T,'#0e131c');px(0,T-4,W,4,'#161c28');px(0,T,W,1,'#2a3548');px(0,T+1,W,1,'#05070b');
+  for(let i=0;i<16;i++){px(i*32+14,8,3,3,'#1c2433');px(i*32+15,8,1,1,'#3a4458');}
+  for(const [cx,w] of B5DOOR){const hw=w/2,g=Math.round(hw*o),H2=T+4;
+    px(cx-hw-7,0,w+14,T+9,'#05070b');px(cx-hw-6,0,w+12,T+8,'#4a5468');px(cx-hw-6,T+6,w+12,2,'#2a3242');px(cx-hw-6,T+5,w+12,1,'#7a8498');   // 門框與門檐
+    for(const sx of[cx-hw-6,cx+hw+2]){px(sx,3,4,T-2,'#2a3242');px(sx+1,4,2,T-4,'#3a4458');px(sx+1,T-1,2,2,o>0&&o<1&&(G.t>>3)&1?'#ffb03a':'#6a4a20');}   // 鉸鏈塊與開關中閃爍的警示燈
+    px(cx-hw,0,w,H2,'#020305');
+    if(g>0){for(let y=2;y<H2;y+=3){px(cx-g,y,1,1,'#ff9a20');px(cx+g-1,y,1,1,'#ff9a20');}}
+    const lw=hw-g;if(lw>0){ctx.drawImage(L,0,0,lw,H2,cx-hw,0,lw,H2);ctx.drawImage(L,0,0,lw,H2,cx+g,0,lw,H2);
+      px(cx-g-1,0,1,H2,'#05070b');px(cx+g,0,1,H2,'#05070b');}}}
+function b5DoorO(b){if(!b.alive||b.introT<=0)return 0;const t=300-b.introT;if(t<BT_IN_SHOW)return 0;const k=(t-BT_IN_SHOW)/(BT_IN_CARD-BT_IN_SHOW);
+  return k<0.22?k/0.22:k<0.7?1:k<0.88?1-(k-0.7)/0.18:0;}
+const B5BG={ok:0};
+function b5BgBuild(){                           // 專屬場景(程式畫,使用者選場景 B):對齊合金磚、4 道嵌入光槽、下方看不到底的深井;另烘一張琥珀警報版
+  const mkb=al=>{const [c,x]=mkCv(W,H);const base=al?'#2a2420':'#1c2433',hi=al?'#3c3228':'#2a3548',lo=al?'#16120f':'#121822',sm=al?'#0c0a08':'#0a0e15';
+    x.fillStyle=base;x.fillRect(0,0,W,H);
+    for(let by=0;by<12;by++)for(let bx=0;bx<16;bx++){const X=bx*32,Y=by*16;x.fillStyle=sm;x.fillRect(X,Y,32,1);x.fillRect(X,Y,1,16);
+      x.fillStyle=hi;x.fillRect(X+1,Y+1,31,1);x.fillRect(X+1,Y+1,1,14);x.fillStyle=lo;x.fillRect(X+1,Y+15,31,1);
+      if(b2h(bx*31+by*7)<0.12){x.fillStyle=lo;x.fillRect(X+10,Y+6,12,4);}}
+    for(const cx of B5SLOT){x.fillStyle=sm;x.fillRect(cx-9,0,18,192);x.fillStyle=al?'#140f0c':'#0f1520';x.fillRect(cx-8,0,16,192);x.fillStyle=hi;x.fillRect(cx-9,0,1,192);}
+    const BY=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+    for(let y=176;y<H;y++){const k=Math.min(1,(y-176)/100);for(let i=0;i<W;i++){if(k>BY[y&3][i&3]/16){x.fillStyle=k>0.8?'#000':'#05070b';x.fillRect(i,y,1,1);}}}
+    for(const p of[40,120,392,472])for(let y=180;y<H;y++){const s=1-(y-180)/140;if(s<=0)break;
+      const t=s*0.8,a=[0,0,0],b=al?[58,42,24]:[34,48,74];x.fillStyle=`rgb(${b.map(v=>Math.round(v*t)).join(',')})`;x.fillRect(p,y,Math.max(1,Math.round(6*s)),1);}
+    for(let i=0;i<5;i++){x.fillStyle=al?'#ff8a2a':'#3aa0c0';x.fillRect(60+i*96,230+(i%2)*22,1,1);}
+    return c;};
+  B5BG.n=mkb(0);B5BG.a=mkb(1);
+  B5BG.st=['#5ff0ff','#ff3a4a','#ffb03a'].map(lc=>{const [c,x]=mkCv(2,272);   // 光流條:週期 80 像素,畫的時候依時間往下捲
+    for(let y=0;y<272;y++){const t=(y%80)/80,k=t<0.2?t/0.2:Math.max(0,1-(t-0.2)/0.4);if(k<0.05)continue;x.globalAlpha=0.25+0.75*k;x.fillStyle=lc;x.fillRect(0,y,2,1);}return c;});
+  {const [c,x]=mkCv(W,26);x.fillStyle='#3a4458';x.fillRect(0,0,W,26);x.fillStyle='#5a6478';x.fillRect(0,1,W,1);x.fillStyle='#2a3242';x.fillRect(0,22,W,4);   // 艙門門板:上緣亮邊、黑黃斜紋警示帶、下緣暗邊
+   for(let y=5;y<19;y++)for(let i=0;i<W;i++){x.fillStyle=((i+y)>>2)&1?'#c88a2a':'#1a1a20';x.fillRect(i,y,1,1);}x.fillStyle='#2a3242';x.fillRect(0,4,W,1);x.fillRect(0,19,W,1);B5BG.leaf=c;}
+  B5BG.ok=1;}
 const B5={
   name:'機械蜂巢母體 奧米茄巢',en:'OMEGA HIVE',tag:'GALACTIC / 無地面',
   arena(){bossArena(()=>{
@@ -2206,30 +2376,41 @@ const B5={
     b.ringCd=300;b.ringWarn=0;b.shieldPlats=null;b.cannonCd=520;b.cannonPhase='';b.extraPlat=null;},
   spawn:[4*TS,12*TS-14], // 無地面關卡:強制落在起始平台上,避免一進場就掉出地圖摔死
   parts(b){return [{x:b.x,y:b.y,w:b.w,h:b.h,key:'core'}];},
-  fg(b){ // 環狀掃描警示:紅色向外擴散,打到防護罩範圍的部分直接消失(不再分顏色)
-    if(b.ring<0&&!(b.cannonPhase==='fire1'||b.cannonPhase==='fire2'))return;
-    const ring=b.ring>=0?b.ring:b.fireRing;
-    const wcx=b.x+b.w/2,wcy=b.y+b.h/2,N=72;
-    for(let i=0;i<N;i++){
-      const a=i/N*6.283;
-      const wx=wcx+Math.cos(a)*ring,wy=wcy+Math.sin(a)*ring;
-      let shielded=false;
-      if(b.shieldPlats)for(const idx of b.shieldPlats){
-        const p=b.plats[idx];
-        if(wx>=p.x*TS-6&&wx<=(p.x+p.w)*TS+6&&Math.abs(wy-p.y*TS)<40)shielded=true;
-      }
-      if(b.extraPlat){
-        const p=b.extraPlat;
-        if(wx>=p.x*TS-6&&wx<=(p.x+p.w)*TS+6&&Math.abs(wy-p.y*TS)<40)shielded=true;
-      }
-      if(shielded)continue;
-      px(wx-2,wy-2,4,4,'#ff4a4a');
-    }
-  },
+  ownFlash:true,
+  coreSt(b){return b.alive||G.sT<60?0:2;},   // 死亡:鏡頭過載後熄滅
+  get coreGa(){return boss&&boss.cannonPhase?0.15:1;},   // 大砲蓄能時鏡頭轉琥珀,紅色泛光收起(琥珀光在 fx 登記)
+  coreAt(b){return {x:Math.round(b.x)+B5LX+1,y:Math.round(b.y)+B5LY+1+Math.round(b.vfall||0),w:17,h:17};},
+  coreDraw(b,c,s){if(!B5C)b5Bake();const L=B5C.lens,X=Math.round(b.x)+B5LX,Y=Math.round(b.y)+B5LY+Math.round(b.vfall||0);let im;
+    if(!b.alive)im=G.sT<60?(((G.sT>>1)&1)?L.wh:L.red[2]):L.dim;                 // 死亡:鏡頭過載閃爍,之後熄滅
+    else if(b.hf&&b.hf.core>0)im=L.wh;
+    else if(b.cannonPhase==='warn')im=L.amb[Math.min(3,Math.floor((1-b.cannonT/240)*4))];   // 大砲蓄能 240 幀越來越亮
+    else if(b.cannonPhase)im=L.amb[3];
+    else if(b.ringWarn>0||b.ring>=0)im=L.red[(G.t>>2)&1?2:1];                   // 掃描:鏡頭眼亮起(快閃)
+    else im=L.red[Math.min(2,Math.floor(s*3))];
+    ctx.drawImage(im,X,Y);PXD=1;},
+  fg(b){                                         // 防護罩與雷射環(蓋在主角之上)
+    if(!B5C)b5Bake();const dq=[];
+    if(b.shieldPlats)for(const i of b.shieldPlats){const q=b5Dq(b.plats[i]);dq.push(q);ctx.drawImage(b5Dome(b.plats[i].w,0),q.cx-q.r-1,q.cy-q.r-1);}
+    if(b.extraPlat){const q=b5Dq(b.extraPlat);dq.push(q);ctx.drawImage(b5Dome(b.extraPlat.w,1),q.cx-q.r-1,q.cy-q.r-1);}
+    const cx=b.x+b.w/2,cy=b.y+b.h/2;
+    if(b.ring>=0)b5Ring(cx,cy,b.ring,0,dq);
+    else if(b.cannonPhase==='fire1'||b.cannonPhase==='fire2')b5Ring(cx,cy,b.fireRing,1,dq);
+    PXD=1;},
   upd(b){
     b.x+=Math.sin(G.t*0.012)*0.7;b.y=34+Math.sin(G.t*0.02)*10;
+    b.x=clamp(b.x,0,W-b.w);   // v0.23 使用者授權:機身不得超出左右畫面邊界(原本飄移與衝撞位移沒有限制)
     if(aabb(playerBox(),{x:b.x,y:b.y,w:b.w,h:b.h}))hurtPlayer(); // 新增:本體碰撞傷害(平時飄浮及衝撞時皆生效)
-    if(b.st==='charge'){b.stT--;b.x+=b.cvx;b.y+=b.cvy;
+    const ringStep=()=>{   // 環狀掃描擴張與判定
+      b.ring+=3.4;
+      const cx=b.x+b.w/2,cy=b.y+b.h/2,d=Math.hypot(P.x+5-cx,P.y+7-cy);
+      if(Math.abs(d-b.ring)<11){
+        const shielded=!!b.shieldPlats&&b.shieldPlats.some(idx=>b5Safe(b.plats[idx]));   // v0.23 使用者授權:防護罩判定改為半圓
+        if(!shielded)hurtPlayer();
+      }
+      if(b.ring>420){b.ring=-1;b.shieldPlats=null;}
+    };
+    if(b.st==='charge'){b.stT--;b.x+=b.cvx;b.y+=b.cvy;b.x=clamp(b.x,0,W-b.w);
+      if(b.ring>=0)ringStep();   // v0.23 使用者要求修正:原本衝撞期間提早 return,已發出的掃描環會在空中停住 34 幀(v0.13 以前即如此),改為照常擴張與判定
       if(b.stT<=0)b.st='';return;}
     // 無限大砲:常駐招式,無使用次數限制,施放時暫停其他招式
     if(b.cannonPhase){
@@ -2242,9 +2423,7 @@ const B5={
         b.fireRing+=5;
         const cx=b.x+b.w/2,cy=b.y+b.h/2,d=Math.hypot(P.x+5-cx,P.y+7-cy);
         if(Math.abs(d-b.fireRing)<11){
-          const p=b.extraPlat;
-          const shielded=p&&P.x+5>=p.x*TS-6&&P.x+5<=(p.x+p.w)*TS+6&&Math.abs(P.y-p.y*TS)<40;
-          if(!shielded)hurtPlayer();
+          if(!b5Safe(b.extraPlat))hurtPlayer();   // v0.23 使用者授權:安全區改為新平台上的半圓(原為平台左右外擴 6、上下 40 的長方形)
         }
         if(b.fireRing>460){
           if(b.cannonPhase==='fire1'){b.cannonPhase='gap';b.cannonT=90;} // 間隔90幀,大於受擊無敵幀(72幀),確保兩次都能真的扣到血
@@ -2269,7 +2448,7 @@ const B5={
       G.msg='無限大砲 警示';G.msgT=230;shake(2,20);
       return;
     }
-    // 雷射掃描前2秒(120幀)開始警示,王身閃紅光,平台維持靜止;隨機選3塊平台生成防護罩(兼顧隨機與容錯)
+    // 雷射掃描前2秒(120幀)開始警示,平台維持靜止;隨機選3塊平台生成防護罩(兼顧隨機與容錯)
     b.ringCd--;
     if(b.ringCd===120&&b.cannonPhase===''){
       b.ringWarn=120;G.msg='掃描警示';G.msgT=50;
@@ -2277,44 +2456,88 @@ const B5={
     }
     if(b.ringWarn>0)b.ringWarn--;
     if(b.ringCd<=0){b.ring=0;shake(2,16);G.msg='環狀掃描';G.msgT=50;b.ringCd=340;}
-    if(b.ring>=0){
-      b.ring+=3.4;
-      const cx=b.x+b.w/2,cy=b.y+b.h/2,d=Math.hypot(P.x+5-cx,P.y+7-cy);
-      if(Math.abs(d-b.ring)<11){
-        let shielded=false;
-        if(b.shieldPlats)for(const idx of b.shieldPlats){
-          const p=b.plats[idx];
-          if(P.x+5>=p.x*TS-6&&P.x+5<=(p.x+p.w)*TS+6&&Math.abs(P.y-p.y*TS)<40)shielded=true;
-        }
-        if(!shielded)hurtPlayer();
-      }
-      if(b.ring>420){b.ring=-1;b.shieldPlats=null;}
-    }
+    if(b.ring>=0)ringStep();
+    // v0.23 使用者授權:主角在魔王正下方(衝撞方向與鉛直夾角約 19 度內,水平分量 <1,衝撞水平位移不到 34 像素,看起來像沒動)時延後衝撞:
+    // 預兆開始前(cd 降到 31)停住倒數;主角離開正下方就照常預兆並衝撞;停住 90 幀仍在正下方則取消本輪衝撞,60 幀後改出下一招(召喚)
+    if(b.ai%2===1&&b.cd===31){const dx=P.x+5-(b.x+b.w/2),dy=P.y+7-(b.y+b.h/2),n=Math.hypot(dx,dy)||1;
+      if(dy>0&&Math.abs(dx/n)*3<1){b.chgHold=(b.chgHold||0)+1;if(b.chgHold>=90){b.chgHold=0;b.ai++;b.cd=60;}else b.cd=32;}else b.chgHold=0;}
     sched(b,[
       {cd:150,f:()=>{for(let i=0;i<3;i++)addEnemy('bee',b.x+20,b.y+30,{y0:b.y+30,noDrop:i>0,boss5:true,hp:Math.floor(enemyHP('bee')*0.35)});}},
       {cd:120,f:()=>{const dx=P.x+5-(b.x+b.w/2),dy=P.y+7-(b.y+b.h/2),n=Math.hypot(dx,dy)||1;
         b.cvx=dx/n*3;b.cvy=dy/n*3;b.st='charge';b.stT=34;}},
     ]);
   },
+  vfx(b){                                        // 視覺狀態:招式發動時刻、警報燈漸變、受損火花與黑煙
+    if(b.vai!==undefined&&b.ai!==b.vai&&(b.ai-1)%2===0){b.vsum=G.t;const x=b.x+20,y=b.y+30;
+      for(let i=0;i<10;i++){const a=i/10*6.283;addPart(x,y,Math.cos(a)*1.4,Math.sin(a)*1.4-0.4,i%2?'#3ee8f0':'#d8ffff',14,1);}}
+    b.vai=b.ai;
+    b.vam=clamp((b.vam||0)+(b.cannonPhase?1/30:-1/30),0,1);
+    const hp=b.hp/b.max,X=b.x,Y=b.y;
+    if(hp<0.5&&G.t%14===0){const L=B5CR[(G.t/14)%(hp<0.25?4:2)],q=L[L.length-1];
+      for(let i=0;i<3;i++)addPart(X+q[0],Y+q[1],(b2h(G.t+i)-0.5)*2.4,-0.6-b2h(G.t*3+i)*1.2,i?'#ffd060':'#fff4d8',10+i*2,1);}
+    if(hp<0.25&&G.t%5===0){const L=B5CR[(G.t/5)%4],q=L[1];addPart(X+q[0],Y+q[1]-6,(b2h(G.t)-0.5)*0.5,-2.0-b2h(G.t+7)*0.4,G.t%10?'#6e7280':'#8a8e98',26,3);}   // 黑煙:中灰,往上飄出機身(白色機身與深色牆面上都看得見)
+  },
+  fx(b){                                         // 魔王層之上:衝撞預兆框、掃描脈衝、大砲聚能、大砲留下的平台燈條、推進器
+    const X=Math.round(b.x),Y=Math.round(b.y);
+    if(b5Tele(b)){const q=b5Pred(b),qx=Math.round(q.x),qy=Math.round(q.y),k=b.st==='charge'?1:(30-b.cd)/30;   // 橘紅預兆框 = 衝撞結束時機身 76×60(使用者選 A:斜線填色加四角括號)
+      if(b.st==='charge'||((G.t>>(k>0.6?1:2))&1)){for(let y=0;y<60;y++)for(let i=(5-(y%5))%5;i<76;i+=5)px(qx+i,qy+y,1,1,'rgba(255,90,42,'+(0.3+0.2*k)+')');
+        for(const [a,c] of[[0,0],[66,0],[0,58],[66,58]])px(qx+a,qy+c,10,2,'#ff5a2a');for(const [a,c] of[[0,0],[74,0],[0,50],[74,50]])px(qx+a,qy+c,2,10,'#ff5a2a');}
+      b5Thr(X,Y,b.st==='charge'?8:3+Math.round(k*3));}
+    else b5Thr(X,Y,1+((G.t>>3)&1));
+    const cx=X+38,cy=Y+30;
+    if(b.ringWarn>0){const q=(120-b.ringWarn)%30/30;ctx.globalAlpha=0.7*(1-q);ctx.strokeStyle='#ff4a5a';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,9+q*22,0,6.2832);ctx.stroke();ctx.globalAlpha=1;}   // 掃描預兆:鏡頭往外的紅色脈衝
+    if(b.cannonPhase==='warn'){const k=1-b.cannonT/240;                           // 大砲預兆:琥珀光點螺旋聚向鏡頭,越接近發射越多越亮
+      for(let i=0;i<Math.round(6+k*10);i++){const q=((G.t*0.012*(1+k))+i/16)%1,a=i*2.4+q*3,r=44*(1-q);px(Math.round(cx+Math.cos(a)*r),Math.round(cy+Math.sin(a)*r*0.8),q>0.7?2:1,q>0.7?2:1,q>0.6?'#fff0c8':'#ffb03a');}
+      gl(cx-12,cy-12,24,24,'#ffb03a',0.15+0.4*k);}
+    else if(b.cannonPhase)gl(cx-14,cy-14,28,28,'#ffc060',0.55);
+    for(let j=6;j<b.plats.length;j++){const p=b.plats[j];for(let i=0;i<p.w*TS-2;i+=6)px(p.x*TS+1+i,p.y*TS+3,3,1,'#ffb03a');}   // 大砲留下的常駐平台:琥珀燈條(使用者選 B)
+    if(b.extraPlat){const p=b.extraPlat;for(let i=0;i<p.w*TS-2;i+=6)px(p.x*TS+1+i,p.y*TS+3,3,1,(G.t>>3)&1?'#ffe0a0':'#ffb03a');}
+    PXD=1;},
+  bg(b){                                         // 專屬場景:背景、警報色、光槽光流(掃描轉紅並標出雷射掃過處,大砲轉琥珀)、浮空板推進光、天花板艙門
+    if(!B5BG.ok)b5BgBuild();ctx.drawImage(B5BG.n,0,0);
+    const am=b.vam||0;if(am>0){ctx.globalAlpha=am;ctx.drawImage(B5BG.a,0,0);ctx.globalAlpha=1;}
+    const scan=b.alive&&(b.ringWarn>0||b.ring>=0),can=b.alive&&!!b.cannonPhase,S=B5BG.st[can?2:scan?1:0],off=(G.t*(scan||can?2:1))%80;
+    for(const sx of B5SLOT)ctx.drawImage(S,0,off,2,192,sx-1,0,2,192);
+    const R=b.ring>=0?b.ring:(b.cannonPhase==='fire1'||b.cannonPhase==='fire2')?b.fireRing:-1;
+    if(b.alive&&R>=0){const cx=b.x+b.w/2,cy=b.y+b.h/2;for(const sx of B5SLOT){const d=R*R-(sx-cx)*(sx-cx);if(d<0)continue;
+      for(const y of[cy-Math.sqrt(d),cy+Math.sqrt(d)])if(y>-6&&y<198){px(sx-2,Math.round(y)-5,4,10,can?'#fff0c8':'#ffe0e0');gl(sx-6,y-9,12,18,can?'#ffb03a':'#ff3a4a',0.35);}}}
+    for(const p of b.plats)for(const tx of[p.x*TS+8,(p.x+p.w)*TS-11]){px(tx,p.y*TS+6,4,2,'#2a3040');   // 浮空板底部推進光
+      const f=(G.t>>2)+tx&1,j=b.plats.indexOf(p)>=6;px(tx+1,p.y*TS+8,2,2,j?'#ffb03a':'#5ff0ff');px(tx+1,p.y*TS+10,2,1+f,j?'#6a4a20':'#1f5a6a');}
+    b5Doors(b5DoorO(b));PXD=1;},
+  intro(b,k){                                    // 出場(k 0~1):天花板中央大型艙門開啟(bg)→ 由中央艙門降下 → 6 個蜂巢艙門一格格亮起 → 鏡頭眼睜開
+    if(!B5C)b5Bake();if(k<0.22)return;
+    const e=Math.min(1,(k-0.22)/0.43),X=Math.round(b.x),Y=Math.round(b.y-(1-e)*(1-e)*100);
+    b5Thr(X,Y,e<1?6:3);
+    ctx.drawImage(B5C.body.n,X+B5OX,Y+B5OY);
+    const n=Math.floor(clamp((k-0.65)/0.2,0,1)*6.99);   // 亮起的艙門數
+    for(let h=0;h<6;h++){if(h<n){const f=Math.floor((k-0.65)/0.2*7)===h+1;if(f)for(const [x,y] of B5C.ring[h])px(X+B5OX+x,Y+B5OY+y,1,1,'#9ffaff');continue;}
+      const [cx,cy]=B5HC[h];ctx.globalAlpha=0.75;px(X+cx-7,Y+cy-6,15,13,'#020305');ctx.globalAlpha=1;}
+    const L=B5C.lens,lx=X+B5LX,ly=Y+B5LY;
+    if(k<0.86)ctx.drawImage(L.dim,lx,ly);
+    else{const o=Math.min(1,(k-0.86)/0.1),hh=Math.max(1,Math.round(19*o));ctx.drawImage(L.dim,lx,ly);ctx.drawImage(L.red[o<1?2:1],0,Math.round((19-hh)/2),19,hh,lx,ly+Math.round((19-hh)/2),19,hh);
+      gl(lx-3,ly-3,25,25,'#ff3a3a',0.45*o);}
+    if(k>0.9)ctx.drawImage(B5C.shell,X,Y);
+    PXD=1;},
+  die(b,t){                                      // 死亡(200 幀內):鏡頭過載(coreDraw)、連串小爆炸、6 個艙門依序熄燈脫落、第 60 幀起墜入深井(第 96 幀出畫面)、第 118 幀落底悶響、第 128 幀井底爆炸
+    const r={x:b.x,y:b.y+(b.vfall||0),w:b.w,h:b.h};
+    if(t>=2&&t<88&&t%6===2){bExplode(r.x+6+b2h(t)*(r.w-12),r.y+6+b2h(t*3)*(r.h-12),4+((t>>3)%3),18);shake(2,8);}
+    if(t>=14&&t<74&&(t-14)%10===0){const h=(t-14)/10,[cx,cy]=B5HC[h];b.vhd=h+1;
+      for(let i=0;i<6;i++)addPart(b.x+cx,r.y+cy,(b2h(t+i)-0.5)*2.2,-1.5-b2h(t*2+i),['#c2c7cf','#6a707c','#3ee8f0'][i%3],40+i*4,2);}
+    if(t>=60)b.vfall=0.225*(t-60)*(t-60);
+    if(t===118){shake(5,22);for(let i=0;i<14;i++)addPart(b.x+18+i*3,286,(b2h(i+9)-0.5)*1.6,-1.4-b2h(i*5)*1.6,['#3a4458','#5a6478','#8a94aa'][i%3],30+i%9,2);}   // 重物落到井底:悶響震動與揚塵(使用者 11/7:延遲爆炸、營造重物跌落)
+    if(t===B5BOOM){bExplode(b.x+38,280,20,40);bDebris(b.x+38,276,12,['#c2c7cf','#6a707c','#ffb03a']);bFlash(12);shake(4,30);}   // 井底爆炸(火光較其他王輕)
+  },
+  dieFx(b,t){                                    // 井底爆炸光:第 128 幀起由深井往上照的橘光,約 60 幀淡出(強度約原 60%)
+    if(t<B5BOOM||t>B5BOOM+60)return;const f=1-(t-B5BOOM)/60,cx=b.x+38;
+    for(let y=200;y<H;y+=2){const a=f*0.3*((y-200)/88);ctx.globalAlpha=a;px(0,y,W,2,y>250?'#ffb050':'#c0581c');}ctx.globalAlpha=1;},   // 不另登記泛光(小方塊泛光在閃光中會露出方邊)
   draw(b){
-    const x=b.x,y=b.y;
-    for(let i=0;i<6;i++){const a=i/6*6.283+G.t*0.01;
-      px(x+b.w/2+Math.cos(a)*40-5,y+b.h/2+Math.sin(a)*34-5,10,10,'#5d6a8a');}
-    const flash=(b.ringWarn>0||b.cannonPhase==='warn')&&Math.floor(G.t/8)%2===0;
-    px(x+8,y+8,60,44,flash?'#ff2a2a':'#2e3a52');px(x+16,y+16,44,28,flash?'#ff8a8a':'#7affd0');px(x+28,y+24,20,12,'#0d1420');
-    if(b.shieldPlats){ // 反雷射力場:半圓形防護罩,升在防護平台上方
-      for(const idx of b.shieldPlats){
-        const p=b.plats[idx],px_=p.x*TS,py_=p.y*TS,pw_=p.w*TS;
-        ctx.fillStyle='rgba(90,208,255,.20)';ctx.strokeStyle='#8fe0ff';ctx.lineWidth=2;
-        ctx.beginPath();ctx.arc(px_+pw_/2,py_,pw_/2,Math.PI,0);ctx.fill();ctx.stroke();
-      }
-    }
-    if(b.extraPlat){ // 無限大砲專屬的免疫板,用黃色標記與原本5塊區隔
-      const p=b.extraPlat,epx=p.x*TS,epy=p.y*TS;
-      px(epx,epy-5,p.w*TS,4,'#ffe45a');
-      ctx.strokeStyle='#ffe45a';ctx.lineWidth=1;ctx.strokeRect(epx+.5,epy+.5,p.w*TS-1,3);
-    }
-  }
+    if(!B5C)b5Bake();const X=Math.round(b.x),Y=Math.round(b.y)+Math.round(b.vfall||0),hf=b.alive&&b.hf&&b.hf.core>0;
+    if(b.alive)ctx.drawImage(B5C.shell,X,Y);    // 力場殼 = 本體碰撞範圍
+    const st=!b.alive?'body':b.cannonPhase?'cannon':b5Open(b)?'open':'body';
+    ctx.drawImage(B5C[st][hf?'w':'n'],X+B5OX,Y+B5OY);
+    if(!b.alive&&b.vhd)for(let h=0;h<b.vhd;h++){const [cx,cy]=B5HC[h],sx=cx-7-B5OX,sy=cy-6-B5OY;ctx.drawImage(B5C.dead.n,sx,sy,15,13,X+cx-7,Y+cy-6,15,13);}   // 死亡:艙門依序熄燈脫落
+    const hp=b.hp/b.max;if(hp<0.5)ctx.drawImage(B5C.cr[hp<0.25?1:0],X+B5OX,Y+B5OY);   // 受損:50% 以下 2 條裂縫、25% 以下 4 條(火花與黑煙在 vfx)
+    PXD=1;}
 };
 /* ========== 6-5 灰燼騎士與詠嘆者 ========== */
 const B6={
