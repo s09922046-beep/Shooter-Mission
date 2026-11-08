@@ -1,0 +1,28 @@
+【7 王 無名的顏色:一則場景,附上 boss7-arena-template.png。本體只有 22x22 像素(縮 46 倍後生圖細節全失),由 Claude 直接手繪,見 boss7-gen/mock.png 第 1 列】
+
+【場景(附 boss7-arena-template.png)】
+
+Background art for one fixed screen of a 2D side-scrolling pixel-art run-and-gun game: the boss arena of a strange floating crystal creature. Use the attached guide image as an exact layout template. It will be shrunk 3 times (to 512 x 341 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Grey side areas and the blue band at the bottom = drawn by the game (side walls, the shallow stream with its stepping stones, water surface and reflections). Keep them exactly as they are; draw nothing there.
+- Cyan line = the water line. The far bank of the stream meets the water along this line.
+- Magenta #FF00FF = the sky, drawn by the game (a dim blue pre-dawn gradient and a low warm sun on the horizon). Keep the sky flat solid magenta. Paint everything that stands in front of the sky.
+- White dashed boxes = mossy stone platforms and two hanging vines that the game draws later. Do not draw anything inside them, and keep the background behind them simple.
+- Orange dashed boxes = the two hanging vines start here. Paint overhanging tree branches and leafy canopy that fill these boxes, coming in from the top edge, so the vines look like they hang from them.
+- Yellow dashed box = the boss flies around here. Keep this area mostly open sky and far, faint mountains with very little detail.
+
+Scene: a quiet, hidden mountain stream in a secluded valley that people never reach, at the blue hour just before dawn. Calm, pure, untouched nature.
+- Far back: two or three layers of distant mountain ridges, each layer lighter, greyer and bluer than the one in front of it. The ridges stay in the lower half of the sky so plenty of sky shows above them.
+- Middle: tall old trees at the far left and far right edges, framing the screen; their branches reach in over the top edge into the orange boxes. A thin distant waterfall falls from a cliff between the mountains, far behind the yellow box, very faint.
+- Near the water line: low mossy boulders, ferns and reeds along the far bank of the stream.
+- No people, no buildings, no ruins, no animals, no text.
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color pixel-art-friendly illustration. Use only 3 or 4 tones per material. No gradients, no soft shading, no texture noise, no glow, no rim light, no fog, no mist, no light rays (the game draws them).
+- No shape or gap smaller than 12 pixels across. Big simple shapes; no single leaves, no fine grass blades, no small pebbles.
+- Colors: muted dawn blues, slate teal and grey-green, low contrast overall. The darkest color must not be darker than #1e2e36 and the lightest must not be lighter than #8aa4a6. No red, no pink, no magenta, no purple, no saturated blue, no white anywhere (red, blue and purple are the boss's terrain colors, pink is its bullets, white is its beams).
+- Things further back are lighter and greyer; the nearest trees and boulders are the darkest.
+- Strict side view, flat horizon, no perspective distortion, no vanishing point.
+- The design must be original and must not resemble any existing game, film or real place photo.
