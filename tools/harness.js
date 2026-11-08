@@ -715,6 +715,54 @@ async function b7hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
     const nm=['紅','藍','紫'],trn={};for(const k in tr)trn[k.split('>').map(v=>nm[v]).join('→')]=tr[k];
     return {d:o.toDataURL().split(',')[1],log:{變色次數:colorChg,轉換:trn,前24次:seq.map(v=>nm[v]).join(''),紫色時主角正站在平台上:fallP,站在灼燒格上的幀數:burnStand}};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
+// v0.24 7 王:場景、各招特效、登場、死亡逐格截圖(2 欄);並核對變色規則(不連續同色、預告 90 幀、一輪 270 幀、只在切換那一幀改地形)、灼燒格扣血範圍、招式數字
+async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  await pg.evaluate(async()=>{HX.go(7,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,400));});   // 場景內嵌圖非同步載入
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;const ck=(n,ok,v)=>{o.push(`${ok?'OK':'NG'} ${n}${v!==undefined?'('+v+')':''}`);if(!ok)bad++;};
+    const cv=document.querySelector('canvas'),CW=640,CH=360,cel=document.createElement('canvas');cel.width=CW*2;cel.height=CH*13;const x=cel.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=(lab,c)=>{const pi=P.inv;P.inv=0;HX.warm();render();P.inv=pi;const sc=cv.width/512,q=c||[0,0,512,288];
+      x.drawImage(cv,q[0]*sc,q[1]*sc,q[2]*sc,q[3]*sc,(n%2)*CW,Math.floor(n/2)*CH,CW,CH);
+      x.fillStyle='rgba(0,0,0,.7)';x.fillRect((n%2)*CW,Math.floor(n/2)*CH,CW,24);x.fillStyle='#fff';x.font='15px sans-serif';x.fillText(lab,(n%2)*CW+8,Math.floor(n/2)*CH+17);n++;};
+    const fresh=()=>{HX.go(7,5);HX.run(320);hazs.length=0;ebul.length=0;const b=boss;b.decoys=[];b.cd=9999;P.x=4*TS;P.y=15*TS-14;return b;};
+    const run=(b,k,hold)=>{for(let i=0;i<k;i++){P.inv=999;if(hold)b.cd=9999;update();}};
+    // 1 變色規則:30000 幀
+    let b=fresh();let prev=b.col,sw=0,same=0,lens=[],last=0,pv=[],terr=0,tc={},bad90=0;const tv=()=>T(b.cells[0][0],b.cells[0][1]);let tprev=tv();
+    for(let i=1;i<=30000;i++){P.inv=999;const nc0=b.nCol,c0=b.col;update();
+      if(b.nCol>=0&&nc0<0)pv.push(i);
+      if(b.col!==c0||(b.colT===270&&i>1)){sw++;if(b.col===c0)same++;lens.push(i-last);last=i;const k=c0+'>'+b.col;tc[k]=(tc[k]||0)+1;if(!pv.length||i-pv[pv.length-1]!==90)bad90++;}
+      const t1=tv();if(t1!==tprev&&b.col===c0&&b.colT!==270)terr++;tprev=t1;}
+    const nm=['紅','藍','紫'],trn={};for(const k in tc)trn[k.split('>').map(v=>nm[v]).join('→')]=tc[k];
+    ck('不連續同色',same===0,'切換 '+sw+' 次、同色 '+same+' 次');ck('一輪 270 幀',lens.slice(1).every(v=>v===270),'首段 '+lens[0]+'(開場湛藍 270)');
+    ck('每次切換前 90 幀預告',bad90===0,'不符 '+bad90);ck('地形只在切換那一幀改變',terr===0,'例外 '+terr);o.push('轉換次數 '+JSON.stringify(trn));
+    // 2 灼燒格扣血範圍(授權:格頂上 1 到格頂下 9 像素)
+    b=fresh();B7.setCol(b,0);const [cx_,cy_]=b.cells[0],ty=cy_*TS;const hit=Y=>{P.x=cx_*TS+3;P.y=Y;return B7.burnHit();};
+    ck('主角腳底剛好碰到炭塊上緣(格頂上 1)扣血',hit(ty-1-14+1));ck('腳底在炭塊上緣之上 1 像素不扣血',!hit(ty-1-14));
+    ck('頭頂在格頂下 8 像素扣血',hit(ty+8));ck('頭頂在格頂下 9 像素(炭塊下方)不扣血',!hit(ty+9));
+    const old=Y=>{P.x=cx_*TS+3;P.y=Y;return tileKind(P.x,P.y+2,P.w,P.h,5);};o.push('對照舊規則:頭頂在格頂下 9 像素 '+(old(ty+9)?'扣血':'不扣')+'、格頂下 13 像素 '+(old(ty+13)?'扣血':'不扣'));
+    // 3 招式數字
+    b=fresh();b.ai=0;b.cd=0;update();ck('光柱 2 道、寬 26、預警 95、生效 90',hazs.length===2&&hazs.every(z=>z.w===26&&z.warn===95&&z.live===90&&z.fx==='b7beam'),hazs.map(z=>z.w+'/'+z.warn+'/'+z.live).join(' '));
+    b=fresh();b.ai=3;b.cd=0;update();ck('12 方向彈 12 顆、r=3',ebul.length===12&&ebul.every(e=>e.r===3&&e.vk==='b7s'));
+    b=fresh();b.ai=2;b.cd=0;update();ck('方向錯亂 120 幀',G.invertT===120||G.invertT===119,G.invertT);
+    b=fresh();b.ai=1;b.cd=0;update();ck('假結晶 3 顆、判定 22×22',bossParts().length===4&&bossParts().every(p=>p.w===22&&p.h===22));
+    // 截圖
+    b=fresh();run(b,30,1);grab('1 湛藍:長苔石板、淺溪倒影(含假結晶)、結晶光暈藍');grab('1b 結晶本體(放大,減少混白)',[b.x-21,b.y-7,64,36]);
+    b.ai=1;b.cd=0;update();run(b,20,1);grab('2 假結晶 3 顆(與本體同精靈、原地浮動 1 像素)');
+    const on=b=>{let k=0;while(!b7Flash(90-b.colT)&&k<8){run(b,1,1);k++;}};
+    b=fresh();b.colT=91;run(b,2,1);b.nCol=0;G.msg=B7NM[0];run(b,10,1);grab('3 預告(下一色赤紅)第 12 幀:光暈先換紅、新色光環、平台白閃、字幕');
+    run(b,60,1);on(b);grab('4 預告第 72 幀:白閃加快(放大)',[96,120,256,144]);
+    run(b,20,1);grab('5 赤紅:懸空通紅炭塊(放大)',[96,120,256,144]);
+    b.colT=80;b.nCol=2;run(b,8,1);let k=0;while(!b7Flash(90-b.colT)&&k<6){run(b,1,1);k++;}grab('6 灼燒中預告幻紫:炭塊閃白(放大)',[96,120,256,144]);
+    b.colT=1;run(b,2,1);b.colT=60;b.nCol=1;k=0;while(!b7Flash(90-b.colT)&&k<6){run(b,1,1);k++;}grab('7 幻紫(平台消失)中預告湛藍:原平台位置白閃');
+    b=fresh();b.ai=0;b.cd=0;update();run(b,60,1);grab('8 光柱預警(共用光束樣式,白色)');run(b,50,1);grab('9 虹彩光柱生效(定案:無白芯,整道色帶流動)');
+    B7NOWC=0;HX.warm();grab('10 光柱白芯版(未採用,對照用)');B7NOWC=1;
+    b=fresh();b.ai=1;b.cd=0;update();run(b,10,1);{const d=b.decoys[0];bossDamage({x:d.x,y:d.y,w:22,h:22,key:'f0'},1);}run(b,40,1);grab('11 打中假結晶後 40 幀:3 顆同步脈動、連出細光線');
+    run(b,45,1);grab('12 共鳴 85 幀:更亮');
+    b=fresh();b.ai=3;b.cd=0;update();run(b,30,1);grab('13 12 方向彈:粉紅三角尖頭朝飛行方向(放大)',[b.x-117,b.y-60,256,144]);
+    b=fresh();b.ai=2;b.cd=0;P.x=200;P.y=15*TS-14;update();run(b,20,1);grab('14 方向錯亂:頭上正中黃色螺旋(放大)',[P.x-60,P.y-50,128,72]);
+    for(const [t,lab] of[[135,'登場 k0.15:水面一點異色光'],[160,'登場 k0.4:油膜擴散'],[183,'登場 k0.63:色點升起'],[200,'登場 k0.8:碎片聚合'],[214,'登場 k0.94:光暈亮起']]){HX.go(7,5);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab+'(放大)',[123,104,256,144]);}
+    for(const [t,lab] of[[30,'死亡 30:龜裂、色彩漏出'],[70,'死亡 70:褪成透明無色'],[110,'死亡 110:碎落'],[150,'死亡 150:碎片落進溪裡']]){b=fresh();b.introT=0;bossDamage(bossParts()[0],1e8);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab+(t<100?'(放大)':''),t<100?[b.x-117,b.y-60,256,144]:null);}
+    return {d:cel.toDataURL().split(',')[1],o,bad};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log(r.o.join('\n'));console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();return r.bad+errs.length;}
 (async()=>{const [cmd,...a]=process.argv.slice(2);let bad=0;
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
@@ -740,6 +788,7 @@ async function b7hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
   else if(cmd==='b5fx')bad=await b5fx(a[0],a[1]);
   else if(cmd==='b5hit')await b5hit(a[0],a[1]);
   else if(cmd==='b7hit')await b7hit(a[0],a[1]);
+  else if(cmd==='b7fx')bad=await b7fx(a[0]||'b7fx.png',a[1]);
   else if(cmd==='b10fx3')bad=await b10fx3(a[0]||'fx',a[1],a[2]);
   else if(cmd==='bseq')await bseq(a[0],a[1]||8,(a[2]||'').split(',').filter(v=>v).map(Number),(a[3]||'').split(',').filter(v=>v).map(Number),(a[4]||'0,0,512,288').split(',').map(Number),a[5]);
   else if(cmd==='strand')bad=await strand(a[0],a[1],a[2]);
