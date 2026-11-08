@@ -2,6 +2,9 @@
 node_modules/
 preview/
 
+# 外部特效參考庫(使用者自行下載,不提交;見 design-decisions.md 第 7 節)
+pixelfx-main/
+
 # 測試輸出與暫存
 *.log
 *.tmp
