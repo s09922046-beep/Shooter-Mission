@@ -656,6 +656,65 @@ async function b5fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
     o.push('招式數字:掃描間隔 340、預警 120、環速 3.4;大砲預警 240、環速 5、間隔 90(程式未改,見 diff)');
     return {d:cel.toDataURL().split(',')[1],o,bad};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log(r.o.join('\n'));console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();return r.bad+errs.length;}
+// 7 王判定稽核(11/8):十二格截圖(最後兩格不疊框)疊出實際扣血範圍(紅)、預警期不扣血的範圍(黃虛線)、可站立的平台(綠),對照畫面;另跑 20000 幀統計變色順序與主角腳下平台的變化
+async function b7hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  const r=await pg.evaluate(()=>{HX.go(7,5);HX.run(320);
+    const cv=document.querySelector('canvas'),CW=640,CH=360,S=CW/512,o=document.createElement('canvas');o.width=CW*2;o.height=CH*6;const x=o.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=(lab,ov)=>{const pi=P.inv;P.inv=0;HX.warm();render();P.inv=pi;const ox=(n%2)*CW,oy=Math.floor(n/2)*CH;x.drawImage(cv,0,0,cv.width,cv.height,ox,oy,CW,CH);
+      x.save();x.beginPath();x.rect(ox,oy,CW,CH);x.clip();x.translate(ox,oy);x.scale(S,S);x.lineWidth=1/S*2;ov&&ov();x.restore();
+      x.fillStyle='rgba(0,0,0,.7)';x.fillRect(ox,oy,CW,26);x.fillStyle='#fff';x.font='15px sans-serif';x.fillText(lab,ox+8,oy+18);n++;};
+    const box=(q,c,fill,dash)=>{x.strokeStyle=c;dash&&x.setLineDash([3,2]);x.strokeRect(q.x,q.y,q.w,q.h);if(fill){x.fillStyle=fill;x.fillRect(q.x,q.y,q.w,q.h);}x.setLineDash([]);};
+    const cells=(c,fill,dash)=>{for(const [cx,cy] of boss.cells)box({x:cx*TS,y:cy*TS,w:TS,h:TS},c,fill,dash);};
+    const hold=()=>{P.inv=999;boss.cd=999;boss.colT=999;};   // 每次 fresh() 會換新的 boss 物件,一律讀全域 boss
+    const core=()=>box({x:boss.x,y:boss.y,w:boss.w,h:boss.h},'#ff3030');
+    const fresh=()=>{HX.go(7,5);HX.run(320);hazs.length=0;ebul.length=0;boss.decoys=[];boss.cd=999;boss.colT=999;P.x=4*TS;P.y=15*TS-14;return boss;};
+    fresh();
+    // 1 藍:平台可站
+    B7.setCol(boss,1);for(let i=0;i<5;i++){hold();update();}
+    grab('1 藍(安全):紅框=本體碰撞 22×22;綠=可站立平台',()=>{core();cells('#3fff6a','rgba(63,255,106,.15)');});
+    // 2 紅警示
+    B7.setCol(boss,0);for(let i=0;i<60;i++){hold();update();}
+    grab('2 紅警示(120 幀,此時仍可站):60 幀後',()=>{core();cells('#ffd23a',null,1);});
+    // 3 灼燒
+    for(let i=0;i<65;i++){hold();update();}
+    grab('3 灼燒:紅=碰到扣血,且不能站(會穿過去)',()=>{core();cells('#ff3030','rgba(255,40,40,.35)');});
+    // 4 紫:消失
+    B7.setCol(boss,2);for(let i=0;i<5;i++){hold();update();}
+    grab('4 紫(消失,無預警):虛線=原平台位置,站在上面會直接掉下',()=>{core();cells('#c080ff',null,1);});
+    // 5、6 紅藍光柱
+    fresh();B7.setCol(boss,1);boss.ai=0;boss.cd=0;update();const zs=hazs.slice();for(let i=0;i<50;i++){hold();update();}
+    grab('5 紅藍光柱預警(95 幀,不扣血):黃虛線=之後的判定 26 寬',()=>{core();for(const z of zs)box(z,'#ffd23a',null,1);});
+    for(let i=0;i<55;i++){hold();update();}
+    grab('6 紅藍光柱生效(90 幀):紅=扣血。藍柱也扣血',()=>{core();for(const z of zs)box(z,'#ff3030','rgba(255,40,40,.3)');});
+    // 7 假結晶
+    fresh();B7.setCol(boss,1);boss.ai=1;boss.cd=0;update();for(let i=0;i<20;i++){hold();update();}
+    const dz=boss.decoys.map(d=>({x:d.x,y:d.y,w:22,h:22}));
+    grab('7 假結晶:紅=本體(碰撞並受傷);橘=假結晶 22×22(打中扣特攻量 15%)',()=>{core();for(const q of dz)box(q,'#ffa030');});
+    // 8 共鳴引爆
+    {const d=boss.decoys[0];bossDamage({x:d.x,y:d.y,w:22,h:22,key:'f0'},1);}
+    for(let i=0;i<60;i++){hold();update();}
+    grab('8 打中假結晶後 60 幀:3 道光柱尚未出現(90 幀後才開始預警)',()=>{core();for(const q of dz)box({x:q.x,y:0,w:22,h:288},'#ffd23a',null,1);});
+    // 9 12 方向彈
+    fresh();B7.setCol(boss,1);boss.ai=3;boss.cd=0;update();for(let i=0;i<40;i++){hold();update();}
+    grab('9 12 方向彈:紅框=子彈判定(半徑 3 的方形)',()=>{core();for(const e of ebul)box({x:e.x-e.r,y:e.y-e.r,w:e.r*2,h:e.r*2},'#ff3030');});
+    // 10 方向錯亂
+    fresh();B7.setCol(boss,1);boss.ai=2;boss.cd=0;update();for(let i=0;i<30;i++){hold();update();}
+    grab(`10 方向錯亂:左右鍵對調 ${G.invertT+30} 幀;畫面只有 70 幀字幕`,()=>{core();box(playerBox(),'#c080ff');});
+    // 11、12 不疊框的原始畫面:紫接紅的警示期(平台此時是空格)、灼燒格(第 7 關灼燒面材質 K2)
+    fresh();B7.setCol(boss,2);B7.setCol(boss,0);for(let i=0;i<16;i++){hold();update();}
+    grab('11 原畫面:紫接紅的警示期,平台看不見,只有閃紅的那 8 幀出現');
+    for(let i=0;i<110;i++){hold();update();}
+    grab('12 原畫面:灼燒中(會穿過、碰到扣血)');
+    // 統計:正常出招 20000 幀(主角無敵,站在中央平台上)
+    HX.go(7,5);HX.run(320);const B=boss,seq=[],tr={};let prev=B.col,fallP=0,burnStand=0,colorChg=0,lastT=B.colT;let onPlat=0;
+    for(let i=0;i<20000;i++){P.inv=999;P.lives=5;if(i%600===0){P.x=15*TS;P.y=10*TS-14;P.vy=0;}
+      const wasOn=P.onG&&P.y<10*TS;const c0=B.col;update();
+      if(B.col!==c0||B.colT===240){colorChg++;const k=c0+'>'+B.col;tr[k]=(tr[k]||0)+1;if(seq.length<24)seq.push(B.col);
+        if(B.col===2&&wasOn)fallP++;}
+      if(wasOn&&T(Math.floor((P.x+5)/TS),10)===5)burnStand++;}
+    const nm=['紅','藍','紫'],trn={};for(const k in tr)trn[k.split('>').map(v=>nm[v]).join('→')]=tr[k];
+    return {d:o.toDataURL().split(',')[1],log:{變色次數:colorChg,轉換:trn,前24次:seq.map(v=>nm[v]).join(''),紫色時主角正站在平台上:fallP,站在灼燒格上的幀數:burnStand}};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
 (async()=>{const [cmd,...a]=process.argv.slice(2);let bad=0;
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
@@ -680,6 +739,7 @@ async function b5fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b10hop')bad=await b10hop(a[0]);
   else if(cmd==='b5fx')bad=await b5fx(a[0],a[1]);
   else if(cmd==='b5hit')await b5hit(a[0],a[1]);
+  else if(cmd==='b7hit')await b7hit(a[0],a[1]);
   else if(cmd==='b10fx3')bad=await b10fx3(a[0]||'fx',a[1],a[2]);
   else if(cmd==='bseq')await bseq(a[0],a[1]||8,(a[2]||'').split(',').filter(v=>v).map(Number),(a[3]||'').split(',').filter(v=>v).map(Number),(a[4]||'0,0,512,288').split(',').map(Number),a[5]);
   else if(cmd==='strand')bad=await strand(a[0],a[1],a[2]);
