@@ -715,6 +715,43 @@ async function b7hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
     const nm=['紅','藍','紫'],trn={};for(const k in tr)trn[k.split('>').map(v=>nm[v]).join('→')]=tr[k];
     return {d:o.toDataURL().split(',')[1],log:{變色次數:colorChg,轉換:trn,前24次:seq.map(v=>nm[v]).join(''),紫色時主角正站在平台上:fallP,站在灼燒格上的幀數:burnStand}};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
+// 1 王判定稽核(11/9):紅=扣血、黃虛線=預警期不扣血、藍=裝甲板(可打)、橘=核心、灰虛線=本體範圍(不扣血);另統計砲彈消失高度、無人機同時數量
+async function b1hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  const r=await pg.evaluate(()=>{HX.go(1,5);HX.run(320);
+    const cv=document.querySelector('canvas'),CW=640,CH=360,S=CW/512,o=document.createElement('canvas');o.width=CW*2;o.height=CH*4;const x=o.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=(lab,ov)=>{const pi=P.inv;P.inv=0;HX.warm();render();P.inv=pi;const ox=(n%2)*CW,oy=Math.floor(n/2)*CH;x.drawImage(cv,0,0,cv.width,cv.height,ox,oy,CW,CH);
+      x.save();x.beginPath();x.rect(ox,oy,CW,CH);x.clip();x.translate(ox,oy);x.scale(S,S);x.lineWidth=1/S*2;ov&&ov();x.restore();
+      x.fillStyle='rgba(0,0,0,.7)';x.fillRect(ox,oy,CW,26);x.fillStyle='#fff';x.font='15px sans-serif';x.fillText(lab,ox+8,oy+18);n++;};
+    const box=(q,c,fill,dash)=>{x.strokeStyle=c;dash&&x.setLineDash([3,2]);x.strokeRect(q.x,q.y,q.w,q.h);if(fill){x.fillStyle=fill;x.fillRect(q.x,q.y,q.w,q.h);}x.setLineDash([]);};
+    const parts=()=>{box({x:boss.x,y:boss.y,w:boss.w,h:boss.h},'#a0a0a0',null,1);for(const p of bossParts())box(p,p.key==='core'?'#ffa030':'#40b0ff');};
+    const vines=()=>{for(let ty=0;ty<GH;ty++)for(let tx=0;tx<32;tx++){const t=T(tx,ty);if(t===2)box({x:tx*TS,y:ty*TS,w:TS,h:TS},'#3fff6a',null,1);if(t===3)box({x:tx*TS,y:ty*TS,w:TS,h:4},'#3fff6a','rgba(63,255,106,.2)');}};
+    const hold=()=>{P.inv=999;boss.cd=999;};
+    const fresh=()=>{HX.go(1,5);HX.run(320);hazs.length=0;ebul.length=0;ens.length=0;boss.cd=999;P.x=4*TS;P.y=13*TS-14;};
+    fresh();for(let i=0;i<5;i++){hold();update();}
+    grab('1 平時:藍=裝甲板 36×26、橘=核心 40×40;灰虛線=本體(碰到不扣血);綠=繩梯與平台',()=>{parts();vines();});
+    fresh();boss.ai=0;boss.cd=0;update();let zs=hazs.slice();for(let i=0;i<60;i++){hold();update();}
+    grab(`2 電流條預警(${zs[0].warn} 幀,不扣血):黃虛線=之後的判定`,()=>{parts();for(const z of zs)box(z,'#ffd23a',null,1);});
+    for(let i=0;i<zs[0].warn-60+20;i++){hold();update();}
+    grab(`3 電流條生效(${zs[0].live} 幀):紅=扣血(地面上 12 像素高,全寬)`,()=>{parts();for(const z of zs)box(z,'#ff3030','rgba(255,40,40,.35)');});
+    fresh();boss.ai=1;boss.cd=0;update();const trail=[];let last=[];
+    for(let i=0;i<59;i++){hold();update();for(const e of ebul)trail.push([e.x,e.y]);last=ebul.map(e=>({x:e.x,y:e.y,r:e.r}));}
+    grab('4 迫擊砲彈:紅點=飛行軌跡(碰到扣血)、紅框=砲彈判定;砲彈在這個高度消失',()=>{parts();x.fillStyle='#ff3030';for(const [a,b] of trail)x.fillRect(a-.5,b-.5,1,1);for(const e of last)box({x:e.x-e.r,y:e.y-e.r,w:e.r*2,h:e.r*2},'#ff3030');});
+    hold();update();hold();update();zs=hazs.slice();
+    grab(`5 砲彈消失那一幀:地面火圈預警(${zs[0]?zs[0].warn:'?'} 幀,黃虛線)`,()=>{parts();for(const z of zs)box(z,'#ffd23a',null,1);for(const e of last)box({x:e.x-e.r,y:e.y-e.r,w:e.r*2,h:e.r*2},'#ff3030',null,1);});
+    for(let i=0;i<40;i++){hold();update();}
+    grab(`6 火圈生效(${zs[0]?zs[0].live:'?'} 幀):紅=扣血 40×14`,()=>{parts();for(const z of zs)box(z,'#ff3030','rgba(255,40,40,.35)');});
+    fresh();boss.ai=2;boss.cd=0;update();for(let i=0;i<30;i++){hold();update();}
+    grab('7 召喚無人機:紅=無人機判定(碰到扣血)',()=>{parts();for(const e of ens)box(e,'#ff3030');});
+    fresh();boss.plates=[0,0,0];for(let i=0;i<5;i++){hold();update();}
+    grab('8 裝甲全破:核心全額受傷,480 幀後三片裝甲同時復原(目前沒有預兆)',()=>{parts();});
+    // 統計 20000 幀(主角無敵站在左方地面)
+    HX.go(1,5);HX.run(320);let vy=[],maxD=0,wall=0,maxE=0,fires=0,onPlat=0;const seen=new Set();
+    for(let i=0;i<20000;i++){P.inv=999;P.lives=5;const before=ebul.filter(e=>e.mortar).map(e=>({e,x:e.x,y:e.y,t:e.t,l:e.life}));const hz0=hazs.length;update();
+      for(const q of before)if(!ebul.includes(q.e)){if(q.t+1>=q.l){vy.push(Math.round(q.y));fires++;}else wall++;}
+      maxD=Math.max(maxD,ens.filter(e=>e.type==='drone').length);}
+    vy.sort((a,b)=>a-b);
+    return {d:o.toDataURL().split(',')[1],log:{砲彈正常消失次數:fires,撞牆或命中提早消失:wall,消失高度範圍:[vy[0],vy[vy.length-1]],地表:13*TS,同時最多無人機:maxD,魔王血量:boss.max,裝甲每片:1400}};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
 // v0.24 7 王:場景、各招特效、登場、死亡逐格截圖(2 欄);並核對變色規則(不連續同色、預告 90 幀、一輪 270 幀、只在切換那一幀改地形)、灼燒格扣血範圍、招式數字
 async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
   await pg.evaluate(async()=>{HX.go(7,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,400));});   // 場景內嵌圖非同步載入
@@ -788,6 +825,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b5fx')bad=await b5fx(a[0],a[1]);
   else if(cmd==='b5hit')await b5hit(a[0],a[1]);
   else if(cmd==='b7hit')await b7hit(a[0],a[1]);
+  else if(cmd==='b1hit')await b1hit(a[0],a[1]);
   else if(cmd==='b7fx')bad=await b7fx(a[0]||'b7fx.png',a[1]);
   else if(cmd==='b10fx3')bad=await b10fx3(a[0]||'fx',a[1],a[2]);
   else if(cmd==='bseq')await bseq(a[0],a[1]||8,(a[2]||'').split(',').filter(v=>v).map(Number),(a[3]||'').split(',').filter(v=>v).map(Number),(a[4]||'0,0,512,288').split(',').map(Number),a[5]);
