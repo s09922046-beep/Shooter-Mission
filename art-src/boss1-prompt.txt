@@ -1,0 +1,67 @@
+【1 王 赫利俄斯殘骸:本體三則加場景一則。本體三則在同一個對話依序送:第 1 則附上 boss1-body-template.png,第 1 張滿意後再送第 2、3 則。場景另開一個對話,附上 boss1-arena-template.png】
+
+【本體 第 1 則:主設計(附 boss1-body-template.png)】
+
+Boss art for a 2D side-scrolling pixel-art run-and-gun game. Use the attached guide image as an exact layout template. The result will be shrunk 6 times (to 256 x 171 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Magenta #FF00FF = empty. Keep every area you do not paint as flat solid magenta #FF00FF.
+- Orange line = the limit of the drawing. Paint nothing to the left of the vertical orange line and nothing below the horizontal orange line.
+- White dashed box = the solid hull. Fill this whole box with hull, with no gaps and no see-through holes. The hull's left side must be a straight vertical wall exactly on the left dashed line, and the hull's underside must be flat and exactly on the bottom dashed line.
+- Cyan lines = the edges of the game screen. The ship is far too big for the screen: keep painting the hull past the cyan lines, upward and to the right, all the way to the top and right edges of the canvas, so the ship looks enormous and cut off by the screen.
+- Blue boxes = three heavy armor plates bolted onto the front of the ship. Each plate must sit exactly inside its blue box.
+- Red box = THE CORE. It must sit exactly inside the red box.
+- Yellow circles = two small hangar doors on the front wall, one on each circle. Small attack drones launch from them.
+
+Ship: an original, colossal, derelict unmanned battleship, hovering in the air above a graveyard of crashed ships. What we see is only the front section of a ship that is many times larger. Mood: huge, heavy, ancient, grand and menacing.
+Key identifying features (they must be readable even as a black silhouette):
+- A massive, blunt, flat-faced armored bow facing left, like a fortress wall, with the three armor plates stacked on it.
+- Above it, a tall stepped superstructure with a broken mast and antenna towers rising off the top of the screen.
+- The core: a round "sun furnace" reactor set into the side of the hull, covered by a heavy louvered shutter (horizontal slats). Deep red glow shows through the gaps between the slats. The red glow is the only red thing in the image.
+- Battle damage: torn hull plating with dark internal ribs showing through (dark, not see-through), dents, and one dead thruster nozzle on the underside near the right.
+- Lots of large-scale detail that sells the size: rows of tiny dark windows, thick pipes, hull panel seams, a big faded hull number painted on the side.
+Colors: weathered gunmetal blue-grey steel, darker slate for shadowed parts, a few desaturated rust-brown streaks running down from seams, small cold pale-white running lights. No red anywhere except the core glow. No orange, no yellow, no bright cyan (those are reserved for the boss's fire shells, sparks and electric attacks).
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color illustration with dark outlines of even thickness (about 6 pixels).
+- 4 to 5 tones per material for large areas (light to dark steps), lit from the upper left by cold moonlight. No gradients, no soft shading, no texture noise, no glow halo, no particle effects, no smoke, no background.
+- No shape or gap smaller than 12 pixels across.
+- The design must be original and must not resemble any existing game, film, anime, toy or brand character or vehicle.
+
+【本體 第 2 則:狀態表(第 1 張滿意後送出,只當 Claude 手繪的參考)】
+
+Now draw the same ship two more times side by side in one image, same size, same design, same colors and same style, on the same flat magenta #FF00FF background. No text, no labels.
+1. Armor broken: the three armor plates are blown off, leaving dark scorched sockets with exposed girders. The core shutter has slid open, showing the full round sun furnace: a bright red-hot core with a white-hot center (still the only red thing).
+2. Wrecked: the ship is broken in two near the middle, the front half tilted down, plating torn and hanging, the core dark and burned out.
+
+【本體 第 3 則:剪影(第 1 張滿意後送出)】
+
+Now output exactly the same image as the first one, same canvas and same positions, as a pure black silhouette (#000000) on the flat magenta #FF00FF background. Only the red core glow stays in full color. No outlines, no interior details.
+
+【場景(另開對話,附 boss1-arena-template.png)】
+
+Background art for one fixed screen of a 2D side-scrolling pixel-art run-and-gun game: the boss arena of a colossal derelict battleship. Use the attached guide image as an exact layout template. It will be shrunk 3 times (to 512 x 341 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Grey side areas and the blue band at the bottom = drawn by the game (side walls and the metal deck the player stands on). Keep them exactly as they are; draw nothing there.
+- Cyan line = the horizon line where the far ground meets the game's deck.
+- Magenta #FF00FF = the night sky, drawn by the game (dark blue gradient, moon and stars). Keep the sky flat solid magenta. Paint everything that stands in front of the sky.
+- White dashed boxes = platforms and two hanging chains that the game draws later. Draw nothing inside them, and keep the background behind them simple and dark.
+- Orange dashed box = the boss ship hovers here (drawn by the game). Keep this area empty sky, with only the low far horizon showing below it.
+- Light blue dashed box = a far-away, gigantic wreck of a battleship lies here, many times larger than anything else in the scene: a long broken hull lying on the ground, its front end torn off and facing right (towards the orange box), with exposed ribs and girders like the skeleton of a whale, tall broken towers. Paint it as a big low-contrast silhouette with only a few large shapes.
+
+Scene: a wasteland graveyard of crashed airships and battleships at night. Calm, cold, desolate and grand.
+- Far back: a flat horizon with distant smaller wrecks and broken hulls half buried in sand, lighter and greyer the further away they are.
+- The gigantic battleship wreck in the light blue box, behind everything else in the middle distance.
+- Near the horizon line: scattered hull plates, bent girders and half-buried engine parts.
+- No people, no buildings, no animals, no fire, no lights, no text.
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color pixel-art-friendly illustration. Use only 3 or 4 tones per material. No gradients, no soft shading, no texture noise, no glow, no rim light, no fog, no light rays (the game draws them).
+- No shape or gap smaller than 12 pixels across. Big simple shapes; no small rivets, no fine cables.
+- Colors: muted night blues, slate and blue-grey, low contrast overall. The darkest color must not be darker than #141c2a and the lightest must not be lighter than #5a6a86. No red, no orange, no yellow, no bright cyan, no white anywhere (those are the boss's core, fire shells, sparks and electric attacks).
+- Things further back are lighter and greyer; the nearest debris is the darkest.
+- Strict side view, flat horizon, no perspective distortion, no vanishing point.
+- The design must be original and must not resemble any existing game, film or real place photo.
