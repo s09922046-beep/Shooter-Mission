@@ -752,6 +752,61 @@ async function b1hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
     vy.sort((a,b)=>a-b);
     return {d:o.toDataURL().split(',')[1],log:{砲彈正常消失次數:fires,撞牆或命中提早消失:wall,消失高度範圍:[vy[0],vy[vy.length-1]],地表:13*TS,同時最多無人機:maxD,魔王血量:boss.max,裝甲每片:1400}};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
+// v0.25 1 王:核對四項授權(砲彈真的落地、艦體碰撞、右鐵鍊第 18 欄、無人機上限 10)與招式數字;場景、各招特效、登場、死亡逐格截圖(2 欄)
+async function b1fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  await pg.evaluate(async()=>{HX.go(1,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,400));});   // 內嵌圖非同步載入
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;const ck=(n,ok,v)=>{o.push(`${ok?'OK':'NG'} ${n}${v!==undefined?'('+v+')':''}`);if(!ok)bad++;};
+    const cv=document.querySelector('canvas'),CW=640,CH=360,cel=document.createElement('canvas');cel.width=CW*2;cel.height=CH*19;const x=cel.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=(lab,c)=>{const pi=P.inv;P.inv=0;HX.warm();render();P.inv=pi;const sc=cv.width/512,q=c||[0,0,512,288];
+      x.drawImage(cv,q[0]*sc,q[1]*sc,q[2]*sc,q[3]*sc,(n%2)*CW,Math.floor(n/2)*CH,CW,CH);
+      x.fillStyle='rgba(0,0,0,.7)';x.fillRect((n%2)*CW,Math.floor(n/2)*CH,CW,24);x.fillStyle='#fff';x.font='15px sans-serif';x.fillText(lab,(n%2)*CW+8,Math.floor(n/2)*CH+17);n++;};
+    const fresh=()=>{HX.go(1,5);HX.run(320);hazs.length=0;ebul.length=0;ens.length=0;const b=boss;b.cd=9999;P.x=4*TS;P.y=13*TS-14;return b;};
+    const run=(b,k,hold)=>{for(let i=0;i<k;i++){P.inv=999;if(hold)b.cd=9999;update();}};
+    // 1 迫擊砲彈:飛行 77 幀、最高點不變、真的落到地面才出火圈
+    let b=fresh();b.ai=1;b.cd=0;update();const sh=ebul.filter(e=>e.vk==='b1s').map(e=>({e,x0:e.x,vx:e.vx,vy:e.vy}));let land=[],top=999,fire=[];
+    for(let i=0;i<90;i++){const h0=hazs.length;P.x=4*TS;P.y=-200;P.vy=0;run(b,1,1);for(const e of ebul)top=Math.min(top,e.y);for(const q of sh)if(!q.done&&!ebul.includes(q.e)){q.done=1;land.push([Math.round(q.e.y),i+2,Math.round(q.e.x-(q.x0+q.vx*78))]);}
+      for(let j=h0;j<hazs.length;j++)fire.push(i+2);}
+    ck('3 顆砲彈、life 77、初速 -5.4',sh.length===3&&sh.every(q=>q.e.life===77&&(Math.abs(q.vy+5.4)<0.05||Math.abs(q.vy+5.22)<0.05)),sh.map(q=>q.e.life+'/'+q.vy.toFixed(2)).join(' '));
+    ck('砲彈消失時中心在地表(208)上方 0~6 像素',land.length===3&&land.every(v=>v[0]>=202&&v[0]<=208),land.map(v=>'y'+v[0]+' 第'+v[1]+'幀 落點差'+v[2]).join('、'));
+    ck('最高點約 y=2(初速不變,與原本相同)',top>-2&&top<8,Math.round(top));ck('火圈在砲彈消失那一幀出現',fire.length===3&&fire.every(v=>land.some(l=>l[1]===v)),fire.join(' '));
+    // 2 艦體碰撞(整個 160×112)
+    const hurt=(X,Y)=>{b=fresh();P.inv=0;P.lives=5;P.x=X;P.y=Y;P.vy=0;b.cd=9999;update();return P.lives<5||P.inv>0;};
+    ck('碰到艦體左緣扣血',hurt(332,60));ck('碰到艦體底緣扣血',hurt(420,125));ck('艦體左邊 2 像素外不扣血',!hurt(328,60));
+    {b=fresh();P.x=420;P.y=13*TS-14;P.vy=0;run(b,5,1);let mn=999;P.vy=-6.05;P.onG=false;for(let i=0;i<60;i++){run(b,1,1);mn=Math.min(mn,P.y);}ck('艦底地面原地跳滿不會撞到(頭頂最高 > 138)',mn>138,Math.round(mn));}
+    // 3 右鐵鍊第 18 欄
+    b=fresh();ck('第 18 欄第 3~12 列可攀',[3,4,5,6,7,8,9,10,11,12].every(y=>climbT(18,y)));ck('第 22 欄不再有鐵鍊',[3,6,9,12].every(y=>!climbT(22,y)));
+    ck('攀爬時主角右緣(x=301)離艦體 39 像素',18*TS+TS/2-P.w/2+P.w===301,18*TS+TS/2-P.w/2+P.w);
+    // 4 無人機上限 10 隻(主角無敵、不開槍 20000 幀)
+    HX.go(1,5);HX.run(320);let mx=0;for(let i=0;i<20000;i++){P.inv=999;P.lives=5;update();mx=Math.max(mx,ens.filter(e=>e.type==='drone').length);}ck('同時最多無人機 ≤ 10',mx<=10,mx);
+    // 5 電流條數字不變
+    b=fresh();b.ai=0;b.cd=0;update();const z=hazs[0];ck('電流條全寬 12 高、預警 104、生效 70',z&&z.w===512&&z.h===12&&z.y===196&&z.warn===104&&z.live===70&&z.fx==='b1beam',z&&[z.w,z.h,z.y,z.warn,z.live].join('/'));
+    // 截圖
+    b=fresh();run(b,30,1);grab('1 場景:飛艇墳場、左上月亮、吊鉤鐵鍊(右鍊第 18 欄)');grab('1b 艦首(放大)',[300,0,212,119]);
+    b.ai=0;b.cd=0;update();run(b,50,1);grab('2 電流條預警 50%:電極放下、接縫亮點');run(b,44,1);grab('3 電流條預警 90%:接縫電弧');run(b,20,1);grab('4 電流條生效:粗電流鋸齒');
+    b=fresh();b.ai=1;b.cd=0;update();run(b,24,1);grab('5 燃燒彈出膛 24 幀(核心噴出)');run(b,48,1);grab('6 燃燒彈將落地(第 72 幀)');run(b,10,1);grab('7 落地出火圈');
+    for(const v of['A','B']){B1PF=v;b=fresh();b.ai=1;b.cd=0;update();P.x=4*TS;for(let i=0;i<78;i++){P.y=-200;P.vy=0;run(b,1,1);}const z=hazs.find(q=>q.fx==='b1fire');const zc=z?[clamp(z.x-44,0,384),150,128,72]:[0,150,128,72];
+      for(const [d,lab] of[[3,'落地小爆炸(預警,不扣血)'],[8,'爆炸擴散'],[22,'焦痕餘燼(預警末段)'],[40,'起火(扣血 40×14)'],[110,'熄滅前']]){while(z&&z.t<d){P.y=-200;P.vy=0;run(b,1,1);}grab('火圈 '+v+' 第 '+d+' 幀:'+lab+'(放大)',zc);}}B1PF='A';
+    b=fresh();b.ai=2;b.cd=20;run(b,12);grab('8 召喚前:機庫艙門亮燈開啟(放大)',[300,30,128,72]);run(b,10);grab('9 無人機出生(放大)',[280,30,160,90]);
+    b=fresh();b.plates=[0,0,0];run(b,20,1);grab('10 裝甲全破:百葉打開露出熾核');
+    for(const v of['A','B','C']){B1PV=v;b.exposedT=420;HX.warm();grab('11'+v+' 裝甲復原預兆 '+v+' 案 50%(放大)',[330,20,128,72]);}B1PV='A';b.exposedT=455;HX.warm();grab('12 復原前最後 30 幀閃爍(亮拍,放大)',[330,20,128,72]);
+    b=fresh();b.hp=b.max*0.4;run(b,40,1);grab('13 血量 40%:火花');b.hp=b.max*0.2;run(b,40,1);grab('14 血量 20%:黑煙與局部失火');
+    for(const [t,lab] of[[60,'登場 WARNING:熄火殘骸斜躺'],[140,'登場 k0.2:逐段亮燈'],[170,'登場 k0.5:推進器點火扶正、揚塵'],[196,'登場 k0.76:裝甲鎖上'],[214,'登場 k0.94:核心點亮']]){HX.go(1,5);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab);}
+    for(const [t,lab] of[[20,'死亡 20:核心過熱、連串爆炸'],[45,'死亡 45:裝甲脫落'],[64,'死亡 64:斷成兩截墜落'],[82,'死亡 82:落地揚塵'],[110,'死亡 110:大爆炸後'],[199,'死亡 199:殘骸留在場上冒煙']]){b=fresh();b.introT=0;bossDamage(bossParts().find(p=>p.key==='core'),1e8);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab);}
+    return {d:cel.toDataURL().split(',')[1],o,bad};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log(r.o.join('\n'));console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();return r.bad+errs.length;}
+// 1 王效能(11/9):同一條件下量 render 平均與最差(電流條生效加 3 顆燃燒彈、裝甲全破熾核、登場),新舊版各跑一次比較;另量 b1Bake 一次性烘焙
+async function b1perf(file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  await pg.evaluate(async()=>{HX.go(1,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,500));});
+  const r=await pg.evaluate(async()=>{const o={};const m=(lab,prep,n)=>{prep();for(let i=0;i<20;i++){P.inv=999;update();render();}const ts=[];
+      for(let i=0;i<n;i++){P.inv=999;update();const t0=performance.now();render();ts.push(performance.now()-t0);}ts.sort((a,b)=>a-b);o[lab]=(ts.reduce((s,v)=>s+v,0)/n).toFixed(3)+' / 最差 '+ts[n-1].toFixed(2)+' ms';};
+    const fresh=()=>{HX.go(1,5);HX.run(320);hazs.length=0;ebul.length=0;ens.length=0;boss.cd=9999;};
+    m('平時',()=>{fresh();},240);
+    m('電流條生效加燃燒彈',()=>{fresh();boss.ai=0;boss.cd=0;update();boss.ai=1;boss.cd=0;update();for(let i=0;i<100;i++){P.inv=999;boss.cd=9999;update();}},60);
+    m('裝甲全破',()=>{fresh();boss.plates=[0,0,0];boss.exposedT=400;},60);
+    m('登場',()=>{HX.go(1,5);for(let i=0;i<150;i++)update();},60);
+    if(typeof b1Bake==='function'){const s=new Image(),a=new Image();s.src=IMGD.b1ship;a.src=IMGD.b1arena;await s.decode();await a.decode();const t0=performance.now();b1Bake(s,a);o['b1Bake 一次性']=(performance.now()-t0).toFixed(1)+' ms';}
+    return o;});
+  console.log(JSON.stringify(r,null,1),'錯誤',errs.length?errs:'無');await br.close();}
 // v0.24 7 王:場景、各招特效、登場、死亡逐格截圖(2 欄);並核對變色規則(不連續同色、預告 90 幀、一輪 270 幀、只在切換那一幀改地形)、灼燒格扣血範圍、招式數字
 async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
   await pg.evaluate(async()=>{HX.go(7,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,400));});   // 場景內嵌圖非同步載入
@@ -826,6 +881,8 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b5hit')await b5hit(a[0],a[1]);
   else if(cmd==='b7hit')await b7hit(a[0],a[1]);
   else if(cmd==='b1hit')await b1hit(a[0],a[1]);
+  else if(cmd==='b1fx')bad=await b1fx(a[0]||'b1fx.png',a[1]);
+  else if(cmd==='b1perf')await b1perf(a[0]);
   else if(cmd==='b7fx')bad=await b7fx(a[0]||'b7fx.png',a[1]);
   else if(cmd==='b10fx3')bad=await b10fx3(a[0]||'fx',a[1],a[2]);
   else if(cmd==='bseq')await bseq(a[0],a[1]||8,(a[2]||'').split(',').filter(v=>v).map(Number),(a[3]||'').split(',').filter(v=>v).map(Number),(a[4]||'0,0,512,288').split(',').map(Number),a[5]);
