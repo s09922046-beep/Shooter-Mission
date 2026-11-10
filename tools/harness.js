@@ -752,6 +752,44 @@ async function b1hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
     vy.sort((a,b)=>a-b);
     return {d:o.toDataURL().split(',')[1],log:{砲彈正常消失次數:fires,撞牆或命中提早消失:wall,消失高度範圍:[vy[0],vy[vy.length-1]],地表:13*TS,同時最多無人機:maxD,魔王血量:boss.max,裝甲每片:1400}};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
+// 9 王判定稽核(11/10,v0.25 舊版行為):十格截圖疊出本體範圍(灰虛線,碰到不扣血)、核心(橘)、實際實心格(青)、繩梯與平台(綠)、坑洞(紫)、各招扣血範圍與軌跡;另印出艦體翻轉、傳送帶、坑洞的統計
+async function b9hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  const r=await pg.evaluate(()=>{HX.go(9,5);HX.run(320);
+    const cv=document.querySelector('canvas'),CW=640,CH=360,S=CW/512,o=document.createElement('canvas');o.width=CW*2;o.height=CH*5;const x=o.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=(lab,ov)=>{const pi=P.inv;P.inv=0;HX.warm();render();P.inv=pi;const ox=(n%2)*CW,oy=Math.floor(n/2)*CH;x.drawImage(cv,0,0,cv.width,cv.height,ox,oy,CW,CH);
+      x.save();x.beginPath();x.rect(ox,oy,CW,CH);x.clip();x.translate(ox,oy);x.scale(S,S);x.lineWidth=1/S*2;ov&&ov();x.restore();
+      x.fillStyle='rgba(0,0,0,.7)';x.fillRect(ox,oy,CW,26);x.fillStyle='#fff';x.font='14px sans-serif';x.fillText(lab,ox+8,oy+18);n++;};
+    const box=(q,c,fill,dash)=>{x.strokeStyle=c;dash&&x.setLineDash([3,2]);x.strokeRect(q.x,q.y,q.w,q.h);if(fill){x.fillStyle=fill;x.fillRect(q.x,q.y,q.w,q.h);}x.setLineDash([]);};
+    const parts=()=>{box({x:boss.x,y:boss.y,w:boss.w,h:boss.h},'#a0a0a0',null,1);for(const p of bossParts())box(p,'#ffa030');};
+    const tiles=()=>{for(let ty=0;ty<GH;ty++)for(let tx=0;tx<32;tx++){const t=T(tx,ty);if(t===1&&ty===14)box({x:tx*TS,y:ty*TS,w:TS,h:4},'#40e0ff','rgba(64,224,255,.25)');if(t===2)box({x:tx*TS,y:ty*TS,w:TS,h:TS},'#3fff6a',null,1);if(t===3)box({x:tx*TS,y:ty*TS,w:TS,h:4},'#3fff6a','rgba(63,255,106,.2)');}
+      for(let tx=1;tx<31;tx++)if(T(tx,14)===0)box({x:tx*TS,y:14*TS,w:TS,h:64},'#c060ff','rgba(192,96,255,.25)');};
+    const hold=()=>{P.inv=999;boss.cd=999;};
+    const fresh=()=>{HX.go(9,5);HX.run(320);hazs.length=0;ebul.length=0;boss.cd=999;boss.lockT=0;P.x=3*TS;P.y=14*TS-14;};
+    const trail=(k,pick)=>{const tr=[];for(let i=0;i<k;i++){hold();update();for(const e of ebul)tr.push([e.x,e.y,e.r]);}return tr;};
+    const dots=(tr,c)=>{x.fillStyle=c;for(const [a,b] of tr)x.fillRect(a-.5,b-.5,1,1);};
+    fresh();for(let i=0;i<5;i++){hold();update();}
+    grab('1 平時:灰虛線=本體 150×120(碰到不扣血)、橘=核心 60×60;青=實心地面;紫=坑洞(掉下扣血);綠=繩梯與平台',()=>{parts();tiles();});
+    fresh();boss.ai=0;boss.cd=0;update();let tr=trail(70);
+    grab('2 五向扇形彈(r=3):紅點=軌跡,由核心中央朝主角',()=>{parts();dots(tr,'#ff3030');});
+    fresh();P.y=8*TS-14;P.x=15*TS;boss.ai=1;boss.cd=0;update();let zs=hazs.slice();for(let i=0;i<40;i++){hold();update();}
+    grab(`3 橫向光束預警(${zs[0].warn} 幀,不扣血):黃虛線=之後的判定,4 條全寬 22 高,1 條對準主角高度`,()=>{parts();for(const z of zs)box(z,'#ffd23a',null,1);});
+    for(let i=0;i<zs[0].warn-40+10;i++){hold();update();}
+    grab(`4 橫向光束生效(${zs[0].live} 幀):紅=扣血`,()=>{parts();for(const z of zs)box(z,'#ff3030','rgba(255,40,40,.3)');});
+    fresh();P.x=8*TS;boss.ai=2;boss.cd=0;update();tr=trail(80);
+    grab('5 兩側齊射(各 3 發 r=3):紅點=軌跡,發射點在本體左下與右下',()=>{parts();dots(tr,'#ff3030');});
+    fresh();P.x=10*TS;boss.ai=3;boss.cd=0;update();const lk=[];for(let i=0;i<118;i++){hold();P.x=10*TS+Math.round(40*Math.sin(i/14));update();lk.push([boss.lockX,boss.lockY]);}
+    grab('6 狙擊鎖定 120 幀:黃點=準星追著主角的路徑(準星本身不扣血)',()=>{parts();x.fillStyle='#ffd23a';for(const [a,b] of lk)x.fillRect(a-.5,b-.5,1,1);});
+    tr=trail(30);grab('7 狙擊彈(r=4,速度約 11.6):紅點=軌跡',()=>{parts();dots(tr,'#ff3030');});
+    fresh();for(let i=0;i<5;i++){hold();update();}grab('8 艦體翻轉前',()=>{parts();tiles();});
+    boss.ai=4;boss.cd=0;update();for(let i=0;i<20;i++){hold();update();}
+    grab('9 艦體翻轉後 20 幀:地形左右鏡像(青、紫、綠=實際判定),畫面上的地面沒有跟著變',()=>{parts();tiles();});
+    grab('10 同上,不疊框的原畫面',null);
+    // 統計:傳送帶、坑洞、翻轉
+    const fallT=(x0)=>{HX.go(9,5);HX.run(320);boss.cd=9999;P.x=x0;P.y=14*TS-14;P.vy=0;for(let i=0;i<600;i++){P.inv=999;boss.cd=9999;update();if(P.y>14*TS)return i+1;if(P.x<=16)return '撞左牆';}return '未掉落';};
+    HX.go(9,5);HX.run(320);let flips=0,overPit=0,climbDrop=0;const d0=map.d.slice();
+    for(let i=0;i<20000;i++){P.inv=999;P.lives=5;const a=boss.ai,c=boss.cd,cl=P.climb;update();if(c===0&&(a%5)===4){flips++;if(P.onG===false&&P.y<14*TS){}const cx=Math.floor((P.x+5)/TS);if(T(cx,14)===0&&P.y+P.h<=14*TS+1)overPit++;if(cl)climbDrop++;}}
+    return {d:o.toDataURL().split(',')[1],log:{傳送帶每幀:-0.84,主角走速:1.7,從坑右緣靜止滑落幀數:fallT(8*TS),從第3欄靜止:fallT(3*TS),'20000幀翻轉次數':flips,翻轉時主角正下方變成坑:overPit,翻轉時正在攀爬被甩下:climbDrop,翻轉間隔幀:(120+130+110+170+200)*BOSS_CD_MULT,魔王血量:boss.max}};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
 // v0.25 1 王:核對四項授權(砲彈真的落地、艦體碰撞、右鐵鍊第 18 欄、無人機上限 10)與招式數字;場景、各招特效、登場、死亡逐格截圖(2 欄)
 async function b1fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
   await pg.evaluate(async()=>{HX.go(1,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,400));});   // 內嵌圖非同步載入
@@ -881,6 +919,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b5hit')await b5hit(a[0],a[1]);
   else if(cmd==='b7hit')await b7hit(a[0],a[1]);
   else if(cmd==='b1hit')await b1hit(a[0],a[1]);
+  else if(cmd==='b9hit')await b9hit(a[0],a[1]);
   else if(cmd==='b1fx')bad=await b1fx(a[0]||'b1fx.png',a[1]);
   else if(cmd==='b1perf')await b1perf(a[0]);
   else if(cmd==='b7fx')bad=await b7fx(a[0]||'b7fx.png',a[1]);
