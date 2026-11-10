@@ -68,3 +68,79 @@ Output rules:
 - The lower half of the picture (below the planet) must be darker and emptier than the upper half.
 - Flat side view, no perspective tricks.
 - The design must be original and must not resemble any existing game, film or real astronomy photo.
+
+
+==================== 第 2 版(11/10,使用者看第一版後要求:脫離方正、半蟲半機械、氣流孔減量、背景以地球為藍本) ====================
+【本體三則在同一個對話依序送:第 1 則附上 boss9-body-template2.png,第 1 張滿意後再送第 2、3 則。場景另開一個對話,附上 boss9-arena-template.png】
+
+【本體 第 1 則:主設計(附 boss9-body-template2.png)】
+
+Boss art for a 2D side-scrolling pixel-art run-and-gun game. Use the attached guide image as an exact layout template. The result will be shrunk 6 times (to 256 x 171 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Magenta #FF00FF = empty. Keep every area you do not paint as flat solid magenta #FF00FF.
+- Orange line = the limit of the drawing. Paint nothing to the left of the vertical orange line and nothing below the horizontal orange line.
+- White dashed box = the body. Fill almost all of it with the creature, with no see-through holes.
+- Thick white solid lines = the two edges the player can touch. The creature's outline must touch these lines along their whole length (left side and underside), but it does NOT have to be a flat wall: build these edges from curved, overlapping carapace plates, mandible tips and joints whose outer edges touch the line, so it looks organic, not like a box.
+- Everywhere else (top, right, past the cyan screen edges) the outline is free: make it arched, segmented, spiky and asymmetric. Keep painting past the cyan lines, upward and to the right, to the top and right edges of the canvas, so the creature looks enormous and cut off by the screen.
+- Red box = THE CORE: a cluster of red eyes, one large eye in the center and six smaller ones around it. It must sit inside the red box.
+- Green circle = the sniper eye: this one eye of the cluster is mechanical: a telescopic lens with concentric metal rings and a thin rangefinder antenna, still glowing red inside the lens. It must sit exactly on the green circle.
+- Blue circles = exactly three breathing vents (spiracles), one on each circle. Each is a round mechanical valve with an iris shutter set into a carapace segment, like an insect's breathing hole made of machinery. No other vents anywhere.
+- Yellow circles = two fleshy cannon pods (bottom-left and bottom-right), each with a round puckered opening facing down-left.
+- Green dashed strip = a climbing cable the game draws later. Paint nothing there.
+
+Creature: an original, colossal half-insect, half-machine living mothership drifting through deep space. What we see is only its head, the front of a body many times larger. Think of a giant armored isopod or beetle head grown together with starship machinery. Mood: huge, silent, uncanny, horrifying.
+Key identifying features (they must be readable even as a black silhouette):
+- An arched head made of overlapping curved chitin segments, like the shell of a pill bug, with mechanical ribs, pistons and cables showing in the joints between segments. No flat panels, no boxy shapes, no rivet grids.
+- Two long segmented mechanical antennae sweeping up and back off the top of the screen.
+- At the bottom, a pair of large curved jointed mandibles (half chitin, half metal) closing towards each other along the underside, with small mouthparts between them. No row of teeth.
+- Pale flesh visible only in the gaps between segments and around the eyes.
+- The red eye cluster (red box) and the mechanical sniper eye (green circle).
+- Exactly three spiracle vents (blue circles).
+- Behind the head, thick segmented body rings continue off the screen to the right, with folded insect legs tucked along the side.
+Colors: deep blue-black and dark bronze chitin with a faint cold sheen, dark gunmetal machine parts, pale ashen bone-grey flesh with dull olive-grey shadows. No red anywhere except the eyes. No pink, no purple, no orange, no yellow, no cyan, no bright blue, no bright green (those are reserved for the boss's spores, beams, acid, and the game's warnings).
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color illustration with dark outlines of even thickness (about 6 pixels).
+- 4 to 5 tones per material for large areas (light to dark steps), lit from the upper left by cold starlight. No gradients, no soft shading, no texture noise, no glow halo, no particle effects, no slime drips, no background.
+- No shape or gap smaller than 12 pixels across.
+- The design must be original and must not resemble any existing game, film, anime, toy or brand character or vehicle.
+
+【本體 第 2 則:狀態表(第 1 張滿意後送出,只當 Claude 手繪的參考)】
+
+Now draw the same creature two more times side by side in one image, same size, same design, same colors and same style, on the same flat magenta #FF00FF background. No text, no labels.
+1. Badly hurt: several chitin segments cracked open, dark violet ichor oozing from the cracks in thick drops (dark violet, never red), half of the small eyes shut tight, the large eye and the sniper eye still open, one antenna snapped.
+2. Dying: the eyes are burst and dark, the sniper lens shattered, pale flesh bursting out between the segments in swollen masses, the mandibles hanging open, segments falling off.
+
+【本體 第 3 則:剪影(第 1 張滿意後送出)】
+
+Now output exactly the same image as the first one, same canvas and same positions, as a pure black silhouette (#000000) on the flat magenta #FF00FF background. Only the red eyes stay in full color. No outlines, no interior details.
+
+【場景 第 2 版(另開對話,附 boss9-arena-template.png)】
+
+Background art for one fixed screen of a 2D side-scrolling pixel-art run-and-gun game: deep space seen from the deck of a small spaceship, with an Earth-like home planet. Use the attached guide image as an exact layout template. It will be shrunk 3 times (to 512 x 341 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Light grey side areas = side walls drawn by the game. Keep them exactly as they are; draw nothing there.
+- Dark grey-blue area = paint deep space over all of it, including the part below the cyan line (the game draws a ship deck over the bottom, but there are holes in the deck where space shows through).
+- Cyan line = the surface of the deck the player stands on. Nothing stands on it in the background.
+- White dashed boxes = platforms and climbing cables that the game draws later. Keep the space behind them simple and dark.
+- Orange dashed box = a giant creature appears here later (drawn by the game). Keep this area plain, dark, empty space.
+- Light blue dashed box = the focal area: put the planet here.
+
+Scene: deep space, utterly quiet and peaceful, the feeling of drifting near home, beautiful and safe, so that the monster that appears later is a shock.
+- The planet is modeled on Earth: deep blue oceans, recognizable continents in muted green and khaki-brown, swirling cloud bands in pale grey, a thin blue atmosphere rim on the lit edge. Half of the planet is on the night side, with a few tiny dim city lights in pale blue-grey (not yellow).
+- A small grey Moon nearby.
+- A faint wide band of the Milky Way crossing the upper half behind the planet, made of soft large shapes in deep navy and cold teal.
+- One distant spiral galaxy and a few large stars only; no small dots (the game draws the small stars).
+- No ships, no stations, no creatures, no debris, no text.
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color pixel-art-friendly illustration. Use only 3 or 4 tones per material, with hard edges between tones. No gradients, no soft shading, no texture noise, no glow, no light rays.
+- No shape or gap smaller than 12 pixels across. Big simple shapes.
+- Colors: the space is deep navy; the planet may use blue, muted green and khaki-brown, but keep everything slightly desaturated and low contrast. The darkest color must not be darker than #080c18 and the lightest must not be lighter than #a8b8cc. No red, no orange, no yellow, no pink, no purple, no bright cyan, no pure white anywhere (those are the boss's eyes and attacks).
+- The lower half of the picture (below the planet) must be darker and emptier than the upper half.
+- Flat side view, no perspective tricks.
+- The design must be original and must not copy any real astronomy photo or existing artwork.

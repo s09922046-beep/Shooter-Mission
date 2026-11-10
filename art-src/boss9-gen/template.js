@@ -16,7 +16,13 @@ const d=await pg.evaluate(()=>{const out={};
   x.strokeStyle='#3fff6a';x.strokeRect(...R(336,32,16,144));x.setLineDash([]);
   x.strokeStyle='#ff0000';x.lineWidth=8;x.strokeRect(...R(386,50,60,60));
   x.strokeStyle='#ffff00';x.lineWidth=6;for(const X of [366,486]){x.beginPath();x.arc((X-OX)*S,(116-OY)*S,7*S,0,2*Math.PI);x.stroke();}
-  out.body=c.toDataURL().split(',')[1];}
+  out.body=c.toDataURL().split(',')[1];
+  // 第 2 版(11/10 使用者看第一版後要求脫離方正):白實線=主角碰得到、外形必須貼齊的兩段(左緣 y40~140、底緣 x360~470),其餘輪廓可自由起伏;
+  //   藍圈=3 個氣門(高壓氣流孔);綠圈=狙擊瞄準眼(扇形彈與狙擊彈發射點 396,80)
+  x.setLineDash([]);x.strokeStyle='#ffffff';x.lineWidth=12;x.beginPath();x.moveTo((356-OX)*S,(40-OY)*S);x.lineTo((356-OX)*S,(140-OY)*S);x.lineTo((470-OX)*S,(140-OY)*S);x.stroke();
+  x.strokeStyle='#2a7aff';x.lineWidth=6;for(const [X,Y] of [[380,34],[430,26],[480,34]]){x.beginPath();x.arc((X-OX)*S,(Y-OY)*S,6*S,0,2*Math.PI);x.stroke();}
+  x.strokeStyle='#00ff88';x.lineWidth=6;x.beginPath();x.arc((396-OX)*S,(80-OY)*S,7*S,0,2*Math.PI);x.stroke();
+  out.body2=c.toDataURL().split(',')[1];}
  {const S=3,TS=16,c=document.createElement('canvas');c.width=1536;c.height=1024;const x=c.getContext('2d');
   x.fillStyle='#283040';x.fillRect(0,0,1536,1024);   // 深灰藍=整張都要畫太空(甲板下方也是,坑洞看得到)
   x.fillStyle='#909090';x.fillRect(0,0,TS*S,1024);x.fillRect(496*S,0,TS*S,1024);
@@ -29,4 +35,4 @@ const d=await pg.evaluate(()=>{const out={};
   dash(24,8,300,100,'#7ad0ff',8);
   out.arena=c.toDataURL().split(',')[1];}
  return out;});
-const fs=require('fs');fs.writeFileSync(__dirname+'/../boss9-body-template.png',Buffer.from(d.body,'base64'));fs.writeFileSync(__dirname+'/../boss9-arena-template.png',Buffer.from(d.arena,'base64'));await br.close();})();
+const fs=require('fs');fs.writeFileSync(__dirname+'/../boss9-body-template.png',Buffer.from(d.body,'base64'));fs.writeFileSync(__dirname+'/../boss9-body-template2.png',Buffer.from(d.body2,'base64'));fs.writeFileSync(__dirname+'/../boss9-arena-template.png',Buffer.from(d.arena,'base64'));await br.close();})();
