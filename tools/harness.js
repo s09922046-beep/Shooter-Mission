@@ -790,6 +790,43 @@ async function b9hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
     for(let i=0;i<20000;i++){P.inv=999;P.lives=5;const a=boss.ai,c=boss.cd,cl=P.climb;update();if(c===0&&(a%5)===4){flips++;if(P.onG===false&&P.y<14*TS){}const cx=Math.floor((P.x+5)/TS);if(T(cx,14)===0&&P.y+P.h<=14*TS+1)overPit++;if(cl)climbDrop++;}}
     return {d:o.toDataURL().split(',')[1],log:{傳送帶每幀:-0.84,主角走速:1.7,從坑右緣靜止滑落幀數:fallT(8*TS),從第3欄靜止:fallT(3*TS),'20000幀翻轉次數':flips,翻轉時主角正下方變成坑:overPit,翻轉時正在攀爬被甩下:climbDrop,翻轉間隔幀:(120+130+110+170+200)*BOSS_CD_MULT,魔王血量:boss.max}};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
+// v0.26 9 王:核對兩項授權(本體碰撞 150×120、左繩梯第 21 欄、死後傳送帶停止)、翻轉後畫面同步與招式數字;場景、各招特效、翻轉預告、登場、死亡逐格截圖(2 欄)
+async function b9fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  await pg.evaluate(async()=>{HX.go(9,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,500));});   // 內嵌圖非同步載入
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;const ck=(n,ok,v)=>{o.push(`${ok?'OK':'NG'} ${n}${v!==undefined?'('+v+')':''}`);if(!ok)bad++;};
+    const cv=document.querySelector('canvas'),CW=640,CH=360,cel=document.createElement('canvas');cel.width=CW*2;cel.height=CH*16;const x=cel.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=(lab,c)=>{const pi=P.inv;P.inv=0;HX.warm();render();P.inv=pi;const sc=cv.width/512,q=c||[0,0,512,288];
+      x.drawImage(cv,q[0]*sc,q[1]*sc,q[2]*sc,q[3]*sc,(n%2)*CW,Math.floor(n/2)*CH,CW,CH);
+      x.fillStyle='rgba(0,0,0,.7)';x.fillRect((n%2)*CW,Math.floor(n/2)*CH,CW,24);x.fillStyle='#fff';x.font='15px sans-serif';x.fillText(lab,(n%2)*CW+8,Math.floor(n/2)*CH+17);n++;};
+    const fresh=()=>{HX.go(9,5);HX.run(320);hazs.length=0;ebul.length=0;const b=boss;b.cd=9999;b.lockT=0;P.x=4*TS;P.y=14*TS-14;return b;};
+    const run=(b,k,hold)=>{for(let i=0;i<k;i++){P.inv=999;if(hold)b.cd=9999;update();}};
+    let b=fresh();
+    ck('左繩梯第 21 欄第 2~10 列可攀',[2,4,6,8,10].every(y=>climbT(21,y)));ck('第 22 欄不再有繩梯',[2,5,8,10].every(y=>!climbT(22,y)));
+    const hurt=(X,Y)=>{b=fresh();P.inv=0;P.lives=5;P.x=X;P.y=Y;P.vy=0;b.cd=9999;update();return P.lives<5;};
+    ck('碰到本體左緣扣血',hurt(347,60));ck('本體左邊 2 像素外不扣血',!hurt(344,60));ck('碰到本體底緣扣血',hurt(420,127));
+    ck('左下圓弧外(方框角落)不扣血',!hurt(349,130));ck('左上圓弧外(方框角落)不扣血',!hurt(349,8));ck('右下圓弧外不扣血',!hurt(500,137));ck('左緣甲殼弧中段扣血',hurt(347,98));   // 11/10 使用者授權:碰撞跟著圓弧外形 B9MK
+    {b=fresh();P.x=24*TS;P.y=11*TS-14;P.vy=0;run(b,5,1);P.inv=0;P.lives=5;P.vy=-6.05;P.onG=false;let mn=999;for(let i=0;i<30;i++){P.inv=0;b.cd=9999;update();mn=Math.min(mn,P.y);}ck('右平台往上跳滿會撞到艦腹(使用者知悉)',P.lives<5,'頭頂最高 '+Math.round(mn));}
+    b=fresh();ck('攀爬時主角右緣離本體 7 像素',356-(21*TS+TS/2-P.w/2+P.w)===7);
+    b=fresh();b.ai=1;b.cd=0;update();const z=hazs[0];ck('光束全寬 22 高、預警 71、生效 40、4 條',hazs.length===4&&z.w===512&&z.h===22&&z.warn===71&&z.live===40&&z.fx==='b9beam',[hazs.length,z.w,z.h,z.warn,z.live].join('/'));
+    b=fresh();b.ai=0;b.cd=0;update();ck('扇形 5 發 r=3 速度 3.3',ebul.length===5&&ebul.every(e=>e.r===3&&e.vk==='b9p'&&Math.abs(Math.hypot(e.vx,e.vy)-3.3)<0.01));
+    b=fresh();b.ai=2;b.cd=0;update();ck('齊射 6 發 r=3 速度 2.86',ebul.length===6&&ebul.every(e=>e.r===3&&e.vk==='b9a'&&Math.abs(Math.hypot(e.vx,e.vy)-2.86)<0.01));
+    b=fresh();b.ai=3;b.cd=0;update();let lk=b.lockT;for(let i=0;i<121;i++){P.inv=999;b.cd=9999;update();}const sn=ebul.filter(e=>e.vk==='b9k');ck('狙擊鎖定 120 幀後 1 發 r=4 速度 11.55',lk===120&&sn.length===1&&sn[0].r===4&&Math.abs(Math.hypot(sn[0].vx,sn[0].vy)-11.55)<0.01);
+    b=fresh();const d0=Array.from(map.d);b.ai=4;b.cd=0;update();let mir=true;for(let y=0;y<GH;y++)for(let xx=0;xx<32;xx++)if(map.d[y*32+xx]!==d0[y*32+31-xx])mir=false;ck('翻轉後地形左右鏡像(與原本相同)',mir);
+    let k=0;for(;k<40;k++){render();if(Array.from(MAT.done).every(v=>v))break;P.inv=999;b.cd=9999;update();}ck('翻轉後地面快取重烘焙完成(幀數)',k<12,k);
+    b=fresh();b.introT=0;bossDamage(bossParts()[0],1e8);for(let i=0;i<3;i++){P.inv=999;update();}ck('死亡後傳送帶停止',G.conveyor===0,G.conveyor);
+    // 截圖
+    b=fresh();run(b,30,1);grab('1 場景:寧靜深空、我方甲板、利維坦-零頭部');grab('1b 頭部(放大)',[330,0,182,102]);
+    b.hf={core:6};grab('2 受擊:半數小眼閉合、其餘白化(放大)',[370,40,100,56]);b.hf={};
+    b=fresh();b.ai=0;b.cd=0;update();run(b,24,1);grab('3 扇形孢子(發射眼噴出)');
+    b=fresh();P.y=8*TS-14;P.x=15*TS;b.ai=1;b.cd=0;update();run(b,40,1);grab('4 光束預警:右緣生物砲管伸出、砲口蓄光');run(b,40,1);grab('5 光束生效:紫色電漿帶');
+    b=fresh();P.x=8*TS;b.ai=2;b.cd=0;update();run(b,8,1);grab('6 齊射:砲囊張開、酸液彈');run(b,30,1);grab('6b 酸液彈飛行(放大)',[150,120,200,112]);
+    b=fresh();P.x=10*TS;b.ai=3;b.cd=0;update();run(b,40,1);grab('7 狙擊鎖定 40 幀:像素圓圈十字加虛線');run(b,62,1);grab('8 狙擊鎖定最後 30 幀:準星收縮、加快閃爍');run(b,22,1);grab('9 骨刺狙擊彈');
+    b=fresh();b.ai=4;b.cd=45;run(b,1);grab('10 翻轉預告 50%:新坑、新平台、新繩梯的投影');run(b,40);grab('11 翻轉預告 95%');run(b,10);grab('12 翻轉後 6 幀:畫面橫向壓扁');
+    b=fresh();b.hp=b.max*0.4;run(b,40,1);grab('13 血量 40%:暗紫體液滲出');b.hp=b.max*0.2;run(b,40,1);grab('14 血量 20%:部分複眼閉合、黑煙');
+    for(const [t,lab] of[[60,'登場 WARNING:寧靜深空'],[140,'登場 k0.2:巨大黑影在深空掠過'],[175,'登場 k0.55:頭部由右滑入、眼睛閉著'],[200,'登場 k0.8:複眼一顆顆睜開'],[216,'登場 k0.96:核心亮起']]){HX.go(9,5);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab);}
+    for(const [t,lab] of[[24,'死亡 24:複眼逐一爆破'],[60,'死亡 60:肉質湧出抽搐'],[97,'死亡 97:核心大爆炸'],[140,'死亡 140:頭部往右後方漂走'],[199,'死亡 199:漂出畫面']]){b=fresh();b.introT=0;bossDamage(bossParts()[0],1e8);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab);}
+    return {d:cel.toDataURL().split(',')[1],o,bad};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log(r.o.join('\n'));console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();return r.bad+errs.length;}
 // v0.25 1 王:核對四項授權(砲彈真的落地、艦體碰撞、右鐵鍊第 18 欄、無人機上限 10)與招式數字;場景、各招特效、登場、死亡逐格截圖(2 欄)
 async function b1fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
   await pg.evaluate(async()=>{HX.go(1,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,400));});   // 內嵌圖非同步載入
@@ -843,6 +880,20 @@ async function b1perf(file){const {br,pg,errs}=await open(file,{width:1280,heigh
     m('裝甲全破',()=>{fresh();boss.plates=[0,0,0];boss.exposedT=400;},60);
     m('登場',()=>{HX.go(1,5);for(let i=0;i<150;i++)update();},60);
     if(typeof b1Bake==='function'){const s=new Image(),a=new Image();s.src=IMGD.b1ship;a.src=IMGD.b1arena;await s.decode();await a.decode();const t0=performance.now();b1Bake(s,a);o['b1Bake 一次性']=(performance.now()-t0).toFixed(1)+' ms';}
+    return o;});
+  console.log(JSON.stringify(r,null,1),'錯誤',errs.length?errs:'無');await br.close();}
+// 9 王效能(11/10):同一條件下量 render 平均與最差(平時、4 條光束生效加扇形與齊射彈、翻轉預告、翻轉壓扁、登場),新舊版各跑一次比較;另量 b9Bake 一次性烘焙
+async function b9perf(file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  await pg.evaluate(async()=>{HX.go(9,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,500));});
+  const r=await pg.evaluate(async()=>{const o={};const m=(lab,prep,n,hold)=>{prep();for(let i=0;i<4;i++){P.inv=999;update();render();}const ts=[];
+      for(let i=0;i<n;i++){P.inv=999;if(hold)boss.cd=9999;update();const t0=performance.now();render();ts.push(performance.now()-t0);}ts.sort((a,b)=>a-b);o[lab]=(ts.reduce((s,v)=>s+v,0)/n).toFixed(3)+' / 最差 '+ts[n-1].toFixed(2)+' ms';};
+    const fresh=()=>{HX.go(9,5);HX.run(320);hazs.length=0;ebul.length=0;boss.cd=9999;boss.lockT=0;};
+    m('平時',()=>{fresh();},240,1);
+    m('光束生效加扇形與齊射',()=>{fresh();boss.ai=1;boss.cd=0;update();for(let i=0;i<70;i++){P.inv=999;boss.cd=9999;update();}boss.ai=0;boss.cd=0;update();boss.ai=2;boss.cd=0;update();},30,1);
+    m('翻轉預告',()=>{fresh();boss.ai=4;boss.cd=80;},60);
+    m('翻轉壓扁',()=>{fresh();boss.ai=4;boss.cd=4;},10);
+    m('登場',()=>{HX.go(9,5);for(let i=0;i<150;i++)update();},60);
+    if(typeof b9Bake==='function'){const s=new Image(),a=new Image();s.src=IMGD.b9body;a.src=IMGD.b9arena;await s.decode();await a.decode();const t0=performance.now();b9Bake(s,a);o['b9Bake 一次性']=(performance.now()-t0).toFixed(1)+' ms';}
     return o;});
   console.log(JSON.stringify(r,null,1),'錯誤',errs.length?errs:'無');await br.close();}
 // v0.24 7 王:場景、各招特效、登場、死亡逐格截圖(2 欄);並核對變色規則(不連續同色、預告 90 幀、一輪 270 幀、只在切換那一幀改地形)、灼燒格扣血範圍、招式數字
@@ -920,6 +971,8 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b7hit')await b7hit(a[0],a[1]);
   else if(cmd==='b1hit')await b1hit(a[0],a[1]);
   else if(cmd==='b9hit')await b9hit(a[0],a[1]);
+  else if(cmd==='b9fx')bad=await b9fx(a[0]||'b9fx.png',a[1]);
+  else if(cmd==='b9perf')await b9perf(a[0]);
   else if(cmd==='b1fx')bad=await b1fx(a[0]||'b1fx.png',a[1]);
   else if(cmd==='b1perf')await b1perf(a[0]);
   else if(cmd==='b7fx')bad=await b7fx(a[0]||'b7fx.png',a[1]);
