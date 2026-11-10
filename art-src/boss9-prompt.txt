@@ -1,0 +1,70 @@
+【9 王 活體母艦 利維坦-零:本體三則加場景一則。本體三則在同一個對話依序送:第 1 則附上 boss9-body-template.png,第 1 張滿意後再送第 2、3 則。場景另開一個對話,附上 boss9-arena-template.png】
+
+【本體 第 1 則:主設計(附 boss9-body-template.png)】
+
+Boss art for a 2D side-scrolling pixel-art run-and-gun game. Use the attached guide image as an exact layout template. The result will be shrunk 6 times (to 256 x 171 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Magenta #FF00FF = empty. Keep every area you do not paint as flat solid magenta #FF00FF.
+- Orange line = the limit of the drawing. Paint nothing to the left of the vertical orange line and nothing below the horizontal orange line.
+- White dashed box = the solid body. Fill this whole box with the creature-ship, with no gaps and no see-through holes. Its left side must be a straight vertical wall exactly on the left dashed line, and its underside must be flat and exactly on the bottom dashed line.
+- Cyan lines = the edges of the game screen. The creature is far too big for the screen: keep painting it past the cyan lines, upward and to the right, all the way to the top and right edges of the canvas, so it looks enormous and cut off by the screen.
+- Red box = THE CORE: a cluster of red eyes. It must sit exactly inside the red box.
+- Yellow circles = two fleshy cannon pods, one on each circle (bottom-left and bottom-right corners of the body). Each pod has a round puckered opening that faces down-left.
+- Green dashed strip = a climbing cable the game draws later. Paint nothing there.
+
+Creature: an original, colossal biomechanical living mothership drifting through deep space. What we see is only its head, the front of a body many times larger. The armored bow of a warship and the head of a deep-sea monster have grown into one thing. Mood: huge, silent, uncanny, horrifying.
+Key identifying features (they must be readable even as a black silhouette):
+- A massive blunt head facing left, its front a flat armored face like a fortress wall, made of riveted dark hull plates that are cracked and split apart.
+- Pale flesh bulging out through the gaps between the hull plates, as if the metal grew around a living body.
+- The core: in the middle of the face, a cluster of 7 round red eyes of different sizes, one large eye in the center and six smaller ones around it, each with a dark slit pupil. The red eyes are the only red thing in the image.
+- Below the eyes, along the bottom edge of the body, a wide lipless mouth with one row of long uneven pale teeth, closed.
+- Two fleshy cannon pods at the bottom-left and bottom-right corners (yellow circles).
+- Three or four rows of large dark round vents on the upper part of the face, like the gill slits of a fish; these are the creature's high-pressure air vents.
+- Above the head, ridges of plating and fin-like spines rising off the top of the screen; to the right, the body continues off the screen with thick ribbed hull segments.
+Colors: dark weathered charcoal and bronze-grey hull metal, darker slate for shadowed parts, pale ashen bone-grey flesh with dull olive-grey shadows, ivory teeth. No red anywhere except the eyes. No pink, no purple, no orange, no yellow, no cyan, no bright blue (those are reserved for the boss's spores, beams, acid, and the game's warnings).
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color illustration with dark outlines of even thickness (about 6 pixels).
+- 4 to 5 tones per material for large areas (light to dark steps), lit from the upper left by cold starlight. No gradients, no soft shading, no texture noise, no glow halo, no particle effects, no slime drips, no background.
+- No shape or gap smaller than 12 pixels across.
+- The design must be original and must not resemble any existing game, film, anime, toy or brand character or vehicle.
+
+【本體 第 2 則:狀態表(第 1 張滿意後送出,只當 Claude 手繪的參考)】
+
+Now draw the same creature two more times side by side in one image, same size, same design, same colors and same style, on the same flat magenta #FF00FF background. No text, no labels.
+1. Badly hurt: more hull plates split open, dark violet ichor oozing from the cracks in thick drops (dark violet, never red), half of the small eyes shut tight, the large eye still open.
+2. Dying: the eyes are burst and dark, pale flesh bursting out of the hull in swollen masses, the jaw hanging open, plates falling off.
+
+【本體 第 3 則:剪影(第 1 張滿意後送出)】
+
+Now output exactly the same image as the first one, same canvas and same positions, as a pure black silhouette (#000000) on the flat magenta #FF00FF background. Only the red eyes stay in full color. No outlines, no interior details.
+
+【場景(另開對話,附 boss9-arena-template.png)】
+
+Background art for one fixed screen of a 2D side-scrolling pixel-art run-and-gun game: deep space, seen from the deck of a small spaceship. Use the attached guide image as an exact layout template. It will be shrunk 3 times (to 512 x 341 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Light grey side areas = side walls drawn by the game. Keep them exactly as they are; draw nothing there.
+- Dark grey-blue area = paint deep space over all of it, including the part below the cyan line (the game draws a ship deck over the bottom, but there are holes in the deck where space shows through).
+- Cyan line = the surface of the deck the player stands on. Nothing stands on it in the background.
+- White dashed boxes = platforms and climbing cables that the game draws later. Keep the space behind them simple and dark.
+- Orange dashed box = a giant creature appears here later (drawn by the game). Keep this area plain, dark, empty space.
+- Light blue dashed box = the focal area of the picture: put the main planet and the brightest part of the nebula here.
+
+Scene: deep space, utterly quiet and peaceful. The feeling of drifting alone in a calm, endless night, beautiful and safe, so that the monster that appears later is a shock.
+- A large cold-blue planet, partly in shadow, with a thin pale crescent of light on its edge, inside the light blue box.
+- A soft, wide, calm nebula in deep navy and cold teal, drifting in long gentle bands across the upper half.
+- Far smaller moons or a distant second planet, very faint.
+- A few large stars only; no small dots (the game draws the small stars).
+- No ships, no stations, no creatures, no debris, no text.
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color pixel-art-friendly illustration. Use only 3 or 4 tones per material, with hard edges between tones. No gradients, no soft shading, no texture noise, no glow, no light rays.
+- No shape or gap smaller than 12 pixels across. Big simple shapes.
+- Colors: deep navy, cold blue and muted teal, low contrast overall. The darkest color must not be darker than #080c18 and the lightest must not be lighter than #6a80a8. No red, no orange, no yellow, no pink, no purple, no bright cyan, no white anywhere (those are the boss's eyes and attacks).
+- The lower half of the picture (below the planet) must be darker and emptier than the upper half.
+- Flat side view, no perspective tricks.
+- The design must be original and must not resemble any existing game, film or real astronomy photo.
