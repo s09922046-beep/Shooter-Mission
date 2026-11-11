@@ -1,0 +1,70 @@
+【4 王 骨龍 維瑟蒙德:本體三則加場景一則。本體三則在同一個對話依序送:第 1 則附上 boss4-body-template.png,第 1 張滿意後再送第 2、3 則。場景另開一個對話,附上 boss4-arena-template.png】
+
+【本體 第 1 則:主設計(附 boss4-body-template.png)】
+
+Boss art for a 2D side-scrolling pixel-art run-and-gun game. Use the attached guide image as an exact layout template. The result will be shrunk 5 times (to 307 x 205 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Magenta #FF00FF = empty. Keep every area you do not paint as flat solid magenta #FF00FF.
+- Orange box (top right corner, running off the canvas) = the only place where the dragon's body, shoulders and wing may be painted. Keep painting past the cyan lines, upward and to the right, to the edges of the canvas, so the dragon looks enormous and mostly hidden off screen, clinging to the corner.
+- Cyan lines = the top and right edges of the game screen (the thin strip between the two right cyan lines is a wall).
+- Solid white box = the SKULL. The dragon's skull, seen from the side and facing left, must fill this box: snout tip on the left edge, back of the skull on the right edge, top of the head on the top edge, lower jaw on the bottom edge.
+- Red circle = the eye socket. Inside it burns a red soul flame, the only red thing in the image.
+- Dashed white tall strip = how far the skull moves up and down in the game. The neck hangs from the body in the orange box down to the skull, so make it long, flexible and curved.
+- Green dashed strip = a climbing chain the game draws later. Paint nothing there.
+- Outside the orange box paint ONLY the neck and the skull, nothing else.
+
+Creature: an original, ancient undead bone dragon (a wyvern-like skeleton) clinging to the top right corner of a canyon, its long neck hanging down and its skull turned towards the player on the left. Mood: ancient, majestic, dead, lonely.
+It must look like a real, anatomically convincing dragon skeleton, with fine, accurate bones. No boxy or blocky shapes anywhere: every outline is made of curved bones.
+Key identifying features (they must be readable even as a black silhouette):
+- A long, narrow, horned dragon skull facing left: a pointed snout, rows of long curved fangs, a deep eye socket, two or three swept-back horns, a separate lower jaw with a visible hinge.
+- A long neck made of many individual vertebrae, each with a small spine on top, getting slightly bigger towards the body, hanging in a smooth S-curve.
+- In the corner: the shoulder blade, the top of the rib cage (separate curved ribs with gaps between them) and the upper arm of a wing.
+- One torn wing: long finger bones fanning out up and to the left inside the orange box, with ragged, shredded, holed membrane hanging between them like old leather.
+- A clawed hand gripping the edge of the corner.
+Colors: aged ivory and ash-grey bone with 4 to 5 tones (light ivory highlights, warm grey, dark umber shadows in the cracks), the wing membrane dark brownish grey, semi-ragged, with holes. The red soul flame in the eye socket is the only red. No green, no yellow-green, no white glow, no blue, no purple, no orange (those are reserved for the boss's miasma attacks and the game's warnings).
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color illustration with dark outlines of even thickness (about 5 pixels).
+- 4 to 5 tones per material for large areas (light to dark steps), lit from the upper left by a dim moon. No gradients, no soft shading, no texture noise, no glow halo, no particle effects, no background.
+- No shape or gap smaller than 10 pixels across (thin bones may be as thin as 10 pixels).
+- The design must be original and must not resemble any existing game, film, anime, toy or brand character.
+
+【本體 第 2 則:零件表(第 1 張滿意後送出,只當 Claude 手繪的參考)】
+
+Now draw separate parts of the same dragon, same design, same colors and same style, spread out on one flat magenta #FF00FF background, each part clearly separated from the others. No text, no labels.
+1. The skull large, side view facing left, jaw closed.
+2. The same skull with the jaw wide open, roaring.
+3. Three single neck vertebrae of different sizes, side view.
+4. The torn wing fully spread, and the same wing folded.
+5. A pile of scattered dragon bones lying on the ground (ribs, vertebrae, a broken horn), as if the dragon collapsed and fell apart.
+
+【本體 第 3 則:剪影(第 1 張滿意後送出)】
+
+Now output exactly the same image as the first one, same canvas and same positions, as a pure black silhouette (#000000) on the flat magenta #FF00FF background. Only the red soul flame stays in full color. No outlines, no interior details.
+
+【場景(另開對話,附 boss4-arena-template.png)】
+
+Background art for one fixed screen of a 2D side-scrolling pixel-art run-and-gun game: a canyon of dragon bones, seen from the side. Use the attached guide image as an exact layout template. It will be shrunk 3 times (to 512 x 341 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Light grey side areas = side walls drawn by the game. Keep them exactly as they are; draw nothing there.
+- Dark brown-grey area = paint the scene over all of it.
+- Cyan line = the ground surface. Below it the game draws its own ground; paint simple dark canyon floor there.
+- White dashed boxes = two broken bone bridges and two climbing chains that the game draws later. Keep the area behind them simple and dark.
+- Orange dashed boxes (both top corners) = a giant bone dragon appears in one of these corners later (drawn by the game). Keep both areas plain and dark.
+- Light blue dashed box = the focal area: put the huge distant skeleton of an ancient dragon here, far away and faded.
+- Yellow dashed boxes (bottom left and bottom right) = piles of old bones and skulls against the canyon walls. Make the left and right piles similar in size and weight, so the picture is balanced.
+
+Scene: a deep, silent canyon where dragons came to die. Towering dark cliff walls on both sides, a faint dim moon behind thin clouds, and in the far distance the enormous rib cage and spine of a long-dead dragon arching across the canyon like ruins. A low, thin layer of dull yellow-green miasma haze drifts along the canyon floor and between the far ribs. A few large carrion insects (beetles, moths) as small dark silhouettes on the far bones. Mood: ancient, desolate, poisonous, lonely.
+- No living creatures in the foreground, no people, no buildings, no text.
+- Flat side view, no perspective tricks.
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color pixel-art-friendly illustration. Use only 3 or 4 tones per material, with hard edges between tones. No gradients, no soft shading, no texture noise, no glow, no light rays.
+- No shape or gap smaller than 12 pixels across. Big simple shapes.
+- Colors: dark umber, olive-brown and ash grey, with the miasma a dull, desaturated yellow-green. Keep everything low contrast and dark. The darkest color must not be darker than #0e0c0a and the lightest must not be lighter than #8a8470. The miasma must stay dull (never brighter than #6a7448). No red, no bright yellow, no bright green, no pink, no purple, no blue, no pure white anywhere (those are the boss's eye, its attacks and the game's warnings).
+- The lower part of the picture must be darker and calmer than the upper part.
+- The design must be original and must not copy any existing game, film or artwork.

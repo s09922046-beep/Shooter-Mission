@@ -790,6 +790,50 @@ async function b9hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
     for(let i=0;i<20000;i++){P.inv=999;P.lives=5;const a=boss.ai,c=boss.cd,cl=P.climb;update();if(c===0&&(a%5)===4){flips++;if(P.onG===false&&P.y<14*TS){}const cx=Math.floor((P.x+5)/TS);if(T(cx,14)===0&&P.y+P.h<=14*TS+1)overPit++;if(cl)climbDrop++;}}
     return {d:o.toDataURL().split(',')[1],log:{傳送帶每幀:-0.84,主角走速:1.7,從坑右緣靜止滑落幀數:fallT(8*TS),從第3欄靜止:fallT(3*TS),'20000幀翻轉次數':flips,翻轉時主角正下方變成坑:overPit,翻轉時正在攀爬被甩下:climbDrop,翻轉間隔幀:(120+130+110+170+200)*BOSS_CD_MULT,魔王血量:boss.max}};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
+// 4 王判定稽核(11/11,v0.26 舊版行為):十二格截圖疊出本體範圍(灰虛線,碰到不扣血)、蛇頭(橘=受傷部件,同時是碰撞扣血範圍)、繩梯與平台(綠)、
+// 沿層推進、鎖定範圍、骨石落下的預警(黃虛線)與生效(紅)、骨影閃瞬隱身與四個現身位置、上層崩毀;另印出 20000 幀內的統計
+async function b4hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  const r=await pg.evaluate(()=>{HX.go(4,5);HX.run(320);
+    const cv=document.querySelector('canvas'),CW=640,CH=360,S=CW/512,o=document.createElement('canvas');o.width=CW*2;o.height=CH*6;const x=o.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=(lab,ov)=>{const pi=P.inv;P.inv=0;HX.warm();render();P.inv=pi;const ox=(n%2)*CW,oy=Math.floor(n/2)*CH;x.drawImage(cv,0,0,cv.width,cv.height,ox,oy,CW,CH);
+      x.save();x.beginPath();x.rect(ox,oy,CW,CH);x.clip();x.translate(ox,oy);x.scale(S,S);x.lineWidth=1/S*2;ov&&ov();x.restore();
+      x.fillStyle='rgba(0,0,0,.7)';x.fillRect(ox,oy,CW,26);x.fillStyle='#fff';x.font='14px sans-serif';x.fillText(lab,ox+8,oy+18);n++;};
+    const box=(q,c,fill,dash)=>{x.strokeStyle=c;dash&&x.setLineDash([3,2]);x.strokeRect(q.x,q.y,q.w,q.h);if(fill){x.fillStyle=fill;x.fillRect(q.x,q.y,q.w,q.h);}x.setLineDash([]);};
+    const parts=()=>{box({x:boss.x,y:boss.y,w:boss.w,h:boss.h},'#a0a0a0',null,1);for(const p of bossParts())box(p,'#ffa030','rgba(255,160,48,.2)');};
+    const tiles=()=>{for(let ty=0;ty<GH;ty++)for(let tx=0;tx<32;tx++){const t=T(tx,ty);if(t===2)box({x:tx*TS,y:ty*TS,w:TS,h:TS},'#3fff6a',null,1);if(t===3)box({x:tx*TS,y:ty*TS,w:TS,h:4},'#3fff6a','rgba(63,255,106,.2)');}};
+    const hold=()=>{P.inv=999;boss.cd=999;};
+    const fresh=()=>{HX.go(4,5);HX.run(320);hazs.length=0;ebul.length=0;boss.cd=999;boss.lockT=0;P.x=10*TS;P.y=14*TS-14;};
+    const zb=(zs,c,f,d)=>{for(const z of zs)box(z,c,f,d);};
+    fresh();for(let i=0;i<5;i++){hold();update();}
+    grab('1 平時:灰虛線=本體 150×120(碰到不扣血);橘=蛇頭 46×34(唯一受傷部件,碰到也扣血);綠=繩梯與平台',()=>{parts();tiles();});
+    fresh();P.y=9*TS-14;P.x=8*TS;boss.ai=0;boss.cd=0;update();let zs=hazs.slice();for(let i=0;i<30;i++){hold();update();}
+    grab(`2 沿層推進預警(${zs[0].warn} 幀):黃虛線=判定 64×24,停在 x=-60 畫面外,只露出 4 像素`,()=>{parts();zb(zs,'#ffd23a',null,1);});
+    for(let i=0;i<zs[0].warn-30+45;i++){hold();update();}
+    grab(`3 沿層推進生效(${zs[0].live} 幀,每幀往右 3.3):紅=扣血,三層隨機一層,穿過整個畫面與魔王`,()=>{parts();zb(zs,'#ff3030','rgba(255,40,40,.35)');});
+    fresh();P.x=12*TS;boss.ai=1;boss.cd=0;update();zs=hazs.slice();for(let i=0;i<30;i++){hold();update();}
+    grab(`4 鎖定範圍預警(${zs[0].warn} 幀):黃虛線=87×45,以發動時主角位置為中心,之後不跟`,()=>{parts();zb(zs,'#ffd23a',null,1);});
+    for(let i=0;i<zs[0].warn-30+5;i++){hold();update();}
+    grab(`5 鎖定範圍生效(只有 ${zs[0].live} 幀):紅=扣血`,()=>{parts();zb(zs,'#ff3030','rgba(255,40,40,.35)');});
+    fresh();boss.ai=2;boss.cd=0;update();zs=hazs.slice();for(let i=0;i<30;i++){hold();update();}
+    grab(`6 骨石落下預警(${zs[0].warn} 幀):6 條 16 寬,從畫面頂到地面,穿過平台(平台擋不住)`,()=>{parts();tiles();zb(zs,'#ffd23a',null,1);});
+    for(let i=0;i<zs[0].warn-30+5;i++){hold();update();}
+    grab(`7 骨石落下生效(${zs[0].live} 幀):紅=扣血(整條同時生效,不是由上往下落)`,()=>{parts();zb(zs,'#ff3030','rgba(255,40,40,.35)');});
+    fresh();boss.hp=boss.max*0.29;hold();boss.cd=0;update();const tg=boss.flashTarget;for(let i=0;i<60;i++){hold();update();}
+    grab(`8 骨影閃瞬隱身(180 幀,招式暫停,沒有判定):只有字幕「→ ${tg.label}」,黃虛線=現身後蛇頭位置`,()=>{tiles();box({x:tg.x+40,y:tg.hy,w:46,h:34},'#ffd23a',null,1);});
+    const POS=[{x:402,hy:8,label:'右上'},{x:402,hy:14*TS-30,label:'右下'},{x:-16,hy:8,label:'左上'},{x:-16,hy:14*TS-30,label:'左下'}];
+    for(const k of [2,3,1]){fresh();boss.hp=boss.max*0.29;hold();boss.cd=0;update();boss.flashTarget=POS[k];boss.flashT=1;hold();update();for(let i=0;i<3;i++){hold();update();}
+      grab(`${9+[2,3,1].indexOf(k)} 現身於${POS[k].label}:本體框 x=${boss.x},蛇頭碰撞即時生效(定住 90 幀後再追主角高度)`,()=>{parts();tiles();});}
+    fresh();boss.hp=boss.max*0.49;hold();update();for(let i=0;i<5;i++){hold();update();}
+    grab('12 血量 50%:上層平台(第 5 列)瞬間消失,站在上面的主角直接掉落',()=>{parts();tiles();});
+    // 統計(主角無敵站在中央地面)
+    HX.go(4,5);HX.run(320);let vol=0,dupCol=0,adj=0,waveL={},headMin=999,headMax=-999,pY=[];
+    for(let i=0;i<20000;i++){P.inv=999;P.lives=5;const h0=hazs.length,c=boss.cd,a=boss.ai;update();
+      if(c===0&&a%3===2){vol++;const xs=hazs.slice(h0).map(z=>z.x).sort((p,q)=>p-q);for(let j=1;j<xs.length;j++){if(xs[j]===xs[j-1])dupCol++;else if(xs[j]-xs[j-1]===TS)adj++;}}
+      if(c===0&&a%3===0){const z=hazs[hazs.length-1];waveL[z.y]=(waveL[z.y]||0)+1;}
+      headMin=Math.min(headMin,boss.headY);headMax=Math.max(headMax,boss.headY);}
+    return {d:o.toDataURL().split(',')[1],log:{魔王血量:boss.max,骨石齊落次數:vol,同一欄重複:dupCol,相鄰兩欄:adj,沿層推進各層次數:waveL,蛇頭y範圍:[Math.round(headMin),Math.round(headMax)],
+      預警幀:{沿層:Math.round(40*1.7)+10,鎖定:Math.round(34*1.7)+10,骨石:Math.round(36*1.7)+10},招式間隔幀:[150,110,140].map(v=>Math.round(v*BOSS_CD_MULT))}};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
 // v0.26 9 王:核對兩項授權(本體碰撞 150×120、左繩梯第 21 欄、死後傳送帶停止)、翻轉後畫面同步與招式數字;場景、各招特效、翻轉預告、登場、死亡逐格截圖(2 欄)
 async function b9fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
   await pg.evaluate(async()=>{HX.go(9,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,500));});   // 內嵌圖非同步載入
@@ -971,6 +1015,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b7hit')await b7hit(a[0],a[1]);
   else if(cmd==='b1hit')await b1hit(a[0],a[1]);
   else if(cmd==='b9hit')await b9hit(a[0],a[1]);
+  else if(cmd==='b4hit')await b4hit(a[0],a[1]);
   else if(cmd==='b9fx')bad=await b9fx(a[0]||'b9fx.png',a[1]);
   else if(cmd==='b9perf')await b9perf(a[0]);
   else if(cmd==='b1fx')bad=await b1fx(a[0]||'b1fx.png',a[1]);
