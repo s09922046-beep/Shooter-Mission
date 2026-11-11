@@ -834,6 +834,67 @@ async function b4hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
     return {d:o.toDataURL().split(',')[1],log:{魔王血量:boss.max,骨石齊落次數:vol,同一欄重複:dupCol,相鄰兩欄:adj,沿層推進各層次數:waveL,蛇頭y範圍:[Math.round(headMin),Math.round(headMax)],
       預警幀:{沿層:Math.round(40*1.7)+10,鎖定:Math.round(34*1.7)+10,骨石:Math.round(36*1.7)+10},招式間隔幀:[150,110,140].map(v=>Math.round(v*BOSS_CD_MULT))}};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
+// v0.27 4 王:核對授權(上層橋第 6~18 欄、左繩梯移到第 5 欄第 5~8 列、上層崩毀龜裂 40 幀)與招式數字;場景、各招特效、閃瞬、左右鏡像、登場、死亡逐格截圖(2 欄)
+async function b4fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  await pg.evaluate(async()=>{HX.go(4,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,600));});   // 內嵌圖非同步載入
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;const ck=(n,ok,v)=>{o.push((ok?'OK':'NG')+' '+n+(v!==undefined?'('+v+')':''));if(!ok)bad++;};
+    const cv=document.querySelector('canvas'),CW=640,CH=360,cel=document.createElement('canvas');cel.width=CW*2;cel.height=CH*20;const x=cel.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=(lab,c,ov)=>{const pi=P.inv;P.inv=0;HX.warm();render();P.inv=pi;const sc=cv.width/512,q=c||[0,0,512,288],ox=(n%2)*CW,oy=Math.floor(n/2)*CH;
+      x.drawImage(cv,q[0]*sc,q[1]*sc,q[2]*sc,q[3]*sc,ox,oy,CW,CH);
+      if(ov){x.save();x.beginPath();x.rect(ox,oy,CW,CH);x.clip();x.translate(ox,oy);x.scale(CW/q[2],CH/q[3]);x.translate(-q[0],-q[1]);x.lineWidth=1;ov();x.restore();}
+      x.fillStyle='rgba(0,0,0,.7)';x.fillRect(ox,oy,CW,24);x.fillStyle='#fff';x.font='15px sans-serif';x.fillText(lab,ox+8,oy+17);n++;};
+    const box=(q,c,d)=>{x.strokeStyle=c;d&&x.setLineDash([3,2]);x.strokeRect(q.x+.5,q.y+.5,q.w-1,q.h-1);x.setLineDash([]);};
+    const ovl=()=>{for(const p of bossParts())box(p,'#ffa030');for(let ty=0;ty<GH;ty++)for(let tx=0;tx<32;tx++){const t=T(tx,ty);if(t===2)box({x:tx*TS,y:ty*TS,w:TS,h:TS},'#3fff6a',1);if(t===3)box({x:tx*TS,y:ty*TS,w:TS,h:4},'#3fff6a');}for(const z of hazs)box(z,z.t<=z.warn?'#ffd23a':'#ff3030',z.t<=z.warn);box(P,'#ffe040');};
+    const fresh=()=>{HX.go(4,5);HX.run(320);hazs.length=0;ebul.length=0;parts.length=0;const b=boss;b.cd=9999;P.x=10*TS;P.y=14*TS-14;return b;};
+    const run=(b,k,hold)=>{for(let i=0;i<k;i++){P.inv=999;if(hold)b.cd=9999;update();}};
+    let b=fresh();
+    ck('左繩梯移到第 5 欄第 5~8 列,第 2 欄已無繩梯',[5,6,7,8].every(y=>climbT(5,y))&&[4,9].every(y=>!climbT(5,y))&&[2,5,8].every(y=>!climbT(2,y)));
+    ck('上層橋第 6~18 欄,第 5 欄不是平台',T(5,5)!==3&&[6,12,18].every(c=>T(c,5)===3)&&T(19,5)===0);
+    ck('中層橋第 3~20 欄、右繩梯第 21 欄第 6~13 列不變',[3,20].every(c=>T(c,9)===3)&&[6,13].every(y=>climbT(21,y)));
+    ck('蛇頭判定 46×34、本體框 150×120 不變',bossParts()[0].w===46&&bossParts()[0].h===34&&b.w===150&&b.h===120);
+    b=fresh();b.ai=0;b.cd=0;update();let z=hazs[0];ck('沿層推進 64×24、預警 78、生效 300、每幀 3.3',z.w===64&&z.h===24&&z.warn===78&&z.live===300&&z.vx===3.3&&z.x===-60&&z.fx==='b4wave',[z.w,z.h,z.warn,z.live,z.vx].join('/'));
+    b=fresh();b.ai=1;b.cd=0;update();z=hazs[0];ck('鎖定範圍 87×45、預警 68、生效 14',z.w===87&&z.h===45&&z.warn===68&&z.live===14,[z.w,z.h,z.warn,z.live].join('/'));
+    b=fresh();b.ai=2;b.cd=0;update();ck('骨矛 6 條 16×224、預警 71、生效 20',hazs.length===6&&hazs.every(q=>q.w===16&&q.h===224&&q.y===0&&q.warn===71&&q.live===20&&q.fx==='b4spear'));
+    b=fresh();b.hp=b.max*0.49;run(b,1,1);let ok1=T(10,5)===3&&b.crT===40;run(b,39,1);ok1=ok1&&T(10,5)===3&&b.crT===1;run(b,1,1);ck('上層崩毀:觸發後 39 幀照常可站,第 40 幀才移除',ok1&&T(10,5)===0&&T(6,5)===0&&T(18,5)===0);
+    {const pm=(lab,prep,k)=>{prep();for(let i=0;i<3;i++){P.inv=999;update();render();}const ts=[];for(let i=0;i<k;i++){P.inv=999;update();const t0=performance.now();render();ts.push(performance.now()-t0);}ts.sort((p,q)=>p-q);o.push('效能 '+lab+':render 平均 '+(ts.reduce((s,v)=>s+v,0)/k).toFixed(2)+' / 最差 '+ts[k-1].toFixed(2)+' ms(沙盒相對值)');};
+      pm('平時',()=>{b=fresh();},120);pm('骨矛加毒霧',()=>{b=fresh();b.ai=2;b.cd=0;update();for(let i=0;i<70;i++){P.inv=999;b.cd=9999;update();}b.ai=0;b.cd=0;update();b.ai=1;b.cd=0;update();},20);
+      pm('登場',()=>{HX.go(4,5);for(let i=0;i<130;i++)update();},80);pm('死亡',()=>{b=fresh();b.introT=0;bossDamage(bossParts()[0],1e8);},90);
+      pm('閃瞬崩解',()=>{b=fresh();b.hp=b.max*0.29;b.cd=0;update();},30);}
+    // 截圖
+    b=fresh();run(b,30,1);grab('1 場景:屍骨峽谷、骨龍在右上角、脊椎骨鏈繩梯');grab('1b 骨龍(放大)',[356,-4,156,154]);
+    grab('1c 判定疊圖:橘=蛇頭(唯一部件)、綠=繩梯與平台',null,ovl);
+    b.hf={core:6};grab('2 受擊:只白化頭骨(放大)',[380,40,100,56]);b.hf={};
+    b.headY=20;run(b,1,1);b.headY=20;grab('3 蛇頭在最高 y=20:頸往上彎(放大)',[356,-4,156,154]);b.headY=150;run(b,1,1);b.headY=150;grab('3b 蛇頭在最低 y=150',[356,30,156,154]);
+    b=fresh();P.y=9*TS-14;P.x=8*TS;b.ai=0;b.cd=0;update();run(b,50,1);grab('4 沿層推進預警(左緣牆縫滲出霧泡)',[0,90,160,90]);run(b,50,1);grab('5 沿層推進生效:翻滾毒霧團',null,ovl);
+    b=fresh();P.x=12*TS;b.ai=1;b.cd=0;update();run(b,50,1);grab('6 鎖定範圍預警:毒霧種',null,ovl);run(b,20,1);grab('7 鎖定範圍生效第 2 幀',[100,140,200,112]);run(b,6,1);grab('7b 生效第 8 幀',[100,140,200,112]);
+    b=fresh();b.ai=2;b.cd=0;update();run(b,40,1);grab('8 骨矛預警(落點影子)');run(b,30,1);grab('9 預警倒數第 2 幀:骨矛落下中(矛尖 y=24,不扣血)',null,ovl);run(b,1,1);grab('9b 預警最後一幀(矛尖 y=60,不扣血)',null,ovl);run(b,1,1);grab('10 生效第 1 幀:整條插到地、穿過斷橋(與判定一致)',null,ovl);run(b,9,1);grab('11 生效第 10 幀');{const z=hazs.find(q=>q.fx==='b4spear');ck('骨矛:預警最後 2 幀畫落下、生效第 1 幀起整條',!!z&&z.t-z.warn===10,z&&z.t-z.warn);}
+    b=fresh();b.hp=b.max*0.49;run(b,20,1);grab('12 上層崩毀龜裂第 20 幀',[80,60,240,60]);run(b,16,1);grab('12b 龜裂第 36 幀',[80,60,240,60]);run(b,6,1);grab('13 崩落後');
+    b=fresh();b.hp=b.max*0.29;b.cd=0;update();b.flashTarget={x:-16,hy:8,label:'左上'};run(b,12,1);grab('14 骨影閃瞬:崩解成骨片與黑霧(第 12 幀)');run(b,100,1);grab('15 閃瞬剩 60 幀:目標位置魂火浮現');run(b,40,1);grab('16 剩 20 幀:骨片螺旋聚集',[0,0,200,112]);
+    run(b,22,1);grab('17 左上現身(鏡像)',null,ovl);run(b,100);grab('17b 左側追主角高度');
+    for(const [X,hy,lab] of[[-16,194,'18 左下現身:蹲伏加收合翼'],[402,8,'19 右上現身(往右移 46)'],[402,194,'20 右下現身:蹲伏加收合翼'],[-16,8,'20b 左上現身(完整鏡像)']]){b=fresh();b.x=X;b.headY=hy;b.holdT=999;b.v4w=b4Lw(b);run(b,20,1);grab(lab,null,ovl);}
+    b=fresh();b.x=402;b.headY=194;b.v4w=1;b.holdT=0;P.y=2*TS;P.x=10*TS;for(let i=0;i<24;i++){P.y=2*TS;P.vy=0;P.inv=999;b.cd=9999;update();}grab('21 右下現身後頭往上追:身軀切回高姿勢中');for(let i=0;i<60;i++){P.y=2*TS;P.vy=0;P.inv=999;b.cd=9999;update();}grab('21b 切換完成');
+    b=fresh();b.ai=0;b.cd=0;update();run(b,110,1);{const z=hazs[0];grab('22 毒霧團頭尾(放大)',[Math.round(z.x)-24,Math.round(z.y)-6,112,63]);}b=fresh();P.x=12*TS;b.ai=1;b.cd=0;update();run(b,70,1);grab('23 鎖定範圍頭尾(放大)',[130,180,120,50]);
+    for(const [t,lab] of[[60,'登場 WARNING'],[150,'登場 k0.3:骨片由兩側屍骨堆飛出'],[175,'登場 k0.55:翼與胸廓聚合'],[198,'登場 k0.78:頸與頭骨聚合'],[214,'登場 k0.94:點燃眼窩']]){HX.go(4,5);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab);}
+    for(const [t,lab] of[[10,'死亡 10:魂火熄滅'],[36,'死亡 36:頭骨崩散'],[60,'死亡 60:骨架由頭往尾崩散'],[90,'死亡 90:骨片落地'],[170,'死亡 170:化為散布全場的骨堆']]){b=fresh();b.introT=0;bossDamage(bossParts()[0],1e8);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab);}
+    return {d:cel.toDataURL().split(',')[1],o,bad,n};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log(r.o.join('\n'));console.log('已存',outp,'格數',r.n,'錯誤',errs.length?errs:'無');await br.close();return r.bad+errs.length;}
+// v0.27 4 王:上層橋(第 5 列)可達性。各種地形方案下,從左右繩梯頂端與中層橋,以不同的起跳時機(放開上鍵後幾幀按方向、跳躍鍵按住幾幀)嘗試跳上第 5 列,回報成功組數
+async function b4reach(file){const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const out={};
+    const CF={'A 第 2 回授權原案(左繩梯 6~8 列、橋 6~18 欄)':[6,6],'B 左繩梯 4~8 列、橋 6~18 欄':[4,6],'C 左繩梯 5~8 列、橋 6~18 欄':[5,6],'D 左繩梯 6~8 列、橋 5~18 欄':[6,5],'E 原版(左繩梯 2~8 列、橋 5~18 欄)':[2,5],'F 左繩梯 2~8 列、橋 6~18 欄':[2,6],'G 左繩梯 3~8 列、橋 6~18 欄':[3,6],'H 左繩梯 3~8 列、橋 5~18 欄':[3,5],'I 左繩梯移到第 5 欄 2~8 列、橋 6~18 欄':[2,6,5],'J 第 5 欄 4~8 列':[4,6,5],'K 現行(第 5 欄 5~8 列、橋 6~18 欄)':[5,6,5]};
+    for(const [lab,[vt,bl,vc]] of Object.entries(CF)){const VC=vc||2;let ok=0,tot=0;const how=[];
+      for(const src of ['左繩梯','右繩梯','中層橋'])for(let dl=0;dl<=8;dl+=2)for(const jh of [1,6,20]){
+        HX.go(4,5);HX.run(320);for(let c=5;c<=18;c++)setT(c,5,c>=bl?3:0);for(let y=2;y<=8;y++){setT(2,y,0);if(T(VC,y)!==3)setT(VC,y,y>=vt?2:0);}
+        const z=()=>{ebul.length=0;hazs.length=0;ens.length=0;boss.cd=999;boss.headY=150;boss.holdT=999;};
+        const dir=src==='右繩梯'?'l':'r';K.l=K.r=K.u=K.j=0;
+        if(src==='中層橋'){P.x=(src==='中層橋'?bl*16+8:0);P.y=9*16-14;P.vy=0;for(let i=0;i<10;i++){z();HX.run(1);}}
+        else{const col=src==='左繩梯'?VC:21;P.x=col*16+3;P.y=8*16;P.vy=0;K.u=1;for(let i=0;i<300;i++){z();HX.run(1);}K.u=0;}
+        for(let i=0;i<dl;i++){z();HX.run(1);}
+        K[dir]=1;K.j=1;let best=0;for(let i=0;i<70;i++){if(i===jh)K.j=0;z();HX.run(1);if(P.onG&&Math.abs(P.y+14-80)<1)best=1;}
+        K[dir]=0;K.j=0;tot++;if(best){ok++;how.push(src+' 延遲'+dl+' 按跳'+jh);}}
+      out[lab]=ok+'/'+tot+(how.length?'('+how.slice(0,4).join('、')+(how.length>4?'…':'')+')':'');}
+    return out;});
+  console.log(JSON.stringify(r,null,1),'錯誤',errs.length?errs:'無');await br.close();return errs.length;}
 // v0.26 9 王:核對兩項授權(本體碰撞 150×120、左繩梯第 21 欄、死後傳送帶停止)、翻轉後畫面同步與招式數字;場景、各招特效、翻轉預告、登場、死亡逐格截圖(2 欄)
 async function b9fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
   await pg.evaluate(async()=>{HX.go(9,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,500));});   // 內嵌圖非同步載入
@@ -1016,6 +1077,8 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b1hit')await b1hit(a[0],a[1]);
   else if(cmd==='b9hit')await b9hit(a[0],a[1]);
   else if(cmd==='b4hit')await b4hit(a[0],a[1]);
+  else if(cmd==='b4reach')bad=await b4reach(a[0]);
+  else if(cmd==='b4fx')bad=await b4fx(a[0]||'b4fx.png',a[1]);
   else if(cmd==='b9fx')bad=await b9fx(a[0]||'b9fx.png',a[1]);
   else if(cmd==='b9perf')await b9perf(a[0]);
   else if(cmd==='b1fx')bad=await b1fx(a[0]||'b1fx.png',a[1]);
