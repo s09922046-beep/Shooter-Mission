@@ -1,0 +1,110 @@
+【6 王 灰燼騎士與詠嘆者:騎士三則、詠嘆者三則、場景一則,共三個對話。騎士三則在同一個對話依序送(第 1 張滿意後再送第 2、3 則);詠嘆者另開一個對話,同樣依序三則;場景再另開一個對話,附上 boss6-arena-template.png】
+
+==================== 騎士(對話一) ====================
+
+【騎士 第 1 則:主設計圖】
+
+Boss concept for a 2D side-scrolling pixel-art run-and-gun game. This image is a design reference that will later be redrawn as a small sprite about 40 pixels tall, so it must read clearly when shrunk 20 times.
+
+Character: an original "ash knight": an empty, burnt-out suit of heavy plate armor that is held together and moved only by the dying embers inside it. Full body, strict side view, FACING LEFT, standing in a ready stance. Mood: hollow, mournful, heavy, relentless.
+Key identifying features (all three must be obvious in a pure black silhouette):
+1. A long HALBERD, taller than the knight: a straight thick shaft with one big crescent axe blade and a spear point on top. Held upright in the front hand, butt of the shaft on the ground.
+2. A big jagged HOLE broken through the chest plate. Inside the hole sits a round ember furnace that glows solid red. This is the ONLY red element in the whole image.
+3. A plain flat-topped great helm (a bucket-shaped closed helmet) with a dark empty eye slit, and ONE oversized round shoulder plate on the near shoulder. The far shoulder plate is missing.
+Details:
+- The armor is empty: no face, no skin, no hair. Through the eye slit and the gaps between the plates there is only darkness.
+- Armor color: cold burnt charcoal-grey iron with pale ash-grey dust lying on every upward-facing surface (top of helm, shoulder plate, forearm).
+- A few wide cracks in the plates show a dull dark amber glow, as if coals are cooling inside. Keep them few and dim; the red furnace in the chest must stay the brightest thing.
+- A short, burnt, torn waist cloth in dark ash grey, cut in 2 large simple panels. No cape, no cloak.
+- Broad, heavy, slightly hunched proportions, about 5 heads tall. Thick forearms and boots.
+- No wings, no crown, no horns, no fin on the helmet, no sword, no shield.
+
+Output rules:
+- Canvas 1536 x 1024. The character (including the whole halberd) fills about 85% of the canvas height, centered.
+- Background is one flat solid magenta #FF00FF. No floor, no shadow, no text, no labels, no frame.
+- Clean flat-color illustration with bold dark outlines of even thickness (about 8 pixels).
+- 4 to 5 tones per material for large areas (light to dark steps). No gradients, no soft shading, no texture noise, no glow halo, no rim light, no smoke, no sparks, no particle effects.
+- No shape or gap smaller than 40 pixels across. Prefer a few big readable shapes over many small details. No fine engraving, no chains, no rivets rows, no thin spikes, no tattered thin strips.
+- Colors allowed: charcoal greys, ash greys, dull dark amber (cracks only), red (furnace only). No blue, no green, no cyan, no purple, no gold, no bright orange.
+- The design must be original and must not resemble any existing game, film, anime, toy or brand character.
+
+【騎士 第 2 則:姿勢表(第 1 張滿意後送出)】
+
+Now draw exactly the same character, same design, same colors and same style, as a pose sheet: five full-body poses in one horizontal row, all FACING LEFT, all at the same scale, evenly spaced, on the same flat magenta #FF00FF background. No text, no labels, no motion lines, no effects.
+1. Walking: mid-stride, halberd carried upright against the shoulder.
+2. Forward chop wind-up: halberd raised high and back with both hands, axe blade behind the head, about to chop down in front.
+3. Wide sweep: body twisted, halberd held horizontally at waist height with both hands at full reach, as if swinging it in a full circle around the body.
+4. Charge: low forward dash, body leaning far forward, the big shoulder plate leading, halberd couched level under the arm with the spear point straight ahead.
+5. Defeated: down on one knee, head bowed, leaning on the halberd planted upright in the ground.
+Keep the chest hole with the red furnace, the flat-topped helm and the single big shoulder plate visible in every pose. Each pose fits inside its own fifth of the canvas.
+
+【騎士 第 3 則:剪影(第 1 張滿意後送出;可與第 2 則對調順序)】
+
+Now output exactly the same design as the first image (the ready stance), same canvas and same position, as a pure black silhouette (#000000) on the flat magenta #FF00FF background. Only the furnace in the chest stays red. No outlines, no interior details.
+
+==================== 詠嘆者(對話二) ====================
+
+【詠嘆者 第 1 則:主設計圖】
+
+Boss concept for a 2D side-scrolling pixel-art run-and-gun game. This image is a design reference that will later be redrawn as a small sprite about 36 pixels tall, so it must read clearly when shrunk 20 times.
+
+Character: an original "chanter": a thin, tall priest-singer of a ruined sanctuary whose endless hymn keeps a dead knight moving. Full body, strict side view, FACING LEFT, standing upright and still, singing. Mood: serene, sorrowful, devout, eerie calm.
+Key identifying features (all three must be obvious in a pure black silhouette):
+1. A SAINT'S MASK: a smooth, pale, calm, expressionless mask covering the whole face (closed eyes, small closed mouth), with a large flat round halo disc fixed upright behind the head like a plate.
+2. A HAND BELL on a long straight handle, held up in the front hand at head height, the bell hanging mouth-down. The bell is large, about the size of the head.
+3. A long straight floor-length robe with wide hanging sleeves that falls in a narrow bell shape; no feet visible.
+Details:
+- Robe color: pale bone-white and light warm grey cloth, stained with ash at the hem. A darker grey stole (a long scarf-like band) hangs straight down the front.
+- On the chest, on the stole, one round holy emblem that glows solid red. This is the ONLY red element in the whole image.
+- The mask and halo are pale ivory. The bell is dull dark bronze.
+- The far hand is held flat in front of the chest, below the emblem.
+- Slender proportions, about 6.5 heads tall. No hood, no hair, no skin visible, no wings, no staff, no book, no weapon.
+
+Output rules:
+- Canvas 1536 x 1024. The character (including halo and bell) fills about 80% of the canvas height, centered.
+- Background is one flat solid magenta #FF00FF. No floor, no shadow, no text, no labels, no frame.
+- Clean flat-color illustration with bold dark outlines of even thickness (about 8 pixels).
+- 4 to 5 tones per material for large areas (light to dark steps). No gradients, no soft shading, no texture noise, no glow halo, no rim light, no smoke, no particle effects, no musical notes.
+- No shape or gap smaller than 40 pixels across. Prefer a few big readable shapes over many small details. No embroidery, no fine patterns, no beads, no thin tassels.
+- Colors allowed: bone-white, warm light greys, dark grey, pale ivory, dull dark bronze, red (emblem only). No green, no cyan, no blue, no purple, no orange, no gold shine.
+- The design must be original and must not resemble any existing game, film, anime, toy or brand character, and must not copy the symbol of any real religion (the emblem is a plain circle with a plain ring around it).
+
+【詠嘆者 第 2 則:姿勢表(第 1 張滿意後送出)】
+
+Now draw exactly the same character, same design, same colors and same style, as a pose sheet: four full-body poses in one horizontal row, all FACING LEFT, all at the same scale, evenly spaced, on the same flat magenta #FF00FF background. No text, no labels, no motion lines, no effects.
+1. Singing (same as before): upright, bell held at head height.
+2. Ringing: bell raised high above the head at full arm's length, head tilted back.
+3. Commanding: front arm stretched straight forward and down, pointing at the ground ahead with the open hand, bell lowered at the side in the other hand.
+4. Defeated: the mask cracked in two with one half fallen away showing only darkness behind it, the body sinking to its knees, the bell dropped on the ground beside it.
+Keep the halo disc, the bell and the red chest emblem visible in every pose. Each pose fits inside its own quarter of the canvas.
+
+【詠嘆者 第 3 則:剪影(第 1 張滿意後送出;可與第 2 則對調順序)】
+
+Now output exactly the same design as the first image (the singing stance), same canvas and same position, as a pure black silhouette (#000000) on the flat magenta #FF00FF background. Only the chest emblem stays red. No outlines, no interior details.
+
+==================== 場景(對話三,附 boss6-arena-template.png) ====================
+
+Background art for one fixed screen of a 2D side-scrolling pixel-art run-and-gun game: the boss arena of two bosses, an ash knight and a chanting priest. Use the attached guide image as an exact layout template. It will be shrunk 3 times (to 512 x 341 pixels), so it must read clearly at that size.
+
+Guide image legend:
+- Magenta #FF00FF = not painted yet. This is an INDOOR scene: paint the whole magenta area as the back wall and interior of the hall. No magenta may remain in the output.
+- Grey areas = covered by the game's floor and side walls. Fill them with flat dark grey #303030, no details.
+- Cyan line = the floor line. Everything that stands on the floor stands on this line.
+- Blue dashed band (top) = a row of 4 or 5 tall narrow arched windows high on the back wall, evenly spaced. The glass is plain, pale, cold grey-blue, with simple thick stone bars; no pictures in the glass. These windows are the only light source.
+- Green box = THE MURAL. A big faded wall painting (fresco) in a plain stone frame filling this box. It shows two simple figures standing side by side, seen from the front: on the left a broad armored knight holding a tall halberd upright, on the right a thin robed priest with a round halo disc behind the head, holding up a hand bell. The paint is old, flaking and pale, lower in contrast than everything else, with two or three large bare patches where the plaster has fallen off. No text.
+- Orange box = the stone support of a choir balcony: two or three heavy stone brackets or a thick round arch standing on the floor line and reaching up to the top edge of the box, as if carrying a balcony above it. Plain and massive.
+- Purple boxes (far left and far right) = one long torn cloth banner hanging down from the top inside each box: faded dark wine color, ragged bottom edge, covered in dust. Nothing else in the scene has this color.
+- White dashed boxes = floating platforms and hanging chains that the game draws later. Do not draw them, and keep the wall behind them plain and low in detail.
+- Yellow box and red box = where the two bosses stand. Do not draw any figure there; keep the wall behind them plain, with no strong shapes.
+
+Scene: the main hall of an ancient, abandoned stone sanctuary at night, long after a great fire. Massive plain stone block walls, a few thick round pillars or half-pillars between the windows and the mural, a stone ledge running along the wall. Soot stains rising up the walls, and low drifts of pale ash piled along the bottom of the back wall on the floor line. A few burnt-out iron candle stands, with no flame. Silent, solemn, empty, long dead. No people, no statues of people, no bones, no fire, no flames, no candle light, no text, no symbols of any real religion.
+
+Output rules:
+- Same canvas size and aspect ratio as the guide (1536 x 1024), everything in exactly the same positions as the guide.
+- Clean flat-color pixel-art-friendly illustration. Use only 3 or 4 tones per material. No gradients, no soft shading, no texture noise, no glow, no light rays, no rim light, no fog, no dust in the air (the game draws light shafts and ash).
+- No shape or gap smaller than 12 pixels across. Big simple shapes; no fine cracks, no small bricks, no small debris, no thin lines.
+- Colors: cold, desaturated grey-blue and grey-violet stone. Low contrast overall. The darkest color must not be darker than #2a2836 (nothing pure black, because one boss is a charcoal-black armored figure that must stand out), and the lightest stone must not be lighter than #7c7888 (the other boss wears a pale robe that must stand out). Only the window glass may be a little lighter, up to #9ab0c4. The banners are dark faded wine (about #4a2a34).
+- No red, no orange, no amber, no bright green, no cyan-green anywhere (those colors are reserved for the bosses' attacks).
+- The wall is flatly lit: slightly lighter near the windows at the top, darker towards the floor.
+- Strict front view of the back wall, floor line flat, no perspective distortion, no vanishing point.
+- The design must be original and must not resemble any existing game, film or real building.
