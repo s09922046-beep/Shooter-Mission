@@ -49,26 +49,12 @@ const d=await pg.evaluate(async J=>{
  const TL=['#14403a','#2e8a74','#5ad4b0','#8affd0','#e8fff6'];
  const blocks=[];const add=(title,opts)=>blocks.push({title,opts});
  // ---------- 0 場景與精靈初稿 ----------
- const chanter=g=>{const X=400,Y=86; // 判定 18×26;手繪初稿(面朝左):光輪、聖徒面具、提鐘、窄鐘形長袍、深色聖帶、胸前聖徽
-   const c=mk(26,32),q=c;q.ell(13,6,5.5,5.5,'#e6dcc2');q.ring(13,6,4.2,4.2,1,'#8e8676');q.ell(13,6,3,3,'#e6dcc2');                       // 光輪(圓盤加一圈刻線)
-   q.ell(12.5,7.5,2.6,3.4,'#4e4a44');q.ell(11.4,7.5,2,3,'#f4eed8');q.px(10,7,2,1,'#9a927e');q.px(10,10,1,1,'#c8c0a8');                    // 兜帽陰影與面具(閉眼)
-   q.px(10,11,6,2,'#c8c0a8');                                                                                                            // 立領
-   for(let y=13;y<31;y++){const t=(y-13)/17,l=Math.round(9.5-t*3),r=Math.round(16.5+t*1.5);q.px(l,y,r-l,1,'#e6dcc2');q.px(l+2,y,1,1,'#bab29f');q.px(r-3,y,1,1,'#bab29f');}
-   q.px(6,29,13,2,'#9a927e');q.px(12,13,2,18,'#5a564e');q.disc(13,16,1.9,'#f4eed8');q.disc(13,16,1.1,'#e61818');                         // 袍底灰燼、聖帶、聖徽(核心)
-   q.px(8,12,9,3,'#e6dcc2');q.px(8,14,9,1,'#bab29f');                                                                                    // 披肩
-   q.line(9,13,5,8,'#d8ceb6',3);q.px(4,13,4,6,'#d8ceb6');q.px(5,8,2,2,'#8a8278');                                                         // 舉起的寬袖與手
-   q.px(5,2,1,6,'#7a5e3a');q.px(3,8,5,1,'#8a6e44');q.px(2,9,7,3,'#8a6e44');q.px(2,12,7,1,'#5a4630');q.px(3,9,1,3,'#b4925e');              // 提鐘(握柄朝上、鐘口朝下)
-   q.px(16,18,2,1,'#8a8278');                                                                                                            // 後手掌心向上
-   const o=tint(c.c,(r,gg,b,x,y,cv)=>{const ctx=cv.getContext('2d');return [r,gg,b];});
-   // 外框:非空白格鄰接空白 → 深色
-   const id=o.getContext('2d').getImageData(0,0,26,32),D=id.data,A=(x,y)=>x<0||y<0||x>=26||y>=32||!D[(y*26+x)*4+3];const ol=[];
-   for(let y=0;y<32;y++)for(let x=0;x<26;x++)if(!A(x,y)&&(A(x+1,y)||A(x-1,y)||A(x,y+1)||A(x,y-1))&&!(D[(y*26+x)*4]>200&&D[(y*26+x)*4+1]<60))ol.push([x,y]);
-   const ox=o.getContext('2d');ox.fillStyle='#3a3230';for(const [x,y] of ol)ox.fillRect(x,y,1,1);
-   g.x.drawImage(o,X-3,Y+26-31);};
- add('0 場景(GPT 背景縮 1/3 壓 12 色)與精靈初稿對位(騎士為自動縮圖,詠嘆者為手繪;都待第 3 回手修)',[{t:'整張場景 512×288:平台、鐵鍊、騎士起始位置、詠嘆者站位',w:512,h:288,draw:g=>{world(g,0,0);
+ const CHN=await load(J.chanter);
+ const chanter=g=>{g.x.drawImage(CHN,400-4,112-CHN.height);};   // 手繪 chanter.js → chanter-hand.png;判定框在精靈 x4、y10
+ add('0 場景(GPT 背景縮 1/3 壓 12 色)與精靈初稿對位(騎士為自動縮圖待第 3 回手修,詠嘆者為手繪第 2 版)',[{t:'整張場景 512×288:平台、鐵鍊、騎士起始位置、詠嘆者站位',w:512,h:288,draw:g=>{world(g,0,0);
    plat(g,21,29,7);plat(g,4,11,10);chain(g,6,2,13);chain(g,17,2,13);knight(g,0,KB.x,KB.y,-1);chanter(g);
    g.dash(KB.x,KB.y,22,30,'#b0b0b0');g.dash(400,86,18,26,'#ff4040');g.dash(96,32,16,192,'#3fff6a');g.dash(272,32,16,192,'#3fff6a');}},
-   {t:'精靈放大:騎士 5 姿勢(走路/舉戟/橫掃/衝刺/跪地)',w:200,h:48,draw:g=>{g.px(0,0,200,48,'#4c4757');let X=4;for(let i=1;i<POSE.length;i++){const c=POSE[i].c;g.x.drawImage(c,X,46-c.height);X+=c.width+3;}}}]);
+   {t:'精靈放大:騎士 5 姿勢(走路/舉戟/橫掃/衝刺/跪地)與詠嘆者',w:230,h:48,draw:g=>{g.px(0,0,230,48,'#4c4757');let X=4;for(let i=1;i<POSE.length;i++){const c=POSE[i].c;g.x.drawImage(c,X,46-c.height);X+=c.width+3;}g.x.drawImage(CHN,X+2,46-CHN.height);}}]);
  // ---------- 1 騎士平時與出招外觀對比 ----------
  const ghost=src=>tint(src,(r,gg,b,x,y)=>{if(isRed(r,gg,b))return [150,40,40,120];const L=lum(r,gg,b);return [L*.7+40,L*.8+46,L+60,(x+y)%2?110:140];});
  const cold=src=>tint(src,(r,gg,b)=>{if(isRed(r,gg,b))return [120,24,20];if(isAmb(r,gg,b))return [70,64,60];const L=lum(r,gg,b);return [L*.92+4,L*.95+6,L+12];});
@@ -165,5 +151,5 @@ const d=await pg.evaluate(async J=>{
      X.fillStyle='#ffd88a';X.font='15px sans-serif';X.fillText(o.t,xx,y+o.h*S+16);xx+=w+PAD;rowH=Math.max(rowH,o.h*S);}
    y+=rowH+LH+18;}
  const fin=document.createElement('canvas');fin.width=SW2;fin.height=y;fin.getContext('2d').drawImage(out,0,0);
- return fin.toDataURL().split(',')[1];},{arena:ld('arena.png'),knight:ld('knight.png'),kposes:ld('kposes.png')});
+ return fin.toDataURL().split(',')[1];},{arena:ld('arena.png'),knight:ld('knight.png'),kposes:ld('kposes.png'),chanter:ld('chanter-hand.png')});
 fs.writeFileSync(__dirname+'/mock.png',Buffer.from(d,'base64'));await br.close();})();
