@@ -896,6 +896,56 @@ async function b6hit(outp,file){const {br,pg,errs}=await open(file,{width:1280,h
       衝刺次數:dash,衝刺中掉頭幀數:flip,騎士死後20000幀骷髏最多:skMax,右繩梯跳上詠嘆者平台:reach.length?reach:'全部失敗',打得到詠嘆者:shoot}};});
   fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log('已存',outp,JSON.stringify(r.log),'錯誤',errs.length?errs:'無');await br.close();}
 // v0.27 4 王:核對授權(上層橋第 6~18 欄、左繩梯移到第 5 欄第 5~8 列、上層崩毀龜裂 40 幀)與招式數字;場景、各招特效、閃瞬、左右鏡像、登場、死亡逐格截圖(2 欄)
+// v0.28 6 王:核對五項授權與招式數字不變,並截場景、兩種騎士外觀、各招預警與生效、繩索隱形、骷髏出現、受損、先死者短演出、登場、最後死亡
+async function b6fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
+  await pg.evaluate(async()=>{HX.go(6,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,600));});   // 內嵌圖非同步載入
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;const ck=(n,ok,v)=>{o.push((ok?'OK':'NG')+' '+n+(v!==undefined?'('+v+')':''));if(!ok)bad++;};
+    const cv=document.querySelector('canvas'),CW=640,CH=360,cel=document.createElement('canvas');cel.width=CW*2;cel.height=CH*24;const x=cel.getContext('2d');x.imageSmoothingEnabled=false;
+    let n=0;const grab=(lab,c,ov)=>{const pi=P.inv;P.inv=0;HX.warm();render();P.inv=pi;const sc=cv.width/512,q=c||[0,0,512,288],ox=(n%2)*CW,oy=Math.floor(n/2)*CH;
+      x.drawImage(cv,q[0]*sc,q[1]*sc,q[2]*sc,q[3]*sc,ox,oy,CW,CH);
+      if(ov){x.save();x.beginPath();x.rect(ox,oy,CW,CH);x.clip();x.translate(ox,oy);x.scale(CW/q[2],CH/q[3]);x.translate(-q[0],-q[1]);x.lineWidth=1;ov();x.restore();}
+      x.fillStyle='rgba(0,0,0,.7)';x.fillRect(ox,oy,CW,24);x.fillStyle='#fff';x.font='15px sans-serif';x.fillText(lab,ox+8,oy+17);n++;};
+    const box=(q,c,d)=>{x.strokeStyle=c;d&&x.setLineDash([3,2]);x.strokeRect(q.x+.5,q.y+.5,q.w-1,q.h-1);x.setLineDash([]);};
+    const ovl=()=>{for(const p of bossParts())box(p,p.key==='k'?'#ffa030':'#3ff0e0');for(const z of hazs)box(z,z.t<=z.warn?'#ffd23a':'#ff3030',z.t<=z.warn);};
+    const MR=Math.random;let force=null;Math.random=()=>force!==null?(force+0.5)/3:MR();
+    const fresh=()=>{force=null;HX.go(6,5);for(let i=0;i<320;i++){P.inv=999;update();}hazs.length=0;ebul.length=0;parts.length=0;ens.length=0;const b=boss;b.kcd=9999;b.ccd=9999;b.st='';b.stT=0;b.x=330;b.rw=0;if(b.zap>0){b.zap=0;vineAt(6,2,13);vineAt(17,2,13);}P.x=6*TS;P.y=14*TS-14;return b;};
+    const run=(b,k,hold)=>{for(let i=0;i<k;i++){P.inv=999;if(hold){b.kcd=Math.max(b.kcd,9999);b.ccd=Math.max(b.ccd,9999);}update();}};
+    const cast=(b,who,r)=>{b.lastK=-1;force=r;if(who==='k')b.kcd=0;else b.ccd=0;update();force=null;if(who==='k')b.kcd=9999;else b.ccd=9999;};
+    let b=fresh();
+    ck('騎士 22×30、詠嘆者 18×26 位置不變',bossParts().length===2&&bossParts()[0].w===22&&bossParts()[0].h===30&&bossParts()[1].x===400&&bossParts()[1].y===86&&bossParts()[1].w===18);
+    b=fresh();cast(b,'k',0);let z=hazs[0];ck('揮砍 36×26、預警 34、生效 12',z.w===36&&z.h===26&&z.warn===34&&z.live===12&&z.fx==='b6chop',[z.w,z.h,z.warn,z.live].join('/'));
+    {const d0=z.x-b.x;P.x=26*TS;run(b,20,1);const d1=z.x-b.x;P.x=2*TS;run(b,10,1);ck('(4) 揮砍判定框跟著騎士移動、身前側鎖定(主角越過後仍在原側)',Math.abs(d1-d0)<0.01&&Math.abs(z.x-b.x-d0)<0.01&&b6KF(b)===-1,[d0,(z.x-b.x).toFixed(1)].join('→'));}
+    b=fresh();cast(b,'k',2);z=hazs[0];ck('橫掃 90×36、預警 44、生效 14、跟著騎士',z.w===90&&z.h===36&&z.warn===44&&z.live===14&&(run(b,10,1),Math.abs(z.x-(b.x-34))<0.01),[z.w,z.h,z.warn,z.live].join('/'));
+    b=fresh();P.x=4*TS;cast(b,'k',1);{const f0=b.dface,x0=b.x;let turn=0,fr=0;P.x=28*TS;while(b.st==='dash'&&fr<40){run(b,1,1);fr++;if(b.dface!==f0||b6KF(b)!==f0)turn++;}
+      ck('(1) 衝刺方向在發動那一幀鎖定(主角繞到身後也不掉頭)、位移與原版相同(20 幀 × 3 = 60)',turn===0&&Math.round(x0-b.x)===60,'幀數 '+(fr+1)+'、位移 '+Math.round(x0-b.x));}
+    b=fresh();cast(b,'c',0);z=hazs[0];ck('地面圈 34×16、預警 95、生效 40',z.w===34&&z.h===16&&z.warn===95&&z.live===40);
+    b=fresh();cast(b,'c',1);z=hazs[0];ck('縱柱 24×224、預警 85、生效 26',z.w===24&&z.h===224&&z.warn===85&&z.live===26);
+    b=fresh();cast(b,'c',2);{let ok=G.msg==='繩索隱形';run(b,38,1);ok=ok&&climbT(6,8)&&climbT(17,8);run(b,1,1);ok=ok&&climbT(6,8);run(b,1,1);const a=climbT(6,8);run(b,189,1);const g=!climbT(6,8)&&!climbT(17,8);run(b,1,1);
+      ck('(2) 繩索隱形:字幕改名、發動後第 39 幀照常可爬、第 40 幀消失、190 幀後回來',ok&&!a&&g&&climbT(6,8)&&climbT(17,13),[ok,a,g,climbT(6,8),G.msg].join('/'));
+      b=fresh();force=2;b.ccd=0;update();force=null;ck('(2) 該招冷卻 260',b.ccd===260,b.ccd);}
+    b=fresh();{cast(b,'k',0);const zz=hazs[0],t0=zz.t;bossDamage(bossParts()[0],1e8);const p0=b.b6p;run(b,10);ck('(5) 騎士先死:全場停頓 20 幀(招式計時不動)',p0===20&&zz.t===t0&&b.b6p===10&&b.alive,'b6p '+p0+'、預警計時 '+t0+'→'+zz.t);run(b,10);run(b,1);ck('(5) 停頓結束後戰鬥照常進行',zz.t===t0+1||!hazs.includes(zz));}
+    {const pm=(lab,prep,k)=>{prep();for(let i=0;i<3;i++){P.inv=999;update();render();}const ts=[];for(let i=0;i<k;i++){P.inv=999;update();const t0=performance.now();render();ts.push(performance.now()-t0);}ts.sort((p,q)=>p-q);o.push('效能 '+lab+':render 平均 '+(ts.reduce((s,v)=>s+v,0)/k).toFixed(2)+' / 最差 '+ts[k-1].toFixed(2)+' ms(沙盒相對值)');};
+      pm('平時',()=>{b=fresh();},120);pm('橫掃加縱柱加地面圈',()=>{b=fresh();cast(b,'k',2);cast(b,'c',1);cast(b,'c',0);run(b,40,1);},20);pm('登場',()=>{HX.go(6,5);for(let i=0;i<150;i++)update();},60);pm('最後死亡',()=>{b=fresh();bossDamage(bossParts()[1],1e8);run(b,90,1);bossDamage(bossParts()[0],1e8);},90);}
+    const kz=[250,150,140,90],cz=[370,60,90,70];
+    b=fresh();run(b,30,1);grab('1 場景:聖殿正殿、詠嘆者在唱詩高台、騎士在地面');grab('1b 判定疊圖:橘=騎士、青=詠嘆者',null,ovl);
+    grab('2 騎士 冷甲(平時,放大)',kz);grab('2c 詠嘆者(放大)',cz);
+    b.hf={k:6,c:6};grab('3 受擊白化(騎士)',kz);grab('3b 受擊白化(詠嘆者)',cz);b.hf={};
+    b=fresh();P.x=4*TS;cast(b,'k',1);run(b,8,1);grab('4 衝刺:熾燃加三重殘影',[230,150,150,90],ovl);
+    b=fresh();cast(b,'k',0);run(b,14,1);grab('5 揮砍預警中段:地面餘燼',kz,ovl);run(b,20,1);grab('5b 揮砍生效第 1 幀',kz,ovl);run(b,3,1);grab('5c 生效第 4 幀:月牙刃光',kz,ovl);
+    b=fresh();cast(b,'k',2);run(b,40,1);grab('6 橫掃預警末段',[260,150,160,90],ovl);run(b,6,1);grab('6b 橫掃生效第 2 幀:火環',[260,150,160,90],ovl);run(b,6,1);grab('6c 生效第 8 幀',[260,150,160,90],ovl);
+    b=fresh();P.x=12*TS;cast(b,'c',0);run(b,60,1);grab('7 地面圈預警:聖紋法陣',[140,170,140,70],ovl);run(b,40,1);grab('7b 地面圈生效',[140,170,140,70],ovl);
+    b=fresh();P.x=12*TS;cast(b,'c',1);run(b,30,1);grab('8 縱柱預警前段:頂端光斑與塵埃',null,ovl);run(b,50,1);grab('8b 縱柱預警末段');run(b,10,1);grab('8c 縱柱生效');
+    b=fresh();cast(b,'c',2);run(b,20,1);grab('9 繩索隱形預警第 20 幀:青綠音紋');run(b,21,1);grab('9b 消失後第 1 幀:散成光點');run(b,170,1);grab('9c 回來前閃現');
+    b=fresh();bossDamage(bossParts()[0],1e8);run(b,20);run(b,30);grab('10 騎士先死 短演出第 30 幀:跪地冷卻成灰、詠嘆者低頭');run(b,30);grab('10b 第 60 幀:戟與灰堆留在場上');
+    b.scd=1;run(b,2,1);grab('11 骷髏出現第 1 幀:灰燼柱加白閃');run(b,8,1);grab('11b 第 9 幀');
+    b=fresh();bossDamage(bossParts()[1],1e8);run(b,20);run(b,20);grab('12 詠嘆者先死 短演出第 20 幀:面具裂開、騎士暴燃');run(b,30);grab('12b 第 50 幀:鐘落在高台');
+    b=fresh();b.kh=b.kMax*0.2;b.ch=b.cMax*0.2;run(b,2,1);grab('13 受損 25% 以下(騎士裂縫、淡煙)',kz);grab('13b 受損 25% 以下(詠嘆者袍底破損、面具裂痕)',cz);
+    for(const [t,lab] of [[60,'登場 WARNING:高台獨唱、冷灰插著戟'],[150,'登場 k0.3:灰燼聚起'],[180,'登場 k0.6:灰燼成形'],[200,'登場 k0.8:冷甲'],[212,'登場 k0.92:爐心點燃']]){force=null;HX.go(6,5);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab);}
+    for(const [t,lab] of [[10,'最後死亡(騎士)10:爐心燒盡'],[45,'45:跪地冷卻'],[80,'80:由上往下崩落'],[150,'150:戟與灰堆留下']]){b=fresh();bossDamage(bossParts()[1],1e8);run(b,90,1);bossDamage(bossParts()[0],1e8);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab);}
+    for(const [t,lab] of [[20,'最後死亡(詠嘆者)20:面具裂開'],[60,'60:化成灰與光點'],[150,'150:鐘留在高台']]){b=fresh();bossDamage(bossParts()[0],1e8);run(b,90,1);bossDamage(bossParts()[0],1e8);for(let i=0;i<t;i++){P.inv=999;update();}grab(lab);}
+    Math.random=MR;
+    return {d:cel.toDataURL().split(',')[1],o,bad,n};});
+  fs.writeFileSync(outp,Buffer.from(r.d,'base64'));console.log(r.o.join('\n'));console.log('已存',outp,'格數',r.n,'錯誤',errs.length?errs:'無');await br.close();return r.bad+errs.length;}
 async function b4fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
   await pg.evaluate(async()=>{HX.go(4,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,600));});   // 內嵌圖非同步載入
   const r=await pg.evaluate(()=>{const o=[];let bad=0;const ck=(n,ok,v)=>{o.push((ok?'OK':'NG')+' '+n+(v!==undefined?'('+v+')':''));if(!ok)bad++;};
@@ -1139,6 +1189,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b9hit')await b9hit(a[0],a[1]);
   else if(cmd==='b4hit')await b4hit(a[0],a[1]);
   else if(cmd==='b6hit')await b6hit(a[0],a[1]);
+  else if(cmd==='b6fx')bad=await b6fx(a[0]||'b6fx.png',a[1]);
   else if(cmd==='b4reach')bad=await b4reach(a[0]);
   else if(cmd==='b4fx')bad=await b4fx(a[0]||'b4fx.png',a[1]);
   else if(cmd==='b9fx')bad=await b9fx(a[0]||'b9fx.png',a[1]);
