@@ -2,6 +2,7 @@
 // 需要:Node 18+、playwright 套件、Chrome。在 repo 根目錄執行:
 //   node tools/harness.js smoke [檔案]              50 小關 × 三種武器各跑一段,檢查執行錯誤
 //   node tools/harness.js special [檔案]            特攻功能檢查:一般關清空與回充、各魔王扣血、6 王選單、7 王、4 王隱身、登場禁用
+//   node tools/harness.js wvis [檔案]               己方子彈與槍口火光可見性(v0.28.1):每大關衝鋒槍、散彈 1~4 階,比對有無子彈的畫面像素差
 //   node tools/harness.js bench <舊檔> <新檔> [輪數] 繪圖時間相對比較(沙盒數字,非測試機)
 //   node tools/harness.js shot <大關> <小關> <幀數> <輸出.png> [特攻=0/1] [檔案]   截一張遊戲畫面
 //   node tools/harness.js sheet <小關> <畫質 low/high> <輸出.png> [檔案] [FX設定,如 q=high,seed=3]  seed=N 固定亂數(同一批地圖)  10 大關同一小關拼成 5×2 對照圖(每格 512×288)
@@ -76,6 +77,23 @@ async function special(file){
     HX.go(3,5);HX.run(10);G.charge=100;HX.press();o.push(`登場期間施放:${plane?'有反應(錯誤)':'無反應(正確)'}`);
     return o;});
   console.log(out.join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return errs.length;
+}
+
+// v0.28.1 己方子彈與槍口火光可見性:v0.18~v0.28 這兩個繪製呼叫被誤併入註解,10 版測試都沒抓到。
+// 每大關、衝鋒槍與散彈各 1~4 階,開槍後同一幀畫兩次(有子彈/暫時清空子彈),比對遊戲畫面像素差;另計 drawBulletV、drawMuzzle 呼叫次數
+async function wvis(file){
+  const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const o=[];let bad=0,nb=0,nm=0;
+    const fb=drawBulletV,fm=drawMuzzle;window.drawBulletV=b=>{nb++;fb(b);};window.drawMuzzle=()=>{nm++;fm();};
+    const snap=()=>octx.getImageData(0,0,cv.width,cv.height).data;   // 讀輸出畫布(render 末端會清空工作畫布 ctx)
+    for(let w=1;w<=10;w++)for(const wp of['smg','shot'])for(let lv=1;lv<=4;lv++){
+      HX.go(w,1);HX.run(20);wep=wp;wlvl=lv;K.f=1;HX.run(4);K.f=0;HX.warm();
+      nb=nm=0;render();const a=snap(),n=bul.length,c=nb,m=nm,keep=bul;bul=[];render();const b=snap();bul=keep;
+      let d=0;for(let i=0;i<a.length;i+=4)if(a[i]!==b[i]||a[i+1]!==b[i+1]||a[i+2]!==b[i+2])d++;
+      const ok=n>0&&c===n&&m>0&&d>=n*4;if(!ok)bad++;
+      if(!ok||lv===1)o.push(`${w}-1 ${wp} Lv${lv} 子彈${n} 畫${c} 槍口${m} 像素差${d}${ok?'':' ← 未畫出'}`);}
+    o.push(`未通過 ${bad} 組(共 80 組)`);return [o,bad];});
+  console.log(r[0].join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return r[1]+errs.length;
 }
 
 async function benchOne(file,rounds){
@@ -1163,6 +1181,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
 (async()=>{const [cmd,...a]=process.argv.slice(2);let bad=0;
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
+  else if(cmd==='wvis')bad=await wvis(a[0]);
   else if(cmd==='bench')await bench(a[0],a[1],+a[2]||1);
   else if(cmd==='shot')await shot(a[0],a[1],a[2],a[3],a[4]||0,a[5]);
   else if(cmd==='sheet')await sheet(a[0],a[1]||'low',a[2],a[3]||undefined,a[4]);
