@@ -206,7 +206,33 @@ async function sheet(s,q,outp,file,opt){              // 10 大關對照拼圖:�
 }
 
 /* 火焰對照圖(抓蟲 d):列=Lv1~4,欄=側噴第 a 幀、側噴第 a+5 幀、斜上、正上;每格以主角為中心裁 208×104 放大 2 倍。
-   FX 設定同 sheet(如 fl=2,w=3);w=大關(預設 3)。清掉敵人與敵彈,只看火焰本身 */
+   FX 設定同 sheet(如 pvf=2,w=3,pvf 為預覽頁方案);w=大關(預設 3)。清掉敵人與敵彈,只看火焰本身 */
+/* 墜崖復活保護(v0.30.1):每大關第 1~5 小關找第一個整欄沒有地面的坑,站在坑左緣後推進坑裡;復活那一幀起按住右與跳,
+   核對 20 幀內水平不動(傳送帶推動另列 dx)、沒有起跳、沒有再次墜崖,第 21 幀起恢復可走。也測繩梯:最後立足處在繩梯上時,復活應抓住繩梯 */
+async function fall(file){
+  const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const out=[];
+    const step=k=>{K.l=0;K.r=k.r?1:0;K.j=k.j?1:0;K.u=K.d=K.f=0;P.inv=999;P.lives=5;G.modal=null;update();};
+    for(let w=1;w<=10;w++)for(let s=1;s<=5;s++){HX.go(w,s);if(s===5)HX.run(320);
+      let pit=-1;for(let x=3;x<map.w-2&&pit<0;x++){let e=true;for(let y=0;y<GH;y++)if(T(x,y)!==0&&T(x,y)!==4)e=false;
+        let top=-1;for(let y=0;y<GH;y++)if(isSolid(T(x-1,y))){top=y;break;}if(e&&top>0&&!isSolid(T(x-1,top-1)))pit=x;}
+      if(pit<0){out.push(w+'-'+s+' 無坑');continue;}
+      let top=0;for(let y=0;y<GH;y++)if(isSolid(T(pit-1,y))){top=y;break;}
+      ens.length=0;ebul.length=0;P.x=(pit-1)*16+4;P.y=top*16-P.h;P.vx=P.vy=0;P.climb=false;for(let i=0;i<8;i++)step({});
+      P.x=pit*16+3;let n=0;while(!(P.fl===20)&&n++<300)step({});
+      if(P.fl!==20){out.push(w+'-'+s+' 坑'+pit+' 未觸發復活');continue;}
+      const x0=P.x,y0=P.y;let moved=0,jump=0,ref=0,cv=Math.abs(G.conveyor||0)*20;
+      for(let i=0;i<20;i++){const fl0=P.fl;step({r:1,j:i===0||i===10});if(Math.abs(P.x-x0)>cv+0.01)moved=1;if(P.vy<-1)jump=1;if(P.fl>fl0)ref=1;}
+      const xa=P.x;for(let i=0;i<5;i++)step({r:1});
+      out.push(w+'-'+s+' 坑'+pit+(moved||jump||ref?' 失敗(移動'+moved+' 起跳'+jump+' 再墜'+ref+')':' OK')+(P.x>xa?'':' 解鎖後不能走')+(cv?' 傳送帶推動'+(P.x-x0).toFixed(1):''));}
+    // 繩梯:第 1 大關找第一條繩梯,站上去當最後立足處,再瞬移到坑上方掉落
+    HX.go(1,1);let vx=-1,vy=-1;for(let x=2;x<map.w&&vx<0;x++)for(let y=2;y<GH-2;y++)if(T(x,y)===2&&T(x,y+1)===2){vx=x;vy=y;break;}
+    if(vx>=0){ens.length=0;P.x=vx*16+3;P.y=vy*16;P.climb=true;step({});const cl=P.climb;
+      P.climb=false;P.y=map.h*16+40;step({});const got=P.fl===20&&P.climb;let hold=true;for(let i=0;i<20;i++){step({r:1});if(!P.climb)hold=false;}
+      out.push('繩梯 '+(cl&&got&&hold?'OK(復活即抓住,20 幀內不掉)':'失敗 cl'+cl+' got'+got+' hold'+hold));}
+    return out;});
+  console.log(r.join('\n'));console.log('錯誤',errs.length?errs:'無');await br.close();
+}
 async function fshot(outp,file,opt){
   const {br,pg,errs}=await open(file,{width:1024,height:576});
   const data=await pg.evaluate(opt=>{
@@ -1281,6 +1307,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='shot')await shot(a[0],a[1],a[2],a[3],a[4]||0,a[5]);
   else if(cmd==='sheet')await sheet(a[0],a[1]||'low',a[2],a[3]||undefined,a[4]);
   else if(cmd==='fshot')await fshot(a[0],a[1]||undefined,a[2]);
+  else if(cmd==='fall')await fall(a[0]);
   else if(cmd==='vine')bad=await vine(a[0]||5,a[1]);
   else if(cmd==='edraw')await edraw(a[0],a[1],+a[2]||2000);
   else if(cmd==='eface')bad=await eface(a[0]);
