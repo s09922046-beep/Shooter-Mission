@@ -184,6 +184,21 @@ async function vis(outp,file){
   console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return errs.length;   // 可見性只回報,不當作失敗(標準需人判斷)
 }
 
+// 11/13 5 王掃描與無限大砲互斥:主角無敵在場上走動 N 幀(預設 30000),統計大砲發動時掃描是否已在警示(防護罩已出現)、
+// 掃描與大砲是否同時有環在判定,以及大砲期間防護罩殘留幀數
+async function b5mx(n,file){
+  const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(N=>{HX.go(5,5);HX.run(320);let can=0,steal=0,both=0,shF=0,ex=[];
+    for(let i=0;i<N;i++){const b=boss;const was=b.cannonPhase,sh=!!b.shieldPlats&&b.ring<0,cd=b.ringCd;
+      P.inv=999;P.lives=5;const ph=Math.floor(i/90)%4;K.r=ph===0?1:0;K.l=ph===2?1:0;K.j=(i%70)<10?1:0;update();
+      if(!boss||!boss.alive){HX.go(5,5);HX.run(320);continue;}
+      if(!was&&b.cannonPhase==='warn'){can++;if(sh){steal++;if(ex.length<3)ex.push(`第 ${i} 幀 ringCd ${cd}`);}}
+      if(b.ring>=0&&(b.cannonPhase==='fire1'||b.cannonPhase==='fire2'))both++;
+      if(b.cannonPhase&&b.shieldPlats)shF++;}
+    return `${N} 幀:大砲發動 ${can} 次,其中 ${steal} 次發生在掃描警示中(防護罩已出現、掃描尚未發射)${ex.length?'(例:'+ex.join('、')+')':''};掃描環與大砲環同時判定 ${both} 幀;大砲期間防護罩殘留 ${shF} 幀`;},+n||30000);
+  console.log(r);console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return errs.length;
+}
+
 // v0.31 進關尖峰:每個小關與魔王(10 王三段)量 startLevel(含生成、烘焙)與之後前 10 幀 update+render 的最長單幀耗時(沙盒相對值)。
 // 用來對照 F3「JS 最差 @關卡」:F3 在換關那一幀已算新關卡,所以進關烘焙會記在新關卡名下
 async function entry(file){
@@ -1476,6 +1491,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='vis')bad=await vis(a[0],a[1]);
   else if(cmd==='perfpage')bad=perfpage(a[0]);
   else if(cmd==='entry')bad=await entry(a[0]);
+  else if(cmd==='b5mx')bad=await b5mx(a[0],a[1]);
   else if(cmd==='qcmp')bad=await qcmp(a[0],a[1],a[2]);
   else if(cmd==='bclear')bad=await bclear(a[0]);
   else if(cmd==='pstate')bad=await pstate(a[0]);
