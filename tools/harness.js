@@ -215,6 +215,37 @@ async function entry(file){
   console.log('最慢 15 個(沙盒相對值,依進關與首 10 幀最大者排序)\n'+r.join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return errs.length;
 }
 
+// v0.35 烘焙分幀前後畫面一致(11/13):兩版同種子、不按鍵跑各王(10 王三段)登場後 360 幀,等內嵌圖載入再畫一幀,比對輸出畫面像素
+async function bakecmp(fa,fb){
+  const one=async f=>{const {br,pg,errs}=await open(f,{width:512,height:288});const out=[];
+    for(let w=1;w<=10;w++)for(const sg of (w===10?[1,2,3]:[0])){
+      await pg.evaluate(([w,sg])=>{Math.random=(()=>{let z=777;return()=>(z=(z*16807)%2147483647)/2147483647;})();resetRun();G.world=w;G.sub=5;
+        if(sg>1){HX.go(10,5);Math.random=(()=>{let z=777;return()=>(z=(z*16807)%2147483647)/2147483647;})();startBoss(0,sg);G.state='intro';G.sT=0;}else startLevel();
+        for(let i=0;i<360;i++){P.inv=999;P.lives=5;for(const q in K)K[q]=0;update();if(i%4===0)render();}},[w,sg]);
+      await pg.waitForTimeout(350);
+      out.push(await pg.evaluate(()=>{HX.warm();G.shakeT=0;render();const d=octx.getImageData(0,0,cv.width,cv.height).data;let h=0;for(let i=0;i<d.length;i+=4)h=(Math.imul(h,31)+d[i]*65536+d[i+1]*256+d[i+2])|0;return h;}));}
+    await br.close();return [out,errs];};
+  const [A,ea]=await one(fa),[B,eb]=await one(fb);const lab=['1','2','3','4','5','6','7','8','9','10-1','10-2','10-3'];let bad=0;
+  console.log(lab.map((l,i)=>{const ok=A[i]===B[i];if(!ok)bad++;return l+'王 '+(ok?'相同':'不同');}).join('  '));
+  const e=ea.concat(eb);console.log('錯誤',e.length?e.slice(0,5):'無');return bad+e.length;
+}
+
+// v0.35 各王進關烘焙分解(11/13):包住各烘焙函式計時,每個魔王(10 王三段)進關後跑 70 幀(暗幕 60 幀加登場前段),
+// 列出每個烘焙函式在第幾幀、花多少 ms,以及期間最長單幀;用來核對烘焙是否分散到暗幕各幀。共用光影 ltBuild 先建好(實際遊玩由第 4 小關進王關,同大關不重建)
+async function bakems(file){
+  const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const o=[];let F=0,rec=[];
+    const names=['stBake','b1Bake','b2Bake','b2BgBuild','b3Bake','b3EyeBake','b4Bake','b5Bake','b5BgBuild','b6Bake','b7Bake','b8Bake','b8BgBuild','b8TombBake','b9Bake','b10Bake','b10BgBuild','b10FaceBake','b10HeartBake','b10Bg3Build','ltBuild','eBake','matCol'];
+    for(const n of names){const f=window[n];if(typeof f!=='function')continue;let d=0;window[n]=function(){if(d++)return f.apply(this,arguments);const a=performance.now();try{return f.apply(this,arguments);}finally{d=0;const t=performance.now()-a;if(n!=='matCol'||t>2)rec.push([n,F,t]);}};}
+    for(let w=1;w<=10;w++)for(const sg of (w===10?[1,2,3]:[0])){
+      rec=[];resetRun();G.world=w;G.sub=5;ltBuild();rec=[];if(sg>1){HX.go(10,5);startBoss(0,sg);G.state='intro';G.sT=0;}else startLevel();
+      let fm=0,fa=0;for(F=0;F<70;F++){const a=performance.now();P.inv=999;update();render();const d=performance.now()-a;if(d>fm){fm=d;fa=F;}}
+      const big=rec.filter(x=>x[2]>1).map(x=>`${x[0]}@${x[1]} ${x[2].toFixed(1)}`).join(' ');
+      o.push(`${(w+'王'+(sg?sg:'')).padEnd(5)} 最長一幀 ${fm.toFixed(1)} ms(第 ${fa} 幀)  ${big}`);}
+    return o;});
+  console.log(r.join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return errs.length;
+}
+
 // v0.31 畫質與燃燒剪影對照圖:上兩列為 10-2 敵彈、3-2 衝鋒槍 Lv4、3-2 散彈 Lv4 的低/高畫質(主角周圍 256×144 放大 2 倍);
 // 下面為火焰 Lv1~4 噴中敵人時的低畫質畫面。給第二個檔案時同一位置左右並排(左 A 右 B),用來比對舊版
 async function qcmp(outp,fa,fb){
@@ -1522,6 +1553,8 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b5mx')bad=await b5mx(a[0],a[1]);
   else if(cmd==='qcmp')bad=await qcmp(a[0],a[1],a[2]);
   else if(cmd==='vcmp')bad=await vcmp(a[0],a[1],a[2]);
+  else if(cmd==='bakems')bad=await bakems(a[0]);
+  else if(cmd==='bakecmp')bad=await bakecmp(a[0],a[1]);
   else if(cmd==='bclear')bad=await bclear(a[0]);
   else if(cmd==='pstate')bad=await pstate(a[0]);
   else if(cmd==='menu')bad=await menu(a[0]);

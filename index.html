@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.34 燃燒剪影只給火團碰到的敵人,判定錐內其餘照常外觀加 1 像素青/黃外框(判定不變);前一版 v0.33 子彈光暈縮小改八角環 -->
+<!-- VERSION: v0.35 進王關烘焙分散到 60 幀暗幕(generator 分段、每幀約 6 ms;10 王第 3 段殘片改由矩陣取色),畫面與判定不變;前一版 v0.34 燃燒剪影對齊火團 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -1967,12 +1967,13 @@ const b2h=n=>{const s=Math.sin(n*12.9898+78.233)*43758.5453;return s-Math.floor(
 function b2Flip(cv){const [c,x]=mkCv(cv.width,cv.height);x.translate(cv.width,0);x.scale(-1,1);x.drawImage(cv,0,0);return c;}
 function b2Tint(cv,col){const [c,x]=mkCv(cv.width,cv.height);x.drawImage(cv,0,0);x.globalCompositeOperation='source-in';x.fillStyle=col;x.fillRect(0,0,c.width,c.height);return c;}
 function b2Two(cv){return [cv,b2Flip(cv)];}                // [朝左, 朝右]
-function b2Bake(){B2C={};
+function b2Bake(){runG(b2Gen());}   // v0.35:可分段版(進關暗幕 WQ 用),直接呼叫時一次做完
+function* b2Gen(){B2C={};
   const HOT=Object.assign({},B2P,{L:'#ffd08a',T:'#ff8a3a'});
   for(const k in B2F){const f=B2F[k],m=bMat(f.r,B2P);
     let x0=1e9,y0=1e9,x1=-1,y1=-1;f.r.forEach((r,j)=>{for(let i=0;i<r.length;i++)if(r[i]==='L'||r[i]==='T'){x0=Math.min(x0,i);x1=Math.max(x1,i);y0=Math.min(y0,j);y1=Math.max(y1,j);}});
     B2C[k]={c:b2Two(m.n),hot:b2Two(bMat(f.r,HOT).n),sb:b2Two(b2Tint(m.n,'#bcd4ff')),sr:b2Two(b2Tint(m.n,'#c41e2c')),
-      dk:b2Two(b2Tint(m.n,'#08060c')),W:m.W,H:m.H,bl:x1>=0?{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1}:null};}
+      dk:b2Two(b2Tint(m.n,'#08060c')),W:m.W,H:m.H,bl:x1>=0?{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1}:null};yield;}
   // 死亡用:待機姿勢去掉翅膀(W G K)後重補外框,另存翅膀遮罩與其像素清單(碎羽粒子)
   const r=B2F.idle.r,h=r.length,w=r[0].length,at=(x,y)=>(y>=0&&y<h&&x>=0&&x<w)?r[y][x]:'.',wg=c=>c==='W'||c==='G'||c==='K',bd=c=>c!=='.'&&c!=='O'&&!wg(c);
   const nr=[],mk=[],px_=[];
@@ -2183,7 +2184,7 @@ const B3PAL={y:{ir:['#2a1204','#7a3e08','#d08a14','#f4c430','#fff0a0'],halo:'#ff
              p:{ir:['#2a0626','#6a1a5e','#c84ab8','#f08ae0','#ffd0f6'],halo:'#fff0fc',gl:'#ff4ad0',edge:'#ffb0f0'}};
 let B3G=null;
 const [B3Ec,B3Ex]=mkCv(68,32);
-function b3Bake(){
+function b3Bake(noEye){   // v0.35 noEye:進關暗幕分段烘焙時眼睛另由 b3EyeGen 做
   const g={bg:null,body:null,bot:{},eye:null};B3G=g;
   const [c,x]=mkCv(W,H);g.bg=c;
   for(let y=0;y<44;y++){const q=y/44;x.fillStyle='rgb('+(10+q*16|0)+','+(16+q*22|0)+','+(30+q*34|0)+')';x.fillRect(16,y,96,1);}   // 裂口後方夜空
@@ -2202,16 +2203,17 @@ function b3Bake(){
     try{for(let i=0;i<B3DEC.length;i++){const x=B3DEC[i];stSway('flesh',x-B3BX,(g.bot[x+8]||80)-6,46,i);}kx.drawImage(bc,0,0);}finally{ctx=c0;}
     g.rot=[];const Rr=Math.ceil(Math.hypot(137,96))+1,Sz=Rr*2;
     for(let k=0;k<=12;k++){const [rc,rx]=mkCv(Sz,Sz);rx.imageSmoothingEnabled=false;rx.translate(Rr,Rr);if(k===12)rx.scale(-1,-1);else rx.rotate(k*Math.PI/12);rx.drawImage(kc,-137,-44);g.rot.push(rc);}g.rotR=Rr;};bi.src=IMGD.b3body;
-  g.eye=b3EyeBake();
+  if(!noEye)g.eye=b3EyeBake();
 }
-function b3EyeBake(){
+function b3EyeBake(){return runG(b3EyeGen());}   // v0.35:可分段版 b3EyeGen(見 WQ)
+function* b3EyeGen(){
   const E={m:[],o:[]},EW=68,EH=32,cx=34,cy=16;
   const lin=(i,y,o)=>{const dx=(i+0.5-cx)/B3EA;return Math.abs(dx)<1&&Math.abs(y+0.5-cy)<=B3EB*o*(1-dx*dx);};
   for(let l=0;l<=8;l++){const o=l/8,[mc,mx]=mkCv(EW,EH),[oc,ox]=mkCv(EW+2,EH+2);mx.fillStyle='#fff';ox.fillStyle='#1a0216';   // 透鏡遮罩與眼皮外框,9 階開合
     for(let y=0;y<EH;y++)for(let i=0;i<EW;i++)if(lin(i,y,o))mx.fillRect(i,y,1,1);
     for(let y=-1;y<=EH;y++)for(let i=-1;i<=EW;i++){if(lin(i,y,o))continue;if(lin(i-1,y,o)||lin(i+1,y,o)||lin(i,y-1,o)||lin(i,y+1,o))ox.fillRect(i+1,y+1,1,1);}
     if(l===0)ox.fillRect(3,cy,EW-4,1);
-    E.m.push(mc);E.o.push(oc);}
+    E.m.push(mc);E.o.push(oc);if(l&1)yield;}
   const [sc,sx]=mkCv(EW,EH);                                                    // 眼白:暗沉米白,上眼皮下有陰影,下緣暗一階,加血絲
   for(let y=0;y<EH;y++)for(let i=0;i<EW;i++){if(!lin(i,y,1))continue;const dx=(i+0.5-cx)/B3EA,hh=B3EB*(1-dx*dx),v=y+0.5-cy;
     sx.fillStyle=v<-hh+2.5?'#5a4048':v>hh-3?'#9a8a7c':'#d0c6b4';sx.fillRect(i,y,1,1);}
@@ -2226,7 +2228,7 @@ function b3EyeBake(){
         if(r<4.6){ix.fillStyle=P.halo;ix.fillRect(i,y,1,1);continue;}
         const v=r+f*0.75+1.3*Math.sin(a*5+r*0.5)+a/6.283*12,b=((Math.floor(v/2.4)%5)+5)%5;
         ix.fillStyle=P.ir[Math.max(1,[1,2,3,4,3][b]-(r>10?1:0))];ix.fillRect(i,y,1,1);}
-      E.ir[k].push(ic);}}
+      E.ir[k].push(ic);if(f&1)yield;}}
   const [hc,hx]=mkCv(EW+8,EH+8);                                                // 眼球被拉出眼窩時外圍的肉色眼皮殼
   for(let y=0;y<EH+8;y++)for(let i=0;i<EW+8;i++){const dx=(i+0.5-cx-4)/(B3EA+4),hh=(B3EB+4)*(1-dx*dx),v=Math.abs(y+0.5-cy-4);if(Math.abs(dx)>=1||v>hh)continue;
     hx.fillStyle=v>hh-1.2||Math.abs(dx)>0.96?'#280321':v>hh-3?'#39092e':(y<cy?'#7b246c':'#64225a');hx.fillRect(i,y,1,1);}
@@ -2673,7 +2675,8 @@ const B5CR=[[[17,37],[20,39],[23,38],[26,40]],[[48,22],[51,20],[54,22],[57,21]],
 const B5SLOT=[72,200,312,440];                  // 牆面 4 道直向光槽中心 x
 const B5DOOR=[[248,96]];                        // 天花板大型艙門 [中心 x, 寬](使用者 11/7:只留中央一座,原左右各一座 64 寬)
 const B5BOOM=128;                               // 死亡:井底爆炸那一幀(使用者 11/7 要求比共用的第 96 幀晚)      // 天花板大型艙門 [中心 x, 寬]
-function b5Bake(){
+function b5Bake(){runG(b5Gen());}   // v0.35:可分段版(進關暗幕 WQ 用),直接呼叫時一次做完
+function* b5Gen(){
   const pal=B5PALS[B5PI],body=B5F.body.map(r=>[...r]),H_=body.length,W_=body[0].length;
   const open=body.map(r=>r.slice()),can=body.map(r=>r.slice()),dead=body.map(r=>r.slice());
   const inner=(j,i)=>[[0,1],[0,-1],[1,0],[-1,0]].some(([a,c])=>'ED'.includes((B5HT[j+a]||'')[i+c]||'.'));
@@ -2687,7 +2690,7 @@ function b5Bake(){
     if(d>8.3&&d<=12.3)can[y][x]=gap?'O':(d>11.3?'A':body[y][x]==='O'&&d>10.8?'A':body[y][x]);else if(d>12.3&&d<=13.2&&!gap)can[y][x]='O';}
   const mk=(m,wh)=>{const [c,x]=mkCv(W_,H_);for(let y=0;y<H_;y++)for(let i=0;i<W_;i++){const ch=m[y][i];if(ch==='.')continue;
     x.fillStyle=wh&&!'OK'.includes(ch)?'#ffffff':pal[ch];x.fillRect(i,y,1,1);}return c;};
-  const C={W:W_,H:H_,ring};for(const [k,m] of [['body',body],['open',open],['cannon',can],['dead',dead]])C[k]={n:mk(m),w:mk(m,1)};
+  const C={W:W_,H:H_,ring};for(const [k,m] of [['body',body],['open',open],['cannon',can],['dead',dead]]){C[k]={n:mk(m),w:mk(m,1)};yield;}
   C.cr=[1,2].map(n=>{const [c,x]=mkCv(W_,H_);for(const L of B5CR.slice(0,n*2))for(let s=0;s<L.length-1;s++){const [x0,y0]=L[s],[x1,y1]=L[s+1],N=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));
       for(let i=0;i<=N;i++){const X=Math.round(x0+(x1-x0)*i/N)-B5OX,Y=Math.round(y0+(y1-y0)*i/N)-B5OY;x.fillStyle=pal.O;x.fillRect(X,Y,1,1);x.fillRect(X+1,Y,1,1);x.fillStyle=i%3===1?'#ff8a3a':pal.O;x.fillRect(X,Y-1,1,1);x.fillStyle=pal.W;x.fillRect(X,Y+1,2,1);}}return c;});   // 裂縫:2 像素暗線、上緣間隔透橘光、下緣亮邊
   const L=(g,h,e)=>{const [c,x]=mkCv(19,19);B5F.lens.forEach((r,j)=>[...r].forEach((ch,i)=>{const v=ch==='G'?g:ch==='H'?h:ch==='E'?e:null;if(v){x.fillStyle=v;x.fillRect(i,j,1,1);}}));return c;};
@@ -2750,24 +2753,25 @@ function b5Doors(o){                            // 天花板:機械艙蓋帶(高
 function b5DoorO(b){if(!b.alive||b.introT<=0)return 0;const t=300-b.introT;if(t<BT_IN_SHOW)return 0;const k=(t-BT_IN_SHOW)/(BT_IN_CARD-BT_IN_SHOW);
   return k<0.22?k/0.22:k<0.7?1:k<0.88?1-(k-0.7)/0.18:0;}
 const B5BG={ok:0};
-function b5BgBuild(){                           // 專屬場景(程式畫,使用者選場景 B):對齊合金磚、4 道嵌入光槽、下方看不到底的深井;另烘一張琥珀警報版
-  const mkb=al=>{const [c,x]=mkCv(W,H);const base=al?'#2a2420':'#1c2433',hi=al?'#3c3228':'#2a3548',lo=al?'#16120f':'#121822',sm=al?'#0c0a08':'#0a0e15';
+function b5BgBuild(){runG(b5BgGen());}   // v0.35:可分段版 b5BgGen(見 WQ)
+function* b5BgGen(){                            // 專屬場景(程式畫,使用者選場景 B):對齊合金磚、4 道嵌入光槽、下方看不到底的深井;另烘一張琥珀警報版
+  const mkb=function*(al){const [c,x]=mkCv(W,H);const base=al?'#2a2420':'#1c2433',hi=al?'#3c3228':'#2a3548',lo=al?'#16120f':'#121822',sm=al?'#0c0a08':'#0a0e15';
     x.fillStyle=base;x.fillRect(0,0,W,H);
     for(let by=0;by<12;by++)for(let bx=0;bx<16;bx++){const X=bx*32,Y=by*16;x.fillStyle=sm;x.fillRect(X,Y,32,1);x.fillRect(X,Y,1,16);
       x.fillStyle=hi;x.fillRect(X+1,Y+1,31,1);x.fillRect(X+1,Y+1,1,14);x.fillStyle=lo;x.fillRect(X+1,Y+15,31,1);
       if(b2h(bx*31+by*7)<0.12){x.fillStyle=lo;x.fillRect(X+10,Y+6,12,4);}}
     for(const cx of B5SLOT){x.fillStyle=sm;x.fillRect(cx-9,0,18,192);x.fillStyle=al?'#140f0c':'#0f1520';x.fillRect(cx-8,0,16,192);x.fillStyle=hi;x.fillRect(cx-9,0,1,192);}
     const BY=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
-    for(let y=176;y<H;y++){const k=Math.min(1,(y-176)/100);for(let i=0;i<W;i++){if(k>BY[y&3][i&3]/16){x.fillStyle=k>0.8?'#000':'#05070b';x.fillRect(i,y,1,1);}}}
+    yield;for(let y=176;y<H;y++){if((y&7)===7)yield;const k=Math.min(1,(y-176)/100);for(let i=0;i<W;i++){if(k>BY[y&3][i&3]/16){x.fillStyle=k>0.8?'#000':'#05070b';x.fillRect(i,y,1,1);}}}
     for(const p of[40,120,392,472])for(let y=180;y<H;y++){const s=1-(y-180)/140;if(s<=0)break;
       const t=s*0.8,a=[0,0,0],b=al?[58,42,24]:[34,48,74];x.fillStyle=`rgb(${b.map(v=>Math.round(v*t)).join(',')})`;x.fillRect(p,y,Math.max(1,Math.round(6*s)),1);}
     for(let i=0;i<5;i++){x.fillStyle=al?'#ff8a2a':'#3aa0c0';x.fillRect(60+i*96,230+(i%2)*22,1,1);}
     return c;};
-  B5BG.n=mkb(0);B5BG.a=mkb(1);
+  B5BG.n=yield* mkb(0);B5BG.a=yield* mkb(1);yield;
   B5BG.st=['#5ff0ff','#ff3a4a','#ffb03a'].map(lc=>{const [c,x]=mkCv(2,272);   // 光流條:週期 80 像素,畫的時候依時間往下捲
     for(let y=0;y<272;y++){const t=(y%80)/80,k=t<0.2?t/0.2:Math.max(0,1-(t-0.2)/0.4);if(k<0.05)continue;x.globalAlpha=0.25+0.75*k;x.fillStyle=lc;x.fillRect(0,y,2,1);}return c;});
   {const [c,x]=mkCv(W,26);x.fillStyle='#3a4458';x.fillRect(0,0,W,26);x.fillStyle='#5a6478';x.fillRect(0,1,W,1);x.fillStyle='#2a3242';x.fillRect(0,22,W,4);   // 艙門門板:上緣亮邊、黑黃斜紋警示帶、下緣暗邊
-   for(let y=5;y<19;y++)for(let i=0;i<W;i++){x.fillStyle=((i+y)>>2)&1?'#c88a2a':'#1a1a20';x.fillRect(i,y,1,1);}x.fillStyle='#2a3242';x.fillRect(0,4,W,1);x.fillRect(0,19,W,1);B5BG.leaf=c;}
+   yield;for(let y=5;y<19;y++)for(let i=0;i<W;i++){x.fillStyle=((i+y)>>2)&1?'#c88a2a':'#1a1a20';x.fillRect(i,y,1,1);}x.fillStyle='#2a3242';x.fillRect(0,4,W,1);x.fillRect(0,19,W,1);B5BG.leaf=c;}
   B5BG.ok=1;}
 const B5={
   name:'機械蜂巢母體 奧米茄巢',en:'OMEGA HIVE',tag:'GALACTIC / 無地面',
@@ -3193,7 +3197,8 @@ const [B7DC,B7DX]=mkCv(40,40);
 function b7Hx(c){return [parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];}
 function b7Mx(a,b,t){const A=b7Hx(a),B=b7Hx(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('');}
 function b7In(px_,py,P){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const [xi,yi]=P[i],[xj,yj]=P[j];if((yi>py)!==(yj>py)&&px_<(xj-xi)*(py-yi)/(yj-yi)+xi)c=!c;}return c;}
-function b7Bake(){const C={},AW=24*B7NF;
+function b7Bake(){runG(b7Gen());}   // v0.35:可分段版(進關暗幕 WQ 用),直接呼叫時一次做完
+function* b7Gen(){const C={},AW=24*B7NF;
   const [ac,ax]=mkCv(AW,24*3),im=ax.createImageData(AW,72),u=new Uint32Array(im.data.buffer),U=c=>{const v=b7Hx(c);return((255<<24)|(v[2]<<16)|(v[1]<<8)|v[0])>>>0;};
   const LT_=B7UN.map(c=>U(b7Mx(c,'#ffffff',0.08))),DK_=B7UN.map(c=>U(b7Mx(c,'#2a2438',0.22))),   // 使用者 11/8:減少混白(原受光面混白 25%、背光面混暗 30%),流動色更明顯
 K0=U('#1c1626'),WH=U('#ffffff'),G0=U('#4a5660'),G1=U('#e4ecee'),G2=U('#a4b0b6');
@@ -3207,14 +3212,14 @@ K0=U('#1c1626'),WH=U('#ffffff'),G0=U('#4a5660'),G1=U('#e4ecee'),G2=U('#a4b0b6');
       const edge=at(X-1,y)!==s||at(X+1,y)!==s||at(X,y-1)!==s||at(X,y+1)!==s,band=Math.floor(((X+2*y+f*0.5)%15)/3),lit=(X-y)>-2,hl=s===0&&((X===11&&y===10)||(X===12&&y===11));
       const n=edge?K0:hl?WH:lit?LT_[band]:DK_[band],o=y*AW+f*24+X;
       u[o]=n;u[o+24*AW]=edge?K0:WH;u[o+48*AW]=edge?G0:hl?WH:lit?G1:G2;
-      if(f===0)new Uint32Array(PC[s].im.data.buffer)[y*24+X]=n;}}
+      if(f===0)new Uint32Array(PC[s].im.data.buffer)[y*24+X]=n;}if(f%6===5)yield;}
   ax.putImageData(im,0,0);C.pc=PC.map(q=>{q.x.putImageData(q.im,0,0);return q.c;});
   C.halo=B7ST.map(c=>[0,2].map(sh=>{const [hc,hx]=mkCv(40,40);hx.fillStyle=c;hx.globalAlpha=0.35;   // 光暈:判定框外一圈抖色像素(11~19),明顯是光不是身體;兩格輪流閃
     for(let dy=-19;dy<=19;dy++)for(let dx=-19;dx<=19;dx++){const r=Math.hypot(dx,dy);if(r<11||r>19)continue;if((1-(r-11)/8)*0.9*16>B7BAY[(dy+40+sh)&3][(dx+40)&3])hx.fillRect(20+dx,20+dy,1,1);}return hc;}));
-  C.crack=[1,2,3].map(n=>{const [cc,cx]=mkCv(24,24),L=[[[12,7],[11,10],[13,13],[12,17]],[[7,12],[10,11],[14,12]],[[13,13],[16,15]],[[5,4],[4,7]],[[18,4],[19,7]],[[18,18],[17,20]]].slice(0,n*2);   // 死亡龜裂 3 階
+  yield;C.crack=[1,2,3].map(n=>{const [cc,cx]=mkCv(24,24),L=[[[12,7],[11,10],[13,13],[12,17]],[[7,12],[10,11],[14,12]],[[13,13],[16,15]],[[5,4],[4,7]],[[18,4],[19,7]],[[18,18],[17,20]]].slice(0,n*2);   // 死亡龜裂 3 階
     for(const p of L)for(let s=0;s<p.length-1;s++){const [x0,y0]=p[s],[x1,y1]=p[s+1],N=Math.max(Math.abs(x1-x0),Math.abs(y1-y0));for(let i=0;i<=N;i++){cx.fillStyle=i%2?'#2a2438':B7UN[(i+s)%5];cx.fillRect(Math.round(x0+(x1-x0)*i/N)+1,Math.round(y0+(y1-y0)*i/N)+1,1,1);}}return cc;});
   const PR=[[5,0],[-3,3.2],[-3,-3.2]];    // 12 方向彈:粉紅三角尖頭,尖端朝飛行方向、不旋轉(使用者 11/8 看第一版後改,原為旋轉的細長稜柱);24 個方向
-  C.bul=[];for(let k=0;k<24;k++){const a=k*Math.PI/12,P=PR.map(([u,v])=>[6.5+u*Math.cos(a)-v*Math.sin(a),6.5+u*Math.sin(a)+v*Math.cos(a)]),[bc,bx]=mkCv(13,13),tx=6.5+3*Math.cos(a),ty=6.5+3*Math.sin(a);
+  yield;C.bul=[];for(let k=0;k<24;k++){const a=k*Math.PI/12,P=PR.map(([u,v])=>[6.5+u*Math.cos(a)-v*Math.sin(a),6.5+u*Math.sin(a)+v*Math.cos(a)]),[bc,bx]=mkCv(13,13),tx=6.5+3*Math.cos(a),ty=6.5+3*Math.sin(a);
     for(let y=0;y<13;y++)for(let X=0;X<13;X++){const q=[X+0.5,y+0.5];if(!b7In(q[0],q[1],P))continue;const e=!b7In(q[0]+1,q[1],P)||!b7In(q[0]-1,q[1],P)||!b7In(q[0],q[1]+1,P)||!b7In(q[0],q[1]-1,P);
       bx.fillStyle=e?'#ff5ab0':(Math.hypot(q[0]-tx,q[1]-ty)<1.3?'#ffffff':'#ff9ae0');bx.fillRect(X,y,1,1);}C.bul.push(bc);}
   C.cf=[];for(let k=0;k<8;k++){const [fc,fx]=mkCv(9,9),pts=[];   // 方向錯亂:頭上正中一個黃色螺旋 7×7(8 格旋轉),1 像素深色外框(使用者 11/8 看第一版後拿掉問號)
@@ -3568,16 +3573,17 @@ function b8Gem(b,k){const f=B8F[k],c=B8C[k],o=b8Org(b,k);
 /* ---- 8 王專屬場景:灰紫陰天的荒廢墓地(背景圖 IMGD.b8arena、大墓碑 IMGD.b8tomb 另存一層供登場與死亡用),天空、雲、低霧以程式畫 ---- */
 const B8TX=223,B8TY=91;                            // 大墓碑左上角(立在正中平台,中心對齊魔王出生點)
 let B8BG=null;
-function b8BgBuild(){const [c,x]=mkCv(W,H),[fc,fx]=mkCv(1024,52);B8BG={c,fog:fc,tomb:null,ok:0};
+function b8BgBuild(){runG(b8BgGen());}   // v0.35:改為可分段的 b8BgGen(進關暗幕期間每幀做一段,見 WQ);直接呼叫時一次做完
+function* b8BgGen(){const [c,x]=mkCv(W,H),[fc,fx]=mkCv(1024,52);B8BG={c,fog:fc,tomb:null,ok:0};
   const top=[58,50,74],bot=[132,120,150];            // 天空:灰紫到地平線淺灰紫(比樹與墓碑亮,讓它們成剪影),8 階抖色
   const im=x.createImageData(W,H),d=im.data;
-  for(let y=0;y<H;y++)for(let i=0;i<W;i++){const k=Math.floor((y/240)*8+BAYER[(y&3)*4+(i&3)]/16)/8,q=Math.min(1,k),o=(y*W+i)*4;
+  for(let y=0;y<H;y++){if((y&7)===7)yield;for(let i=0;i<W;i++){const k=Math.floor((y/240)*8+BAYER[(y&3)*4+(i&3)]/16)/8,q=Math.min(1,k),o=(y*W+i)*4;
     let r=top[0]+(bot[0]-top[0])*q,g=top[1]+(bot[1]-top[1])*q,b=top[2]+(bot[2]-top[2])*q;
     // 雲層:幾道橫向雲帶,以正弦起伏決定厚度,抖色疊淡一階(固定花紋,不用亂數)
     for(let n=0;n<4;n++){const cy=26+n*30+8*Math.sin(i*0.011+n*2.1),th=7+5*Math.sin(i*0.023+n*1.3)+3*Math.sin(i*0.057+n),dy=Math.abs(y-cy);
       if(dy<th&&BAYER[(y&3)*4+(i&3)]/16<0.55*(1-dy/th)){const m=n&1?10:-8;r+=m;g+=m;b+=m+2;}}
-    d[o]=r;d[o+1]=g;d[o+2]=b;d[o+3]=255;}
-  x.putImageData(im,0,0);
+    d[o]=r;d[o+1]=g;d[o+2]=b;d[o+3]=255;}}
+  x.putImageData(im,0,0);yield;
   // 低霧條:1024 寬可循環,上緣起伏,越往下越濃(抖色)
   const fi=fx.createImageData(1024,52),fd=fi.data;
   for(let y=0;y<52;y++)for(let i=0;i<1024;i++){const a=i/1024*6.283,edge=14+5*Math.sin(a*3)+3*Math.sin(a*7+1)+2*Math.sin(a*13+2),
@@ -4196,9 +4202,10 @@ const B10F={
 const B10MC=[['#4a0a12','#6a1220','#8a1a28','#d06a78'],['#3a0c12','#461018','#521420','#7a4048'],['#2a2a32','#33333c','#3a3a44','#4a4a54']];  // 護心鏡三狀態:底、呼吸兩階、高光(使用者 11/7:調暗、偏金屬)
 const B10_SHATTER=72;                               // 死亡:第 72 幀碎成黑曜碎片
 let B10C=null,B10BG=null;
-function b10Bake(){B10C={};
+function b10Bake(){runG(b10Gen());}   // v0.35:可分段版(進關暗幕 WQ 用),直接呼叫時一次做完
+function* b10Gen(){B10C={};
   for(const k in B10F){const f=B10F[k],m=bMat(f.r,B10P);
-    B10C[k]={c:b2Two(m.n),w:b2Two(m.w),s:b2Two(bMat(f.r,B10S).n),dk:b2Two(b2Tint(m.n,'#05040a')),cy:b2Two(b2Tint(m.n,'#3ad0c8')),W:m.W,H:m.H};}
+    B10C[k]={c:b2Two(m.n),w:b2Two(m.w),s:b2Two(bMat(f.r,B10S).n),dk:b2Two(b2Tint(m.n,'#05040a')),cy:b2Two(b2Tint(m.n,'#3ad0c8')),W:m.W,H:m.H};yield;}
   const sr=B10F.slash.r;let tx=1e9,ty=0;sr.forEach((r,y)=>{const i=r.search(/[^.O]/);if(i>=0&&i<tx){tx=i;ty=y;}});B10C.tip=[tx,ty];   // 揮砍姿勢的劍尖
   const f=B10F.idle;                                // 登場:石殼剝落三階(以 2×2 塊為單位依位置雜湊逐步消失)
   B10C.peel=[0.7,0.42,0.16].map(th=>b2Two(bMat(f.r.map((r,y)=>r.split('').map((c,x)=>c==='.'||b2h((x>>2)*31+((y+(x>>2&1)*2)>>2)*17+3)<th?c:'.').join('')),B10S).n));
@@ -4250,14 +4257,15 @@ function b10Moon(x,y,v){                           // 回傳月面明暗 0~4,-1 
   let q=Math.floor(clamp((-dx*0.55-dy*0.5)/B10MR+0.5+(BAYER[(y&3)*4+(x&3)]/16-0.5)*0.2,0,0.999)*4)+1;   // 光從左上來
   for(const [mx,my,mr] of [[-14,-8,11],[10,12,12],[-6,22,7],[18,-14,6]])if(Math.hypot(dx-mx,dy-my)<mr)q--;   // 月海
   if(dm<(v2?1.6:1.1))q=Math.max(0,q-2);return clamp(q,0,4);}   // 裂縫:細的空隙加一圈暗邊(使用者 11/7:線條感不要太重)
-function b10BgBuild(v){const [c,x]=mkCv(W,H),o={c,ok:0};
+function b10BgBuild(v){return runG(b10BgGen(v));}   // v0.35:可分段版 b10BgGen(見 WQ)
+function* b10BgGen(v){const [c,x]=mkCv(W,H),o={c,ok:0};
   const v2=v===2,top=v2?[3,2,10]:[5,4,16],bot=v2?[22,16,46]:[42,36,82],im=x.createImageData(W,H),d=im.data,
     MC=[[36,38,64],[54,58,88],[76,82,114],[98,104,138],[120,126,158]].map(c=>{if(!v2)return c;const l=(c[0]*0.3+c[1]*0.4+c[2]*0.3)*0.62;return [l*0.55,l,l*1.05].map(Math.round);});   // 裏側:月亮被虛空侵蝕成暗青灰(使用者 11/7 方向 2,與近黑的面容分開)
-  for(let y=0;y<H;y++)for(let i=0;i<W;i++){const q=Math.min(1,Math.floor((y/224)*8+BAYER[(y&3)*4+(i&3)]/16)/8),k=(y*W+i)*4;
+  for(let y=0;y<H;y++){if((y&15)===15)yield;for(let i=0;i<W;i++){const q=Math.min(1,Math.floor((y/224)*8+BAYER[(y&3)*4+(i&3)]/16)/8),k=(y*W+i)*4;
     let r=top[0]+(bot[0]-top[0])*q,g=top[1]+(bot[1]-top[1])*q,b=top[2]+(bot[2]-top[2])*q;
     if(y<160&&b2h(i*7.3+y*131.1)<(v2?0.0008:0.0016)){r=g=86;b=120;}                       // 疏星(固定位置)
     if(Math.abs(i-B10MX)<=B10MR+6&&Math.abs(y-B10MY)<=B10MR+6){const m=b10Moon(i,y,v);if(m>=0){[r,g,b]=MC[m];}}
-    d[k]=r;d[k+1]=g;d[k+2]=b;d[k+3]=255;}
+    d[k]=r;d[k+1]=g;d[k+2]=b;d[k+3]=255;}}
   x.putImageData(im,0,0);
   const g=new Image();g.onload=()=>{if(v2)b10Under(x,g);else x.drawImage(g,0,0);o.ok=1;};g.src=IMGD.b10arena;
   return o;}
@@ -4521,7 +4529,8 @@ function b10HeartBake(){if(!B10FC)b10FaceBake();
     for(let y=0;y<h;y++)for(let i=0;i<w;i++){const q=R[y][i],col=B10HPAL[q];if(!col)continue;x.fillStyle=col;x.fillRect(i,y,1,1);xw.fillStyle='OvKE'.includes(q)?col:'#ffffff';xw.fillRect(i,y,1,1);}
     return {c,w:cw};});
   const SP=['#2a282e','#5a5860','#76747c','#8a8890','#a8a6ae'];   // 殘片照第 2 段繞行碎片改灰石色調(使用者 11/7:黑曜色在夜空裡不顯眼)
-  const fr=B10FR.map(([sx,sy])=>{const [c,x]=mkCv(12,12);x.drawImage(B10FC.c,sx,sy,12,12,0,0,12,12);const id=x.getImageData(0,0,12,12),D=id.data;
+  const fr=B10FR.map(([sx,sy])=>{const [c,x]=b1Cv(12,12),id=x.createImageData(12,12),D=id.data;   // v0.35:殘片顏色直接由面容矩陣 B10FACE 取(原本從 GPU 畫布 getImageData 讀回,進關時沙盒 150~390 ms),結果相同
+    for(let j=0;j<12;j++)for(let i=0;i<12;i++){const ch=(B10FACE[sy+j]||'')[sx+i],col=ch&&B10FP[ch];if(!col)continue;const g=mRGB(col),q=(j*12+i)*4;D[q]=g[0];D[q+1]=g[1];D[q+2]=g[2];D[q+3]=255;}
     for(let j=0;j<12;j++)for(let i=0;i<12;i++){const q=(j*12+i)*4;if(Math.abs(i-5.5)+Math.abs(j-5.5)>7+b2h((sx+i)*1.3+(sy+j)*7.1)*2){D[q+3]=0;continue;}
       if(!D[q+3]||(D[q+1]>150&&D[q]<120))continue;const l=(D[q]+D[q+1]+D[q+2])/3,g=mRGB(SP[l<12?0:l<30?1:l<50?2:l<90?3:4]);D[q]=g[0];D[q+1]=g[1];D[q+2]=g[2];}
     x.putImageData(id,0,0);return c;});
@@ -4585,17 +4594,18 @@ function b10Die3(b,t){const {x:cx,y:cy}=b10Hc(b);b.vdt=t;   // 死亡經過幀�
     shake(1,4);}}
   if(t===86){bFlash(40);shake(4,20);}
   return true;}
-function b10Bg3Build(dn){const [c,x]=mkCv(W,H),im=x.createImageData(W,H),D=new Uint32Array(im.data.buffer),BY=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5],U=h=>mU32(mRGB(h));   // 虛空深處:中心最深、四周略亮;dn=1 為黎明前深藍(死亡後);直接寫像素(逐點 fillRect 約 110 ms)
+function b10Bg3Build(dn){return runG(b10Bg3Gen(dn));}   // v0.35:可分段版(進關暗幕 WQ 用),直接呼叫時一次做完
+function* b10Bg3Gen(dn){const [c,x]=mkCv(W,H),im=x.createImageData(W,H),D=new Uint32Array(im.data.buffer),BY=[0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5],U=h=>mU32(mRGB(h));   // 虛空深處:中心最深、四周略亮;dn=1 為黎明前深藍(死亡後);直接寫像素(逐點 fillRect 約 110 ms)
   const SK=(dn?['#0a1430','#0e1a3a','#122244','#172a50','#1c335c','#223c68']:['#020108','#04030e','#070615','#0a091c','#0e0d24','#13122c']).map(U);
-  for(let y=0;y<H;y++)for(let i=0;i<W;i++){const r=dn?(1-y/H)*1.2+y/H*5.6+BY[(y&3)*4+(i&3)]/16-0.5:Math.hypot(i-256,(y-120)*1.5)/300*5+BY[(y&3)*4+(i&3)]/16;D[y*W+i]=SK[clamp(Math.floor(r),0,5)];}
+  for(let y=0;y<H;y++){if((y&31)===31)yield;for(let i=0;i<W;i++){const r=dn?(1-y/H)*1.2+y/H*5.6+BY[(y&3)*4+(i&3)]/16-0.5:Math.hypot(i-256,(y-120)*1.5)/300*5+BY[(y&3)*4+(i&3)]/16;D[y*W+i]=SK[clamp(Math.floor(r),0,5)];}}
   for(let k=0;k<(dn?60:200);k++){const t=b2h(k*1.1),r=12+t*t*300,an=(k%3)*2.094+r*0.018+b2h(k*2.7)*0.4,X=Math.round(256+Math.cos(an)*r),Y=Math.round(120+Math.sin(an)*r*0.62),q=r/300;   // 靜態星塵(三條螺旋臂)
     if(X>=0&&X<W&&Y>=0&&Y<H)D[Y*W+X]=U(dn?'#3a4a78':q>0.55?'#6a6a98':q>0.3?'#4a4a78':'#2a2a4a');}
   const MX=408,MY=66,MR=58,S=[];for(let k=0;k<9;k++){const a=k*0.7+b2h(k*3.3),rr=b2h(k*4.1)*MR*0.8;S.push([MX+Math.cos(a)*rr,MY+Math.sin(a)*rr,(b2h(k*5.7)-0.5)*14,(b2h(k*6.1)-0.5)*14]);}   // 碎月:最近、最碎,9 塊各自外移
   const MC=(dn?['#2a3450','#3a4664','#4c5a7a','#606e90','#7684a6']:['#1c1f2e','#282c40','#363c54','#4a526c','#5e6884']).map(U);
-  for(let y=0;y<150;y++)for(let i=300;i<W;i++){let bi=-1;for(let k=0;k<S.length;k++){const u=i-S[k][2],v=y-S[k][3];if((u-MX)**2+(v-MY)**2>MR*MR)continue;
+  for(let y=0;y<150;y++){if((y&15)===15)yield;for(let i=300;i<W;i++){let bi=-1;for(let k=0;k<S.length;k++){const u=i-S[k][2],v=y-S[k][3];if((u-MX)**2+(v-MY)**2>MR*MR)continue;
       let best=1e9,bb=-1;for(let q=0;q<S.length;q++){const dd=(u-S[q][0])**2+(v-S[q][1])**2;if(dd<best){best=dd;bb=q;}}if(bb===k){bi=k;break;}}
     if(bi<0)continue;const u=i-S[bi][2],v=y-S[bi][3],l=0.35+0.65*Math.max(0,1-Math.hypot(u-MX+20,v-MY+20)/(MR*1.6))+(BY[(y&3)*4+(i&3)]/16-0.5)*0.15;
-    D[y*W+i]=MC[clamp(Math.floor(l*5),0,4)];}
+    D[y*W+i]=MC[clamp(Math.floor(l*5),0,4)];}}
   x.putImageData(im,0,0);return c;}
 function b10Bg3(b){if(!B10BG3)B10BG3=[b10Bg3Build(0),b10Bg3Build(1)];   // 黎明版一起烘焙,避免死亡途中卡頓
  ctx.drawImage(B10BG3[0],0,0);
@@ -4724,6 +4734,22 @@ const B10={
 const BOSSES=[B1,B2,B3,B4,B5,B6,B7,B8,B9,B10];
 function bossHPMax(w){return w===10?24000:(3200+w*1400);}
 let bossSnapshot=null;
+/* v0.35(使用者選 6A):進王關的烘焙分散到 60 幀暗幕。原本各王的大圖都在第一次要畫時才烘焙,全擠在暗幕第 0 幀(沙盒 8 王 141、10 王第 3 段約 150~460 ms)。
+   WQ 為本次進關要做的烘焙步驟:一般函式(一次做完,每幀最多一個,且只在該幀還沒做別的時)或 generator(每畫幾列 yield 一次,一幀做到約 6 ms)。
+   暗幕期間 WQ 未清空時 render 不畫世界(暗幕 86% 不透明,只少了透出的 14%);暗幕結束前沒做完的一次補完(wqFlush)。各函式原本的「第一次要畫才烘焙」保留當保險 */
+const WQ=[];
+function runG(g){let r;while(!(r=g.next()).done);return r.value;}
+function wqRun(ms){const t0=performance.now();let first=true;
+  while(WQ.length&&performance.now()-t0<ms){const q=WQ[0];if(typeof q==='function'){if(!first)break;WQ.shift();q();}else if(q.next().done)WQ.shift();first=false;}}
+function wqFlush(){while(WQ.length){const q=WQ.shift();if(typeof q==='function')q();else runG(q);}}
+function wqSet(w,seg){WQ.length=0;const A=WQ;A.push(ltBuild);
+  if(w===2){if(!B2BG)A.push(b2BgBuild);if(!B2C)A.push(b2Gen());}
+  if(w===3&&!B3G){A.push(()=>b3Bake(1));A.push((function*(){B3G.eye=yield* b3EyeGen();})());}
+  if(w===5){if(!B5BG.ok)A.push(b5BgGen());if(!B5C)A.push(b5Gen());}
+  if(w===7&&!B7C)A.push(b7Gen());
+  if(w===8){if(!B8BG)A.push(b8BgGen());if(!B8C)A.push(b8Bake);}
+  if(w===10){if(seg<3){const v=seg===2?2:1;A.push((function*(){if(!B10BG)B10BG={};if(!B10BG[v])B10BG[v]=yield* b10BgGen(v);})());A.push(seg===2?()=>{if(!B10FC)b10FaceBake();}:(function*(){if(!B10C)yield* b10Gen();})());}
+    else{if(!B10HC)A.push(b10HeartBake);if(!B10BG3)A.push((function*(){const a=yield* b10Bg3Gen(0),b=yield* b10Bg3Gen(1);if(!B10BG3)B10BG3=[a,b];})());}}}
 function startBoss(retry,seg){
   const def=BOSSES[G.world-1];seg=seg||1;G.bseg=seg;          // v0.22(使用者授權):10 王三段分開打,seg 為段數(其餘魔王恆為 1)
   def.arena();
@@ -4736,6 +4762,7 @@ function startBoss(retry,seg){
   const sp=typeof def.spawn==='function'?def.spawn(boss):def.spawn;
   if(sp){P.x=sp[0];P.y=sp[1];P.vx=0;P.vy=0;P.safeX=P.x;P.safeY=P.y;}
   cam.x=0;cam.y=0;
+  wqSet(G.world,seg);                          // v0.35 進關暗幕分幀烘焙
   if(seg>1)return;   // v0.22:第 2、3 段不給補給、不重記接續點(陣亡一律回第 1 段)
   // 依主角狀態給增益
   if(P.lives<=4)items.push({kind:'life',x:120,y:60,vy:0,t:0});
@@ -4926,7 +4953,7 @@ function update(){
   if(G.state==='levelselect'){anyTap=false;G.sT++;return;}
   anyTap=false;
 
-  if(G.state==='intro'){G.sT++;if(G.sT>60)G.state='play';return;}
+  if(G.state==='intro'){if(WQ.length)wqRun(6);G.sT++;if(G.sT>60){wqFlush();G.state='play';}return;}   // v0.35 暗幕期間分幀烘焙魔王圖
   if(G.state==='over'){hudEl.style.display='none';if(G.sT<91)G.sT++;return;}
   if(G.state==='finish'){hudEl.style.display='none';G.sT++;if(G.sT>260)toTitle();return;}
   if(G.state==='win'){
@@ -5967,7 +5994,7 @@ function render(){
   const sq=boss&&boss.def.sq&&G.state==='play'?boss.def.sq(boss):1;   // v0.26 9 王翻轉:畫面橫向壓扁再展開(純顯示)
   if(sq!==1)px(0,0,W,H,'#0b1122');   // 壓扁時兩側露出的部分填深空色(不留黑邊)
   ctx.save();ctx.translate(Math.round(sx)+W/2*(1-sq),Math.round(sy));if(sq!==1)ctx.scale(sq,1);
-  if(G.state!=='title'&&G.state!=='finish'&&G.state!=='levelselect'){
+  if(G.state!=='title'&&G.state!=='finish'&&G.state!=='levelselect'&&!(G.state==='intro'&&WQ.length)){   // v0.35:暗幕分幀烘焙還沒做完時不畫世界
     drawBG();                                  // 背景視差層維持不縮放、不跟隨鏡頭平移(用自己既有的慢速視差公式)
     const zoom=1; // 鏡頭不再縮放/跟隨,固定1倍,王關與小關行為一致
     ctx.save();ctx.scale(zoom,zoom);ctx.translate(-cam.x,-cam.y);
