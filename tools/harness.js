@@ -184,6 +184,52 @@ async function vis(outp,file){
   console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return errs.length;   // 可見性只回報,不當作失敗(標準需人判斷)
 }
 
+// v0.31 進關尖峰:每個小關與魔王(10 王三段)量 startLevel(含生成、烘焙)與之後前 10 幀 update+render 的最長單幀耗時(沙盒相對值)。
+// 用來對照 F3「JS 最差 @關卡」:F3 在換關那一幀已算新關卡,所以進關烘焙會記在新關卡名下
+async function entry(file){
+  const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const o=[],rows=[];
+    for(let w=1;w<=10;w++)for(let s=1;s<=5;s++)for(const sg of (w===10&&s===5?[1,2,3]:[0])){
+      resetRun();G.world=w;G.sub=s;
+      const t0=performance.now();if(sg>1){startBoss(0,sg);G.state='intro';G.sT=0;}else startLevel();const ts=performance.now()-t0;
+      let fm=0,fa=0;for(let i=0;i<10;i++){const a=performance.now();P.inv=999;update();render();const d=performance.now()-a;if(d>fm){fm=d;fa=i;}}
+      rows.push({k:w+'-'+s+(s===5?'王'+(sg?sg:''):''),ts,fm,fa});}
+    rows.sort((a,b)=>Math.max(b.ts,b.fm)-Math.max(a.ts,a.fm));
+    for(const x of rows.slice(0,15))o.push(`${x.k.padEnd(7)} 進關 ${x.ts.toFixed(1)} ms  之後最長一幀 ${x.fm.toFixed(1)} ms(第 ${x.fa} 幀)`);
+    const n=rows.filter(x=>x.s<5);return o;});
+  console.log('最慢 15 個(沙盒相對值,依進關與首 10 幀最大者排序)\n'+r.join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return errs.length;
+}
+
+// v0.31 畫質與燃燒剪影對照圖:上兩列為 10-2 敵彈、3-2 衝鋒槍 Lv4、3-2 散彈 Lv4 的低/高畫質(主角周圍 256×144 放大 2 倍);
+// 下面為火焰 Lv1~4 噴中敵人時的低畫質畫面。給第二個檔案時同一位置左右並排(左 A 右 B),用來比對舊版
+async function qcmp(outp,fa,fb){
+  const one=async f=>{const {br,pg,errs}=await open(f,{width:512,height:288});
+    const r=await pg.evaluate(()=>{const out=[];
+      const crop=f=>{const c=document.createElement('canvas');c.width=512;c.height=288;const x=c.getContext('2d');x.imageSmoothingEnabled=false;
+        const fx=f?f.x-cam.x-128:P.x-cam.x-90,fy=f?f.y-cam.y-72:P.y-cam.y-80;const cx=Math.max(0,Math.min(W-256,Math.round(fx))),cy=Math.max(0,Math.min(H-144,Math.round(fy)));x.drawImage(cv,cx,cy,256,144,0,0,512,288);return c.toDataURL();};
+      const pin=()=>{let k=0;for(const e of ens){if(k>=3)break;e.x=P.x+18+k*22;e.y=P.y+P.h-e.h;e.vx=0;e.vy=0;e.hp=999;k++;}};
+      const setup=(w,s,wp,lv)=>{Math.random=(()=>{let z=12345;return()=>(z=(z*16807)%2147483647)/2147483647;})();HX.go(w,s);HX.run(20);HX.crowd();HX.run(40);
+        P.x=Math.max(40,P.x);P.face=1;wep=wp;wlvl=lv;G.shakeT=0;};
+      for(const [w,s,wp] of [[10,2,'smg'],[3,2,'smg'],[3,2,'shot']]){setup(w,s,wp,4);let f=null;
+        if(w===10){const on=e=>e.x-cam.x>20&&e.x-cam.x<W-20&&e.y-cam.y>20&&e.y-cam.y<H-20;for(let i=0;i<1500&&ebul.filter(on).length<3;i++){P.inv=999;K.r=(i%200)<20?1:0;update();}K.r=0;f=ebul.find(on)||null;}   // 10-2 列以敵彈為中心
+        else{K.f=1;for(let i=0;i<14;i++){P.inv=999;update();}K.f=0;}HX.warm();
+        for(const q of['low','high']){FX.q=q;G.shakeT=0;render();out.push(crop(f));}}
+      FX.q='low';
+      for(let lv=1;lv<=4;lv++){setup(3,2,'flame',lv);K.f=1;for(let i=0;i<30;i++){P.inv=999;pin();update();}pin();HX.warm();G.shakeT=0;render();out.push(crop());K.f=0;}
+      return out;});
+    await br.close();return [r,errs];};
+  const A=await one(fa),B=fb?await one(fb):null;
+  const {br,pg}=await open(fa,{width:512,height:288});
+  const png=await pg.evaluate(async([A,B])=>{const cols=B?2:1,lab=['10-2 敵彈 低','10-2 敵彈 高','3-2 衝鋒槍 Lv4 低','3-2 衝鋒槍 Lv4 高','3-2 散彈 Lv4 低','3-2 散彈 Lv4 高','火焰 Lv1','火焰 Lv2','火焰 Lv3','火焰 Lv4'];
+    const rowsN=B?A.length:Math.ceil(A.length/2),c=document.createElement('canvas');c.width=cols*516*(B?1:2)/ (B?1:1);c.width=(B?2:2)*516;c.height=rowsN*306;const x=c.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);
+    const ld=u=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=u;});
+    for(let i=0;i<A.length;i++){const set=B?[A[i],B[i]]:[A[i]];for(let j=0;j<set.length;j++){const im=await ld(set[j]);
+      const X=B?j*516:(i%2)*516,Y=(B?i:Math.floor(i/2))*306+16;x.drawImage(im,X,Y);x.fillStyle='#fff';x.font='13px sans-serif';x.fillText(lab[i]+(B?(j?' (B)':' (A)'):''),X+2,Y-3);}}
+    return c.toDataURL();},[A[0],B&&B[0]]);
+  fs.writeFileSync(outp,Buffer.from(png.split(',')[1],'base64'));await br.close();
+  const e=A[1].concat(B?B[1]:[]);console.log('已存',outp);console.log('錯誤',e.length?e.slice(0,5):'無');return e.length;
+}
+
 // v0.31 桌機實測頁:複製 index.html,加一條可收起的控制列 → preview/perf-test.html(不提交,由使用者在測試機開啟,Claude 不代跑)。
 // 控制列只在按鈕被按時改狀態(跳關、無限命、魔王剩 5%、特攻充滿、換武器),不改繪製;開啟時強制高畫質。
 // F4 收起/打開控制列(量測時收起);B 魔王剩 5%;N 特攻充滿(這兩鍵遊戲本身沒用到)
@@ -1429,6 +1475,8 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='wvis')bad=await wvis(a[0]);
   else if(cmd==='vis')bad=await vis(a[0],a[1]);
   else if(cmd==='perfpage')bad=perfpage(a[0]);
+  else if(cmd==='entry')bad=await entry(a[0]);
+  else if(cmd==='qcmp')bad=await qcmp(a[0],a[1],a[2]);
   else if(cmd==='bclear')bad=await bclear(a[0]);
   else if(cmd==='pstate')bad=await pstate(a[0]);
   else if(cmd==='menu')bad=await menu(a[0]);
