@@ -434,15 +434,51 @@ async function menu(file){
   console.log(r[0].join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return r[1]+errs.length;
 }
 
-async function mshot(pre,file){   // v0.29 各選單截圖:<前綴>-title/ls/choose/wt/over/sp.png
+async function mshot(pre,file){   // v0.29 各選單截圖:<前綴>-title/ls/choose/wt/over/sp.png;v0.38 加 pause/intro/warn/card/win/finish/msg/msg5
   const {br,pg,errs}=await open(file,{width:1024,height:576});
   const S={title:()=>{toTitle();},ls:()=>{toTitle();G.state='levelselect';G.mk=null;mSel();G.mc=7;},
     choose:()=>{debugStartWorld(7);HX.run(70);mSel();G.mc=1;},wt:()=>{HX.go(3,1);G.modal={wt:'flame'};HX.run(1);},
-    over:()=>{HX.go(2,2);G.state='over';G.sT=95;G.overBoss=false;},sp:()=>{HX.go(6,5);HX.run(320);G.charge=100;HX.press();mSel();G.mc=1;}};
+    over:()=>{HX.go(2,2);G.state='over';G.sT=95;G.overBoss=false;},
+    // v0.38 像素字:補上暫停、進關字卡、WARNING、魔王字卡、擊破、破關、招式字幕與特攻通訊
+    pause:()=>{HX.go(3,1);HX.run(5);G.paused=true;},intro:()=>{HX.go(9,3);G.state='intro';G.sT=30;},introb:()=>{HX.go(9,4);G.sub=5;G.state='intro';G.sT=30;},warn:()=>{HX.go(4,5);HX.run(58);},card:()=>{HX.go(5,5);HX.run(260);},
+    win:()=>{HX.go(1,5);HX.run(320);G.state='win';G.sT=120;},finish:()=>{toTitle();G.state='finish';G.sT=0;G.score=123400;},
+    msg:()=>{HX.go(2,1);HX.run(30);G.charge=100;HX.press();HX.run(50);G.msg='骨影閃瞬 → 左上';G.msgT=60;},msg5:()=>{HX.go(5,5);HX.run(320);G.charge=100;HX.press();HX.run(70);},sp:()=>{HX.go(6,5);HX.run(320);G.charge=100;HX.press();mSel();G.mc=1;}};
   for(const k in S){
     await pg.evaluate(src=>{(0,eval)('('+src+')')();HX.warm();render();},S[k].toString());
     await pg.waitForTimeout(300);await pg.evaluate(()=>render());await pg.screenshot({path:`${pre}-${k}.png`});}
   console.log('已存',pre+'-*.png','錯誤',errs.length?errs:'無');await br.close();
+}
+
+// v0.38 像素字烘焙:把 index.html 用到的字(ASCII 32~126 加檔案內所有非 ASCII 字)以俐方體 11 號畫成 16×14 的 1 位元點陣(筆尖在第 2 欄、基線在第 10 列下緣;中文字身落在第 1~11 列),
+// 寫回 index.html 尾端資料區塊的 /*PF-BEGIN*/…/*PF-END*/。每字 29 位元組:第 1 個是字寬(前進量),其餘 28 個是點陣(逐列、高位在左)。
+// 做法:字放大 8 倍畫,再取每格中心點(避免瀏覽器平滑字邊);以兩種不同的備援字型各畫一次,結果不同就是字型缺這個字。
+async function fontbake(file){
+  const f=file||path.join(ROOT,'index.html');let src=fs.readFileSync(f,'utf8');
+  const A='/*PF-BEGIN',Z='/*PF-END*/',i0=src.indexOf(A),i1=src.indexOf(Z);
+  if(i0<0||i1<0){console.log('找不到 PF-BEGIN/PF-END 標記');return 1;}
+  const body=src.slice(0,i0)+src.slice(i1+Z.length),set=new Set();for(const ch of body)if(ch.codePointAt(0)>127)set.add(ch);
+  const extra=[...set].sort((a,b)=>a.codePointAt(0)-b.codePointAt(0)),chars=[];for(let i=32;i<127;i++)chars.push(String.fromCharCode(i));chars.push(...extra);
+  const font=fs.readFileSync(path.join(ROOT,'art-src/fonts/cubic11/Cubic_11.woff2')).toString('base64');
+  const br=await chromium.launch({executablePath:CHROME,args:['--no-sandbox']});const pg=await br.newPage();
+  await pg.setContent('<style>@font-face{font-family:C11;src:url(data:font/woff2;base64,'+font+')}</style><body>x</body>');
+  const r=await pg.evaluate(async chars=>{await document.fonts.load('96px C11','按Z');
+    const Q=8,CW=16,CH=14,PW=24,PH=24,c=document.createElement('canvas');c.width=PW*Q;c.height=PH*Q;const x=c.getContext('2d',{willReadFrequently:true});
+    const draw=(ch,fb)=>{x.clearRect(0,0,c.width,c.height);x.font=(12*Q)+'px C11,'+fb;x.textBaseline='alphabetic';x.fillStyle='#fff';x.fillText(ch,6*Q,14*Q);
+      const d=x.getImageData(0,0,c.width,c.height).data,m=[];for(let yy=0;yy<PH;yy++)for(let xx=0;xx<PW;xx++)m.push(d[((yy*Q+Q/2)*c.width+xx*Q+Q/2)*4+3]>127?1:0);return m;};
+    const out=[],miss=[],clip=[];
+    for(const ch of chars){const m=draw(ch,'"Courier New",MingLiU'),m2=draw(ch,'Arial,"Microsoft JhengHei"');
+      x.font=(12*Q)+'px C11,"Courier New",MingLiU';let adv=Math.round(x.measureText(ch).width/Q);
+      const bad=m.some((v,i)=>v!==m2[i]);if(bad)miss.push(ch);
+      const bytes=new Array(29).fill(0);bytes[0]=bad?13:Math.max(1,Math.min(15,adv));let cl=0;
+      for(let yy=0;yy<PH;yy++)for(let xx=0;xx<PW;xx++){if(!m[yy*PW+xx])continue;const gx=xx-4,gy=yy-4;
+        if(gx<0||gy<0||gx>=CW||gy>=CH){cl=1;continue;}if(!bad){const b=gy*CW+gx;bytes[1+(b>>3)]|=128>>(b&7);}}
+      if(cl&&!bad)clip.push(ch);out.push(...bytes);}
+    let bin='';for(const b of out)bin+=String.fromCharCode(b);return {b64:btoa(bin),miss,clip};},chars);
+  await br.close();
+  const blk=A+' 像素字點陣(俐方體 11 號,授權見 art-src/fonts/cubic11/OFL.txt;由 node tools/harness.js fontbake 產生,勿手改)*/const PFC="'+extra.join('')+'",PFD="'+r.b64+'";'+Z;
+  fs.writeFileSync(f,src.slice(0,i0)+blk+src.slice(i1+Z.length));
+  console.log('字數',chars.length,'(非 ASCII',extra.length+')','資料',r.b64.length,'字元');
+  console.log('字型缺字(畫成空白)',r.miss.length?r.miss.join(' '):'無');console.log('超出 16×14 格(被裁)',r.clip.length?r.clip.join(' '):'無');return 0;
 }
 
 async function benchOne(file,rounds){
@@ -1588,6 +1624,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='pstate')bad=await pstate(a[0]);
   else if(cmd==='menu')bad=await menu(a[0]);
   else if(cmd==='mshot')await mshot(a[0]||'menu',a[1]);
+  else if(cmd==='fontbake')bad=await fontbake(a[0]);
   else if(cmd==='bench')await bench(a[0],a[1],+a[2]||1);
   else if(cmd==='shot')await shot(a[0],a[1],a[2],a[3],a[4]||0,a[5]);
   else if(cmd==='sheet')await sheet(a[0],a[1]||'low',a[2],a[3]||undefined,a[4]);

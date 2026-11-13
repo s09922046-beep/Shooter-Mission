@@ -21,7 +21,8 @@
 | `node tools/harness.js bclear` | 魔王死後清場(v0.28.2):10 隻魔王在場上有敵彈或危險區時擊倒,檢查傳送門出現時的殘留,以及之後 300 幀主角是否被扣命 |
 | `node tools/harness.js pstate` | 暫停狀態(v0.28.2):遊玩中、進關開場、勝利演出、死亡畫面各按 P,只有遊玩中能暫停;暫停中進關須解除 |
 | `node tools/harness.js menu` | 選單鍵盤操作(v0.29):以模擬按鍵走過標題、選關、選彈種、武器箱(含開啟 20 幀內防誤按)、死亡畫面、6 王特攻選單,共 18 項 |
-| `node tools/harness.js mshot [前綴]` | 各選單截圖(v0.29):前綴-title/ls/choose/wt/over/sp.png |
+| `node tools/harness.js mshot [前綴]` | 各選單截圖(v0.29):前綴-title/ls/choose/wt/over/sp.png;v0.38 加 pause/intro/introb/warn/card/win/finish/msg/msg5(暫停、進關字卡、WARNING、魔王字卡、擊破、破關、招式字幕、特攻通訊) |
+| `node tools/harness.js fontbake [檔案]` | 像素字烘焙(v0.38):把 index.html 內出現的所有非 ASCII 字加 ASCII 32~126,以 art-src/fonts/cubic11/Cubic_11.woff2 畫成 16×14 點陣寫回尾端 PF-BEGIN/PF-END;印出字數、字型缺字、超出格子的字。**新增或修改遊戲文字後要重跑**,否則新字顯示成問號 |
 | `node tools/harness.js bench <舊檔> <新檔> [輪數]` | 繪圖時間相對比較(沙盒數字,不能代替測試機) |
 | `node tools/harness.js shot <大關> <小關> <幀數> <輸出.png> [特攻 0/1]` | 截一張遊戲畫面(截圖前先把可見地面烘完,v0.10 修正:只跑 `update` 時地面快取來不及烘焙) |
 | `node tools/harness.js sheet <小關> <low/high> <輸出.png> [檔案] [FX設定]` | 10 大關同一小關拼成 5×2 對照圖(每格 512×288);FX 設定如 `q=high`,用於預覽期切換方案;`seed=N` 固定亂數,新舊版可用同一批地圖對照;`only=N` 只截第 N 大關(放大 2 倍,v0.30) |
