@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.28.1 修正己方子彈與槍口火光沒有畫出(v0.18 起 render 內 drawMuzzle、drawPlayerBullets 被誤併入註解,衝鋒槍、散彈子彈本體、拖尾、子彈發光與槍口火光皆不見,判定與傷害照常);harness 新增 wvis;前一版 v0.28 魔王 6 灰燼騎士與詠嘆者 -->
+<!-- VERSION: v0.28.2 依使用者授權修正兩處隱式狀態:魔王死亡那一幀清掉敵彈、危險區與雜兵(原本傳送門出現後恢復傷人);P/Esc 暫停只在遊玩中有效,進關與接續挑戰解除暫停;harness 新增 bclear、pstate;前一版 v0.28.1 修正己方子彈與槍口火光 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -161,7 +161,7 @@ addEventListener('keydown',e=>{
     if(e.code==='Escape'){e.preventDefault();G.modal=null;return;}
   }
   if(KM[e.code]){K[KM[e.code]]=1;e.preventDefault();}if(e.code==='Enter')anyTap=true;
-  if((e.code==='Escape'||e.code==='KeyP')&&G.state!=='title'&&G.state!=='levelselect'&&!G.modal)G.paused=!G.paused;});
+  if((e.code==='Escape'||e.code==='KeyP')&&G.state==='play'&&!G.modal)G.paused=!G.paused;});   // v0.28.2(使用者 11/13 授權 2A):只有遊玩中能暫停(原本勝利演出、死亡畫面、進關開場也會切換,但不顯示)
 addEventListener('keyup',e=>{if(KM[e.code])K[KM[e.code]]=0;});
 function toGameXY(clientX,clientY){
   const r=cv.getBoundingClientRect();
@@ -190,7 +190,7 @@ document.getElementById('wrap').addEventListener('pointerdown',e=>{
         if(G.overBoss&&bossSnapshot){
           G.world=bossSnapshot.world;G.sub=bossSnapshot.sub;G.score=bossSnapshot.score;
           P.lives=bossSnapshot.lives;wep=bossSnapshot.wep;wlvl=bossSnapshot.wlvl;
-          hudEl.style.display='flex';startBoss(1);G.state='intro';G.sT=0;
+          hudEl.style.display='flex';G.paused=false;startBoss(1);G.state='intro';G.sT=0;
         }else{
           G.sub=1;P.lives=5;wep='smg';wlvl=1;G.charge=0;
           hudEl.style.display='flex';startLevel();
@@ -1161,6 +1161,7 @@ function bossFlame(){
 function bSegMid(){return !!(boss&&boss.def.segs&&boss.seg<boss.def.segs);}   // v0.22:分段魔王的中間段(打倒後出暗紅傳送門)
 function bossDie(){
   boss.alive=false;G.state='win';G.sT=0;
+  ebul=[];hazs=[];ens=[];   // v0.28.2(使用者 11/13 授權 1A):死亡那一幀清掉敵彈、危險區與雜兵(不掉道具、不加分);原本停在死亡演出期間,傳送門出現後恢復傷人
   if(!bSegMid()){G.score+=5000;G.charge=50;}   // v0.22:10 王第 1、2 段打倒不給擊破分數
   shake(6,60);
   if(G.world===6){vineAt(6,2,13);vineAt(17,2,13);} // 6王死亡時若「繩索通電」效果尚未結束,藤蔓會被永久卡在消失狀態(upd不再執行,倒數無法繼續),導致王已死卻爬不上去拿傳送門;死亡當下強制復原繩索,確保一定能過關
@@ -4807,6 +4808,7 @@ function drawAtmoTop(){ // 前景薄霧與暈影(像素畫法:畫在 512×288 �
 
 /* ========== 流程 ========== */
 function startLevel(){
+  G.paused=false;   // v0.28.2 授權 2A:進關與接續挑戰一律解除暫停
   if(G.sub===5){startBoss();}
   else{genLevel(G.world,G.sub);}
   G.state='intro';G.sT=0;

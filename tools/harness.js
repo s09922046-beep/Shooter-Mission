@@ -96,6 +96,38 @@ async function wvis(file){
   console.log(r[0].join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return r[1]+errs.length;
 }
 
+// v0.28.2 魔王死後清場(使用者 11/13 授權 1A):每隻魔王打到場上有敵彈或危險區時擊倒,跑完死亡演出到傳送門出現,
+// 記錄當下殘留的敵彈、危險區、雜兵,之後主角不無敵、站著不動 300 幀,看會不會被扣命。10 王用第 3 段(最後一段)
+async function bclear(file){
+  const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;
+    for(let w=1;w<=10;w++){
+      if(w===10){HX.go(10,5);startBoss(0,3);G.state='play';HX.run(185);}else{HX.go(w,5);HX.run(320);}
+      let i=0;for(;i<6000&&!(ebul.length+hazs.length>=2&&ens.length+ebul.length+hazs.length>=3);i++)HX.run(1);
+      const e0=ebul.length,h0=hazs.length,n0=ens.length;
+      bossDie();let k=0;while(G.state==='win'&&k<400){P.inv=999;update();k++;}
+      const e1=ebul.length,h1=hazs.length,n1=ens.length,L=P.lives=5;P.inv=0;
+      for(let t=0;t<300;t++){for(const q in K)K[q]=0;update();if(G.state!=='play')break;}
+      const lost=L-P.lives,ok=e1+h1+n1===0&&lost===0;if(!ok)bad++;
+      o.push(`王${w} 擊倒時 敵彈${e0} 危險區${h0} 雜兵${n0} → 傳送門出現時 敵彈${e1} 危險區${h1} 雜兵${n1};之後 300 幀扣命 ${lost}${ok?'':' ← 殘留'}`);}
+    o.push(`未通過 ${bad} 隻(共 10 隻)`);return [o,bad];});
+  console.log(r[0].join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return r[1]+errs.length;
+}
+
+// v0.28.2 暫停只在遊玩中(使用者 11/13 授權 2A):各狀態按 P,看 G.paused 是否改變;死亡畫面按過 P 後接續挑戰,不得處於暫停
+async function pstate(file){
+  const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;const key=c=>{dispatchEvent(new KeyboardEvent('keydown',{code:c}));dispatchEvent(new KeyboardEvent('keyup',{code:c}));};
+    const chk=(nm,want)=>{G.paused=false;key('KeyP');const ok=G.paused===want;if(!ok)bad++;o.push(`${nm} 按 P → ${G.paused?'暫停':'未暫停'}(應為${want?'暫停':'未暫停'})${ok?'':' ← 錯'}`);G.paused=false;};
+    HX.go(1,1);G.state='play';chk('遊玩中',true);
+    HX.go(1,1);G.state='intro';G.sT=0;chk('進關開場',false);
+    HX.go(2,5);HX.run(320);bossDie();chk('勝利演出',false);
+    HX.go(2,5);HX.run(320);G.state='over';G.sT=0;G.overBoss=true;chk('死亡畫面',false);
+    G.paused=true;startLevel();const ok=!G.paused;if(!ok)bad++;o.push(`暫停中進關 → ${G.paused?'暫停(錯)':'已解除'}`);
+    o.push(`未通過 ${bad} 項`);return [o,bad];});
+  console.log(r[0].join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return r[1]+errs.length;
+}
+
 async function benchOne(file,rounds){
   const {br,pg,errs}=await open(file);
   const r=await pg.evaluate(R=>{let tu=0,tr=0,n=0;
@@ -1182,6 +1214,8 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
   else if(cmd==='wvis')bad=await wvis(a[0]);
+  else if(cmd==='bclear')bad=await bclear(a[0]);
+  else if(cmd==='pstate')bad=await pstate(a[0]);
   else if(cmd==='bench')await bench(a[0],a[1],+a[2]||1);
   else if(cmd==='shot')await shot(a[0],a[1],a[2],a[3],a[4]||0,a[5]);
   else if(cmd==='sheet')await sheet(a[0],a[1]||'low',a[2],a[3]||undefined,a[4]);
