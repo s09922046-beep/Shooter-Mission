@@ -246,7 +246,7 @@ async function qcmp(outp,fa,fb){
 }
 
 // v0.31 新舊版放大對照(11/13):10 王第 2 段扇形彈、6 王光柱內的主角;各取 128×72 放大 4 倍,給兩個檔案時左右並排(A 左、B 右)
-async function vcmp(outp,fa,fb){
+async function vcmp(outp,fa,fb){   // v0.33 加環狀彈
   const one=async f=>{const {br,pg,errs}=await open(f,{width:512,height:288});
     const r=await pg.evaluate(()=>{const out=[];
       const crop=(fx,fy)=>{const c=document.createElement('canvas');c.width=512;c.height=288;const x=c.getContext('2d');x.imageSmoothingEnabled=false;
@@ -255,13 +255,15 @@ async function vcmp(outp,fa,fb){
       const idle=n=>{for(let i=0;i<n;i++){P.inv=999;P.lives=5;for(const q in K)K[q]=0;update();}};
       seed();HX.go(10,5);startBoss(0,2);G.state='play';idle(185);boss.ai=2;boss.cd=0;idle(24);HX.warm();G.shakeT=0;render();
       const f=ebul.find(q=>q.vk==='b10s');out.push(f?crop(f.x,f.y):crop(P.x,P.y));
+      seed();HX.go(10,5);startBoss(0,2);G.state='play';idle(185);boss.ai=0;boss.cd=0;idle(24);HX.warm();G.shakeT=0;render();
+      const g=ebul.find(q=>q.vk==='b10c'&&q.x-cam.x>40&&q.x-cam.x<W-40&&q.y>40&&q.y<H-40);out.push(g?crop(g.x,g.y):crop(P.x,P.y));
       seed();HX.go(6,5);idle(320);P.x=200;P.y=14*TS-P.h;P.vy=0;idle(2);
       for(const k of[8,20]){hazs.length=0;const z=haz(P.x-8,0,24,14*TS,44,26,'#d0ffe8','b6pw');z.fx='b6p';z.t=z.warn+k;HX.warm();G.shakeT=0;P.inv=0;render();out.push(crop(P.x+5,P.y+7));}
       return out;});
     await br.close();return [r,errs];};
   const A=await one(fa),B=fb?await one(fb):null;
   const {br,pg}=await open(fa,{width:512,height:288});
-  const png=await pg.evaluate(async([A,B])=>{const lab=['10 王第 2 段扇形彈','6 王光柱生效第 8 幀','6 王光柱生效第 20 幀'],cols=B?2:1;
+  const png=await pg.evaluate(async([A,B])=>{const lab=['10 王第 2 段扇形彈','10 王第 2 段環狀彈','6 王光柱生效第 8 幀','6 王光柱生效第 20 幀'],cols=B?2:1;
     const c=document.createElement('canvas');c.width=cols*516;c.height=A.length*306;const x=c.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);
     const ld=u=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=u;});
     for(let i=0;i<A.length;i++){const set=B?[A[i],B[i]]:[A[i]];for(let j=0;j<set.length;j++){const im=await ld(set[j]);const X=j*516,Y=i*306+16;
