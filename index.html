@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.31 10 王第 2 段扇形彈本體改亮橘加深色外框(判定不變);前一版 v0.30.2 5 王無限大砲等掃描打完才發 -->
+<!-- VERSION: v0.32 6 王光柱內的主角:泛光之後再畫一次並加 1 像素深色外框(判定不變);前一版 v0.31 10 王第 2 段扇形彈提亮 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -5481,6 +5481,22 @@ function drawPlayer(){
   else pGunH(ox,gy,f,9,4);
   pGlow(ox,gy,f,[[3,5],[5,9],[5,10]]);
 }
+/* v0.32(使用者選 5A,先只做 6 王):主角站在詠嘆者光柱(fx b6p)生效範圍內時,光柱整個蓋住主角;drawHazards 之後把主角再畫一次並加 1 像素深色外框。
+   做法:暫時把 ctx 換成 48×56 小畫布畫主角(發光登記關掉,避免重複),再以 source-in 做深色剪影,四方向各貼一次當外框,最後貼主角。只在光柱內才執行 */
+const PLO={};
+function plOutline(){
+  if(!boss||G.world!==6||P.inv>0&&((G.t>>1)&1))return;
+  const pb=playerBox();if(!hazs.some(z=>z.fx==='b6p'&&z.t>z.warn&&aabb(pb,z)))return;
+  if(!PLO.c){[PLO.c,PLO.x]=mkCv(48,56);[PLO.d,PLO.dx]=mkCv(48,56);PLO.x.imageSmoothingEnabled=false;PLO.dx.imageSmoothingEnabled=false;}
+  const X=Math.round(P.x-1)-18,Y=Math.round(P.y-4)-20,s=ctx,g=gl,pd=PXD;
+  PLO.x.setTransform(1,0,0,1,0,0);PLO.x.clearRect(0,0,48,56);PLO.x.setTransform(1,0,0,1,-X,-Y);
+  ctx=PLO.x;gl=()=>{};try{drawPlayer();}finally{ctx=s;gl=g;PXD=pd;}
+  const d=PLO.dx;d.globalCompositeOperation='copy';d.drawImage(PLO.c,0,0);d.globalCompositeOperation='source-in';d.fillStyle='#0a0c14';d.fillRect(0,0,48,56);d.globalCompositeOperation='source-over';
+  PLO.on=[X,Y];                                // 實際貼圖在 plTop(泛光之後,照敵彈做法,主角不被光柱的泛光洗白)
+}
+function plTop(ox,oy){if(!PLO.on)return;const k=PW/W,kh=PH/H,X=PLO.on[0]+ox-cam.x,Y=PLO.on[1]+oy-cam.y;PLO.on=null;octx.imageSmoothingEnabled=false;
+  for(const [ax,ay] of [[-1,0],[1,0],[0,-1],[0,1]])octx.drawImage(PLO.d,Math.round((X+ax)*k),Math.round((Y+ay)*kh),Math.round(48*k),Math.round(56*kh));
+  octx.drawImage(PLO.c,Math.round(X*k),Math.round(Y*kh),Math.round(48*k),Math.round(56*kh));}
 /* ========== 雜兵精靈(v0.12,純視覺:判定框、行為、出現位置不變)==========
    - 系列(使用者 11/2 定案丙方案):機械 1、5、9 關;人形 2、6;沼澤生物 3、7;不死 4、8;終末 10。v0.12 機械、v0.13 人形(6 種,無迫擊砲與無人機)、v0.14 沼澤生物(3、7 關分兩套 swa/swb)、v0.15 不死(4、8 關共用 und)、v0.16 終末(第 10 關 end),十關皆為精靈(v0.16.1 移除舊方塊 eRects)。
    - 精靈上限(照主角比例):步兵、衝鋒兵、骷髏 14×18,原點 (x-1,y-4);砲台 16×14,原點 (x-1,y);迫擊砲 16×18,原點 (x-1,y-4);
@@ -5947,13 +5963,14 @@ function render(){
     drawPlayer();bRefl();drawFlame();drawBurnTop();drawMuzzle();drawPlayerBullets();  // v0.18 倒影:只含主角以前畫的東西;v0.28.1 修正:槍口火光與己方子彈曾被併入此註解(v0.18~v0.28 未畫);主角本體、火焰(Lv4 燃燒剪影蓋在火焰上)、槍口火光、己方子彈先畫
     if(boss&&boss.alive&&boss.introT<=0&&boss.def.fg)boss.def.fg(boss); // 魔王前景警示(需蓋在主角之上)
     bBoomDraw();                               // v0.17 魔王爆炸
-    drawHazards();                             // 危險區警示/判定一律蓋在主角攻擊特效之上,確保清晰可見
+    drawHazards();plOutline();                 // v0.32 plOutline:6 王光柱內的主角疊畫加外框。危險區警示/判定一律蓋在主角攻擊特效之上,確保清晰可見
     drawMisc();                                // 子彈(敵彈最後畫,永遠可見)、粒子等
     ctx.restore();
   }
   ctx.restore();
   if(G.state!=='title'&&G.state!=='finish'&&G.state!=='levelselect')drawAtmoTop(); // v0.7 前景薄霧、暈影(像素畫法)
   postComposite();                             // 第一段:遊戲畫面放大 + 泛光(倒影、霧、暈影已畫在遊戲畫面內)
+  plTop(Math.round(sx),Math.round(sy));        // v0.32 6 王光柱內的主角(外框加本體),畫在泛光之後、敵彈之前
   if(G.state!=='title'&&G.state!=='finish'&&G.state!=='levelselect')drawEBulTop(Math.round(sx),Math.round(sy)); // 敵彈:泛光之後,不被洗白
   // 第二段:HUD 與疊層(暫停、過場、選單)畫在泛光之上,沒畫任何方塊就不合成;文字以螢幕解析度畫在最上層(見「文字層」)
   ctx.clearRect(0,0,W,H);PXD=0;TPASS=1;
