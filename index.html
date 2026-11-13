@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.29 選單鍵盤操作:標題、選關、死亡畫面接續、進關選彈種、撿武器箱、6 王特攻選單皆可方向鍵選擇、Z 或 Enter 確認(開啟 20 幀內與按住連發不算),選中按鈕加亮底白框,加提示小字「方向鍵選擇,按 Z 以選定」;滑鼠保留;前一版 v0.28.2 魔王死後清場、暫停只在遊玩中 -->
+<!-- VERSION: v0.30 抓蟲 c、d:第 10 大關一般小關地面前推(表層與本體提亮、本體明度 1);火焰槍火身改為火團流(不規則火團滾出、脹大、轉暗,停火 6 幀淡出);判定框與行為未改;前一版 v0.29 選單鍵盤操作 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -511,9 +511,9 @@ function hitFx(b){                                     // 命中:白閃 2 幀+3 
   for(let i=0;i<3;i++){const v=rnd(0.6,2);
     addPart(b.x,b.y,-ux*v+rnd(-0.8,0.8),-uy*v+rnd(-1.6,0.4),b.c,14,ri(1,2));}
 }
-/* 火焰:HOT[等級]=[白熱、主色、外色、尾端暗色] */
+/* 火焰:HOT[等級]=[白熱、主色、外色、尾端暗色];火身 v0.30 改為火團流(FLV.pf) */
 const HOT={1:['#fff0a0','#ff9a2a','#ff3a10','#7a1a08'],3:['#9fd8ff','#5aa8ff','#2a5cff','#142a7a'],4:['#ffffff','#cfeaff','#7ab8ff','#3a5a9a']};
-const FLV={sp:[],sm:[]};                               // 火星與煙(純視覺,只在遊玩中推進)
+const FLV={sp:[],sm:[],pf:[]};                         // 火星與煙、火團(v0.30)(純視覺,只在遊玩中推進)
 function fSq(x,y,h,c){h=Math.max(1,h);px(x-h,y-h,h*2,h*2,c);}
 function drawFlame(){
   const run=G.state==='play'&&!G.paused&&!G.modal;
@@ -531,21 +531,25 @@ function drawFlame(){
   }
   for(const q of FLV.sm){const k=q.t/q.life,z=3+k*5;ctx.globalAlpha=0.45*(1-k);px(q.x-z/2,q.y-z/2,z,z,q.c);}
   ctx.globalAlpha=1;
-  if(on){
-    const a0=a[0],a1=a[1],st=3,n=Math.floor(L/st),t=G.t,pts=[];
-    for(let k=0;k<=n;k++){const d=k*st,f=d/L,fl=vHash(k*7+lv,t/3|0);
-      if(f>0.82&&fl<0.35)continue;
-      let hw=(2.5+d*0.15)*(0.78+0.4*fl);if(f>0.85)hw*=1-(f-0.85)/0.15*0.55;
-      const wob=Math.sin(t*0.25-d*0.09)*Math.min(d,60)*0.06;
-      pts.push({x:m[0]+a0*d-a1*wob,y:m[1]+a1*d+a0*wob,hw,f,k});}
-    for(let i=pts.length-1;i>=0;i--){const q=pts[i];if(q.f>0.3&&(q.k+(t>>2))%2)continue; // 外層:上下兩團交錯跳格,邊緣破碎
-      const c=q.f<0.35?H_[1]:(q.f<0.72?H_[2]:H_[3]),o=q.hw*0.5,j=(vHash(q.k,t>>2)-0.5)*q.hw*0.4;
-      ctx.globalAlpha=0.55*(1-0.35*q.f);fSq(q.x-a1*(o+j),q.y+a0*(o+j),q.hw*0.5,c);fSq(q.x+a1*(o-j),q.y-a0*(o-j),q.hw*0.5,c);}
-    ctx.globalAlpha=1;
-    for(let i=pts.length-1;i>=0;i--){const q=pts[i];if(q.f<=0.75)fSq(q.x,q.y,q.hw*0.45,q.f<0.4?H_[0]:H_[1]);}
-    for(const q of pts)if(q.f<=0.3)fSq(q.x,q.y,q.hw*0.2,'#ffffff');
-    for(const q of pts)if(q.k%3===0&&q.f<=0.34)gl(q.x-q.hw-2,q.y-q.hw-2,q.hw*2+4,q.hw*2+4,H_[1],FX.core*0.7); // 發光層:火焰(v0.5.1 只登記靠槍口三分之一段)
+  // v0.30 抓蟲 d(使用者選 1 火團流):一團團不規則火球自槍口滾出,邊走邊脹大、由白熱轉暗;火團位置以「離槍口距離 d、偏離中線 s」記錄,
+  // 跟著目前槍口與瞄準方向畫(判定錐不變:perp<10+0.34d,火團偏離限制在視覺半寬 2.5+0.15d 的 0.9 倍內)。停火後剩下的火團 6 幀內淡出
+  const pf=FLV.pf,hwv=d=>2.5+d*0.15;
+  if(run){
+    if(on)for(let j=0;j<2;j++){const h=vHash(G.t*2+j,lv*31);
+      pf.push({d:j*3,s:(h-0.5)*2,v:L/(16+h*6),vs:(vHash(G.t,j+7)-0.5)*0.35,t:0,life:20+Math.floor(h*5),sd:(G.t*2+j)&1023});}
+    for(let i=pf.length-1;i>=0;i--){const q=pf[i];if(!on&&!q.cut){q.cut=1;q.life=Math.min(q.life,q.t+6);}
+      q.d+=q.v;q.s+=q.vs;const lim=hwv(q.d)*0.9;if(q.s>lim){q.s=lim;q.vs*=-0.3;}else if(q.s<-lim){q.s=-lim;q.vs*=-0.3;}
+      if(++q.t>=q.life||(on&&q.d>L))pf.splice(i,1);}
   }
+  if(pf.length){const A=on?a:aimVec(),M=on?m:muzzle(),nx=-A[1],ny=A[0],Ln=on?L:flameRange();
+    for(let i=0;i<pf.length;i++){const q=pf[i];if(q.d>Ln)continue;const k=q.t/q.life,h=vHash(q.sd,3),r=(1.2+hwv(q.d)*0.62)*(0.8+0.4*h)*(k>0.8?1-(k-0.8)*2:1);
+      const x=M[0]+A[0]*q.d+nx*q.s,y=M[1]+A[1]*q.d+ny*q.s,c=k<0.15?H_[0]:k<0.4?H_[1]:k<0.7?H_[2]:H_[3],an=h*6.283+q.t*0.15;
+      ctx.globalAlpha=k>0.5?0.6:1;
+      fSq(x,y,r*0.7,c);fSq(x+Math.cos(an)*r*0.55,y+Math.sin(an)*r*0.55,r*0.5,c);fSq(x-Math.cos(an+1.3)*r*0.5,y-Math.sin(an+1.3)*r*0.5,r*0.42,k<0.4?H_[0]:c);
+      if(k<0.3){ctx.globalAlpha=1;fSq(x,y,r*0.3,k<0.12?'#ffffff':H_[0]);}
+      if(q.d<Ln/3&&(i&1))gl(x-r-2,y-r-2,r*2+4,r*2+4,H_[1],FX.core*0.7);}   // 發光層:只登記靠槍口三分之一段(v0.5.1 規則)
+    ctx.globalAlpha=1;}
+  if(on)fSq(m[0]+a[0]*2,m[1]+a[1]*2,2,'#ffffff');
   for(const q of FLV.sp){const k=1-q.t/q.life;ctx.globalAlpha=k;px(q.x,q.y,q.t<4?2:1,1,q.c);} // v0.5.1:火星不再登記發光
   ctx.globalAlpha=1;
 }
@@ -4747,9 +4751,9 @@ const THEME=[
  {sky:'#3e5a66',far:'#56717a',mid:'#47636a',gr:'#5d8a6a',gr2:'#34503e'}, // v0.7:第 7 關改破曉前藍調晨霧(原紫色系)
  {sky:'#060c08',far:'#0e2416',mid:'#153420',gr:'#5a8a3a',gr2:'#3e3222'},
  {sky:'#04060c',far:'#0c1626',mid:'#122034',gr:'#4a5a6a',gr2:'#161e28'},
- {sky:'#000000',far:'#100818',mid:'#1a0c26',gr:'#4a2a5a',gr2:'#2c1836'}
+ {sky:'#000000',far:'#100818',mid:'#1a0c26',gr:'#7a4a94',gr2:'#43285a'}  // v0.30 抓蟲 c(使用者選 B 地面前推):表層與本體提亮,原 #4a2a5a/#2c1836
 ];
-// v0.8:gr/gr2 只用於地面材質;第 1~6、8、9 關改為使用者選定的建議色,第 7、10 關維持
+// v0.8:gr/gr2 只用於地面材質;第 1~6、8、9 關改為使用者選定的建議色,第 7 關維持;第 10 關 v0.30 提亮(王關用 B10MAT 自己的色,不受影響)
 function th(){return THEME[clamp(G.world-1,0,9)];}
 /* ========== 共用光影(v0.7,純視覺:不參與任何判定) ==========
    天空漸層+主題光源、背景霧(遠景之間)、環境粒子(地形後方)、前景薄霧、暈影。
@@ -5123,7 +5127,7 @@ const MATW=[
  {top:'E1',body:'B2',strata:'S2',plat:'P2',vine:'V1',haz:'K2',dim:0.85,acc:'#a8c8b0'}, // 7 山澗晨霧
  {top:'E6',body:'B7',strata:'S2',plat:'P5',vine:'V3',haz:'K3',dim:0.85,acc:'#8aa850'}, // 8 荒煙蔓草
  {top:'E4',body:'B4',strata:'S3',plat:'P3',vine:'V4',haz:'K2',dim:0.7, acc:'#3a7a9a'}, // 9 深邃太空
- {top:'E7',body:'B6',strata:'S3',plat:'P2',vine:'V4',haz:'K1',dim:0.85,acc:'#b060e8'}  // 10 終末
+ {top:'E7',body:'B6',strata:'S3',plat:'P2',vine:'V4',haz:'K1',dim:1,acc:'#b060e8'}     // 10 終末(v0.30 本體明度 0.85→1,地面前推)
 ];
 const MAT_STEP=1,MAT_INTRO=2;                     // 每幀最多烘焙欄數(實測每欄約 0.4~1.7 ms,沙盒)
 const MAT={cv:document.createElement('canvas'),map:null,done:null,w:0,col:null,cfg:null,img:null,dirty:false};

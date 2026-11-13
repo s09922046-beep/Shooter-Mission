@@ -5,7 +5,7 @@
 //   node tools/harness.js wvis [檔案]               己方子彈與槍口火光可見性(v0.28.1):每大關衝鋒槍、散彈 1~4 階,比對有無子彈的畫面像素差
 //   node tools/harness.js bench <舊檔> <新檔> [輪數] 繪圖時間相對比較(沙盒數字,非測試機)
 //   node tools/harness.js shot <大關> <小關> <幀數> <輸出.png> [特攻=0/1] [檔案]   截一張遊戲畫面
-//   node tools/harness.js sheet <小關> <畫質 low/high> <輸出.png> [檔案] [FX設定,如 q=high,seed=3]  seed=N 固定亂數(同一批地圖)  10 大關同一小關拼成 5×2 對照圖(每格 512×288)
+//   node tools/harness.js sheet <小關> <畫質 low/high> <輸出.png> [檔案] [FX設定,如 q=high,seed=3]  seed=N 固定亂數(同一批地圖)  only=N 只截第 N 大關(2 倍)  10 大關同一小關拼成 5×2 對照圖(每格 512×288)
 //   node tools/harness.js vine [種子數] [檔案]           繩梯攀爬測試(v0.11):從底爬到頂、站上頂端、從頂端爬回底部
 //   node tools/harness.js edraw <舊檔> <新檔> [次數]  雜兵繪製量測(v0.12;v0.13 加第 2、6 關;v0.14 加第 3、7 關;v0.15 加第 4、8 關;v0.16 加第 10 關):第 1~10 關各 16 隻排進畫面,量 drawEnemies 每次耗時與首次烘焙
 //   node tools/harness.js eface [檔案]  飛行兵與蜂懸停於主角正上方 600 幀:統計 e.face 翻轉次數與畫面朝向(eFace)翻轉次數(v0.13;v0.14 加第 3、7 關;v0.15 加第 4、8 關;v0.16 加第 10 關)
@@ -196,12 +196,30 @@ async function sheet(s,q,outp,file,opt){              // 10 大關對照拼圖:�
   const data=await pg.evaluate(([s,q,opt])=>{
     if(opt)for(const kv of opt.split(',')){const [k,v]=kv.split('=');FX[k]=v;}
     if(typeof T7!=='undefined'&&FX.t7)THEME[6]=T7[FX.t7];
-    const sh=document.createElement('canvas');sh.width=512*5;sh.height=288*2;const sx=sh.getContext('2d');
+    const on=+FX.only||0,sh=document.createElement('canvas');sh.width=on?1024:512*5;sh.height=on?576:288*2;const sx=sh.getContext('2d');sx.imageSmoothingEnabled=false; // only=N:只截第 N 大關,放大 2 倍
     const sd=+FX.seed||0;                               // seed=N:固定亂數,兩種方案可用同一批地圖對照(11/1)
-    for(let w=1;w<=10;w++){if(sd){let a=(sd*1000+w)*2654435761>>>0;Math.random=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+    for(let w=on||1;w<=(on||10);w++){if(sd){let a=(sd*1000+w)*2654435761>>>0;Math.random=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
       HX.go(w,s);FX.q=q;HX.run(s===5?320:20);if(s<5){HX.crowd();HX.run(90,true);}else HX.run(60,true);render();
-      sx.drawImage(cv,((w-1)%5)*512,Math.floor((w-1)/5)*288,512,288);}
+      if(on)sx.drawImage(cv,0,0,1024,576);else sx.drawImage(cv,((w-1)%5)*512,Math.floor((w-1)/5)*288,512,288);}
     return sh.toDataURL('image/png');},[+s,q,opt||'']);
+  fs.writeFileSync(outp,Buffer.from(data.split(',')[1],'base64'));console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();
+}
+
+/* 火焰對照圖(抓蟲 d):列=Lv1~4,欄=側噴第 a 幀、側噴第 a+5 幀、斜上、正上;每格以主角為中心裁 208×104 放大 2 倍。
+   FX 設定同 sheet(如 fl=2,w=3);w=大關(預設 3)。清掉敵人與敵彈,只看火焰本身 */
+async function fshot(outp,file,opt){
+  const {br,pg,errs}=await open(file,{width:1024,height:576});
+  const data=await pg.evaluate(opt=>{
+    if(opt)for(const kv of opt.split(',')){const [k,v]=kv.split('=');FX[k]=v;}
+    const CW=208,CH=104,Z=2,sh=document.createElement('canvas');sh.width=CW*Z*4;sh.height=CH*Z*4;const sx=sh.getContext('2d');sx.imageSmoothingEnabled=false;
+    const aims=[[0,0,0],[0,0,5],[1,1,0],[1,0,0]];   // [上,右,額外幀]
+    for(let lv=1;lv<=4;lv++)for(let c=0;c<4;c++){const [u,r,ex]=aims[c];
+      HX.go(+FX.w||3,1);HX.run(30);ens.length=0;ebul.length=0;wep='flame';wlvl=lv;P.face=1;
+      K.f=1;K.u=u;K.r=r;for(let i=0;i<14+ex;i++){P.inv=999;if(r)P.x-=1.7;update();ens.length=0;ebul.length=0;render();}
+      K.f=0;K.u=0;K.r=0;
+      const k=cv.width/512,ox=P.x-cam.x-40,oy=P.y-cam.y-(u?78:46);
+      sx.drawImage(cv,ox*k,oy*k,CW*k,CH*k,c*CW*Z,(lv-1)*CH*Z,CW*Z,CH*Z);}
+    return sh.toDataURL('image/png');},opt||'');
   fs.writeFileSync(outp,Buffer.from(data.split(',')[1],'base64'));console.log('已存',outp,'錯誤',errs.length?errs:'無');await br.close();
 }
 
@@ -1262,6 +1280,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='bench')await bench(a[0],a[1],+a[2]||1);
   else if(cmd==='shot')await shot(a[0],a[1],a[2],a[3],a[4]||0,a[5]);
   else if(cmd==='sheet')await sheet(a[0],a[1]||'low',a[2],a[3]||undefined,a[4]);
+  else if(cmd==='fshot')await fshot(a[0],a[1]||undefined,a[2]);
   else if(cmd==='vine')bad=await vine(a[0]||5,a[1]);
   else if(cmd==='edraw')await edraw(a[0],a[1],+a[2]||2000);
   else if(cmd==='eface')bad=await eface(a[0]);

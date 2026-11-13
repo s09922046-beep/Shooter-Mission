@@ -15,7 +15,8 @@
 | `node tools/harness.js mshot [前綴]` | 各選單截圖(v0.29):前綴-title/ls/choose/wt/over/sp.png |
 | `node tools/harness.js bench <舊檔> <新檔> [輪數]` | 繪圖時間相對比較(沙盒數字,不能代替測試機) |
 | `node tools/harness.js shot <大關> <小關> <幀數> <輸出.png> [特攻 0/1]` | 截一張遊戲畫面(截圖前先把可見地面烘完,v0.10 修正:只跑 `update` 時地面快取來不及烘焙) |
-| `node tools/harness.js sheet <小關> <low/high> <輸出.png> [檔案] [FX設定]` | 10 大關同一小關拼成 5×2 對照圖(每格 512×288);FX 設定如 `q=high`,用於預覽期切換方案;`seed=N` 固定亂數,新舊版可用同一批地圖對照 |
+| `node tools/harness.js sheet <小關> <low/high> <輸出.png> [檔案] [FX設定]` | 10 大關同一小關拼成 5×2 對照圖(每格 512×288);FX 設定如 `q=high`,用於預覽期切換方案;`seed=N` 固定亂數,新舊版可用同一批地圖對照;`only=N` 只截第 N 大關(放大 2 倍,v0.30) |
+| `node tools/harness.js fshot <輸出.png> [檔案] [FX設定]` | 火焰對照圖(v0.30):列為 Lv1~4,欄為側噴兩幀、斜上、正上,清掉敵人;`w=N` 指定大關(預設 3),預覽頁的方案以 `pvf=N` 切換 |
 | `node tools/harness.js vine [種子數]` | 繩梯攀爬測試(v0.11):每條可攀欄段按鍵模擬,從底爬到頂、站上頂端、再爬回底部;一般小關固定種子,王關與 10 王第三型態另測 |
 | `node tools/harness.js edraw <舊檔> <新檔> [次數]` | 雜兵繪製量測(v0.12):第 1~10 關各 16 隻(v0.13 加第 2、6 關,v0.14 加第 3、7 關,v0.15 加第 4、8 關,v0.16 加第 10 關)敵人排進畫面,量 `drawEnemies` 每次耗時(含鏡頭發光登記)與首次精靈烘焙時間;沙盒相對比較用 |
 | `node tools/harness.js eface [檔案]` | 飛行兵與蜂懸停於主角正上方 600 幀,統計 `e.face` 翻轉次數與畫面朝向翻轉次數(v0.13,第 1、2、5、6、9 關;v0.14 加第 3、7 關;v0.15 加第 4、8 關;v0.16 加第 10 關) |
