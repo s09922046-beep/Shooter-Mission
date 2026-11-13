@@ -3,6 +3,8 @@
 //   node tools/harness.js smoke [檔案]              50 小關 × 三種武器各跑一段,檢查執行錯誤
 //   node tools/harness.js special [檔案]            特攻功能檢查:一般關清空與回充、各魔王扣血、6 王選單、7 王、4 王隱身、登場禁用
 //   node tools/harness.js wvis [檔案]               己方子彈與槍口火光可見性(v0.28.1):每大關衝鋒槍、散彈 1~4 階,比對有無子彈的畫面像素差
+//   node tools/harness.js vis [輸出.png] [檔案]      主角、敵彈、傳送門可見性(11/13):有/無該物件兩次繪製的像素差,存最差 24 格拼圖
+//   node tools/harness.js perfpage [檔案]            產生桌機實測頁 preview/perf-test.html(控制列跳關、無限命、魔王剩 5%、特攻充滿)
 //   node tools/harness.js bench <舊檔> <新檔> [輪數] 繪圖時間相對比較(沙盒數字,非測試機)
 //   node tools/harness.js shot <大關> <小關> <幀數> <輸出.png> [特攻=0/1] [檔案]   截一張遊戲畫面
 //   node tools/harness.js sheet <小關> <畫質 low/high> <輸出.png> [檔案] [FX設定,如 q=high,seed=3]  seed=N 固定亂數(同一批地圖)  only=N 只截第 N 大關(2 倍)  10 大關同一小關拼成 5×2 對照圖(每格 512×288)
@@ -94,6 +96,132 @@ async function wvis(file){
       if(!ok||lv===1)o.push(`${w}-1 ${wp} Lv${lv} 子彈${n} 畫${c} 槍口${m} 像素差${d}${ok?'':' ← 未畫出'}`);}
     o.push(`未通過 ${bad} 組(共 80 組)`);return [o,bad];});
   console.log(r[0].join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return r[1]+errs.length;
+}
+
+// v0.31 畫面可見性:主角、敵彈、傳送門。同一幀畫兩次(有該物件/暫時拿掉),比對輸出畫面(含泛光、霧、HUD)該物件範圍內的像素差。
+// 像素差用 RGB 距離:>12 算「有畫到」,>=64 算「清楚」。被蓋住 → 有畫到的很少;與背景混色 → 有畫到但清楚的很少。
+// 視窗 512×288,輸出畫布與邏輯座標 1:1。畫兩次前暫停震動、主角無敵閃爍(只影響這兩次繪製,之後還原)。
+// 一般小關:主角往右走(定時跳,卡住 300 幀就往前移 160 像素)、不開槍,每 40 幀取樣;王關:登場後主角左右走動、不開槍 2400 幀,每 30 幀取樣;10 王三段分開測。
+// 傳送門:一般小關清掉敵人等傳送門出現,王關擊倒後跑到傳送門出現;主角站在門左 60 像素,取門出現後第 60、100、150 幀(先讓鏡頭跟上)。
+// 給輸出檔名時另存最差 24 格的放大拼圖(每格 64×64 放大 3 倍,左上數字為清楚比例)
+async function vis(outp,file){
+  const {br,pg,errs}=await open(file,{width:512,height:288});
+  const r=await pg.evaluate(()=>{
+    const o=[],worst=[],D2=12*12,C2=64*64,M=4;let nP=0,nB=0,nG=0,badP=0,badB=0,badG=0,nPH=0;
+    const fp=drawPlayer;let hideP=0;window.drawPlayer=()=>{if(!hideP)fp();};
+    const snap=()=>octx.getImageData(0,0,W,H).data;
+    function pair(hide,show){   // 回傳 [有物件, 沒物件] 兩張畫面;畫面不受震動與無敵閃爍影響
+      const st=G.shakeT,iv=P.inv;G.shakeT=0;P.inv=0;
+      show();render();const a=snap();hide();render();const b=snap();show();
+      G.shakeT=st;P.inv=iv;return [a,b];}
+    function diff(a,b,x0,y0,x1,y1){x0=Math.max(0,Math.floor(x0));y0=Math.max(0,Math.floor(y0));x1=Math.min(W,Math.ceil(x1));y1=Math.min(H,Math.ceil(y1));
+      let n0=0,n1=0;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=(y*W+x)*4,dr=a[i]-b[i],dg=a[i+1]-b[i+1],db=a[i+2]-b[i+2],d=dr*dr+dg*dg+db*db;
+        if(d>D2)n0++;if(d>=C2)n1++;}return [n0,n1];}
+    function keep(sc,kind,where,a,cx,cy){   // 留最差的 24 格截圖
+      if(worst.length>=24&&sc>=worst[worst.length-1].sc)return;
+      const im=new ImageData(64,64),x0=Math.round(cx)-32,y0=Math.round(cy)-32;
+      for(let y=0;y<64;y++)for(let x=0;x<64;x++){const X=x0+x,Y=y0+y,j=(y*64+x)*4;if(X<0||Y<0||X>=W||Y>=H){im.data[j+3]=255;continue;}const i=(Y*W+X)*4;
+        im.data[j]=a[i];im.data[j+1]=a[i+1];im.data[j+2]=a[i+2];im.data[j+3]=255;}
+      worst.push({sc,kind,where,im});worst.sort((p,q)=>p.sc-q.sc);if(worst.length>24)worst.pop();}
+    const S={};const rec=(where,k,v)=>{const s=S[where]||(S[where]={p:[],b:[],g:[]});s[k].push(v);};
+    function sample(where){
+      const sx=P.x-1-cam.x,sy=P.y-4-cam.y;
+      if(sx>=2&&sx<=W-14&&sy>=8&&sy<=H-20&&G.state==='play'){   // 整個精靈在畫面內才取樣(掉坑出畫面不算)
+        const [a,b]=pair(()=>{hideP=1;},()=>{hideP=0;});
+        const [n0,n1]=diff(a,b,sx-M-2,sy-M-8,sx+12+M+2,sy+18+M),sc=n0?n1/n0:0;nP++;
+        const hz=hazs.some(h=>h.x<P.x+P.w&&h.x+h.w>P.x&&h.y<P.y+P.h&&h.y+h.h>P.y);   // 主角站在危險區(預警或生效)裡:危險區刻意畫在主角之上
+        rec(where,'p',{n0,n1,sc,hz});const lo=n0<40||sc<0.35;
+        if(lo&&hz)nPH++;else if(lo){badP++;o.push(`  ${where} 主角不清楚:畫到 ${n0} 像素、清楚 ${(sc*100).toFixed(0)}%,畫面位置 ${sx|0},${sy|0}`);}
+        keep(sc,hz?'主角(危險區內)':'主角',where,a,sx+6,sy+9);}
+      const vb=ebul.filter(e=>e.x-cam.x>e.r&&e.x-cam.x<W-e.r&&e.y-cam.y>e.r&&e.y-cam.y<H-e.r);
+      if(vb.length){const kb=ebul;const [a,b]=pair(()=>{ebul=[];},()=>{ebul=kb;});
+        for(const e of vb){const X=e.x-cam.x,Y=e.y-cam.y,R=e.r+2,ex=Math.max(4,Math.PI*e.r*e.r);
+          const [n0,n1]=diff(a,b,X-R,Y-R,X+R+1,Y+R+1),sc=Math.min(1,n1/ex);nB++;
+          rec(where,'b',{n0,n1,sc,r:e.r,c:e.c,vk:e.vk||''});if(sc<0.5)badB++;keep(sc,'敵彈 '+(e.vk||e.c)+' r'+e.r,where,a,X,Y);}}
+    }
+    function gate(where){   // 傳送門:主角站在門左 60 像素
+      for(let i=0;i<900&&!portal;i++){P.inv=999;P.lives=5;for(const q in K)K[q]=0;update();}
+      if(!portal){o.push(where+' 傳送門未出現');badG++;return;}
+      P.x=portal.x-60;P.y=portal.y;P.vy=0;P.climb=0;P.safeX=P.x;P.safeY=P.y;
+      let k=0;for(;k<600&&portal&&!(portal.x-cam.x>40&&portal.x-cam.x<W-70&&k>=30);k++){P.inv=999;for(const q in K)K[q]=0;update();}   // 等鏡頭跟上
+      if(!portal||k>=600){o.push(where+' 傳送門不在畫面內 '+(portal?`門 ${portal.x},${portal.y} 鏡頭 ${cam.x|0},${cam.y|0} 主角 ${P.x|0},${P.y|0}`:'(主角已進門)'));badG++;return;}
+      const t0=portal.t;
+      for(const t of[0,40,90]){while(portal&&portal.t-t0<t){P.inv=999;for(const q in K)K[q]=0;update();}
+        if(!portal)break;HX.warm();
+        const kp=portal;const [a,b]=pair(()=>{portal=null;},()=>{portal=kp;});
+        const X=kp.x-cam.x,Y=kp.y-cam.y;const [n0,n1]=diff(a,b,X-10,Y-16,X+40,Y+40),sc=n0?n1/n0:0;nG++;
+        rec(where,'g',{n0,n1,sc,t});if(n1<60){badG++;}keep(Math.min(sc,n1/60),'傳送門 t'+t,where,a,X+15,Y+12);}
+    }
+    for(let w=1;w<=10;w++){
+      for(let s=1;s<=4;s++){const wh=w+'-'+s;HX.go(w,s);HX.run(20);
+        let lx=P.x;for(let i=0;i<1600;i++){P.inv=999;P.lives=5;K.f=0;K.r=1;K.j=(i%50)<12?1:0;update();
+          if(i%300===299){if(P.x-lx<48){P.x+=160;P.y=40;P.vy=0;P.climb=0;P.safeX=P.x;P.safeY=P.y;}lx=P.x;}   // 卡住時往前移,讓取樣涵蓋整關
+          if(i%40===39){HX.warm();sample(wh);}}
+        for(const q in K)K[q]=0;ens=[];gate(wh);}
+      const segs=w===10?[1,2,3]:[0];
+      for(const sg of segs){const wh=w+'王'+(sg?'第'+sg+'段':'');
+        if(sg){HX.go(10,5);startBoss(0,sg);G.state='play';HX.run(sg===1?320:185);}else{HX.go(w,5);HX.run(320);}
+        for(let i=0;i<2400;i++){P.inv=999;P.lives=5;K.f=0;const ph=Math.floor(i/90)%4;K.r=ph===0?1:0;K.l=ph===2?1:0;K.j=(i%70)<10?1:0;update();
+          if(G.state!=='play')break;if(i%30===29){HX.warm();sample(wh);}}
+        for(const q in K)K[q]=0;if(boss&&boss.alive)bossDie();
+        for(let k=0;k<600&&G.state==='win';k++){P.inv=999;update();}
+        gate(wh);}
+    }
+    const q=(v,f)=>v.length?Math.min(...v.map(f)):NaN,pc=v=>isNaN(v)?'—':(v*100).toFixed(0)+'%';
+    for(const wh in S){const s=S[wh],bb=s.b.filter(e=>e.sc<0.5);
+      o.push(`${wh.padEnd(8)} 主角 ${s.p.length} 次 最低清楚 ${pc(q(s.p,e=>e.sc))} 最少像素 ${q(s.p,e=>e.n0)}`+
+        `  敵彈 ${s.b.length} 顆 不清楚 ${bb.length}${bb.length?' ['+[...new Set(bb.map(e=>(e.vk||e.c)+' r'+e.r))].slice(0,4).join(', ')+']':''}`+
+        `  傳送門 ${s.g.length?s.g.map(e=>pc(e.sc)+'/'+e.n1).join(' '):'—'}`);}
+    o.push(`主角 ${nP} 次中 ${badP} 次不清楚(畫到 <40 像素或清楚 <35%;另有 ${nPH} 次站在危險區裡被蓋住,不計);敵彈 ${nB} 顆中 ${badB} 顆不清楚(清楚像素 < 0.5×πr²);傳送門 ${nG} 次中 ${badG} 次不清楚(清楚像素 <60)`);
+    let png=null;if(worst.length){const c=document.createElement('canvas');c.width=6*196;c.height=Math.ceil(worst.length/6)*214;const x=c.getContext('2d');x.imageSmoothingEnabled=false;x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);
+      const t=document.createElement('canvas');t.width=t.height=64;const tx=t.getContext('2d');
+      worst.forEach((w,i)=>{tx.putImageData(w.im,0,0);const X=(i%6)*196+2,Y=Math.floor(i/6)*214+18;x.drawImage(t,X,Y,192,192);
+        x.fillStyle='#fff';x.font='12px sans-serif';x.fillText(`${pc(w.sc)} ${w.where} ${w.kind}`.slice(0,30),X,Y-4);});
+      png=c.toDataURL('image/png');}
+    return [o,badP+badB+badG,png];});
+  console.log(r[0].join('\n'));
+  if(outp&&r[2]){fs.writeFileSync(outp,Buffer.from(r[2].split(',')[1],'base64'));console.log('最差 24 格拼圖:',outp);}
+  console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return errs.length;   // 可見性只回報,不當作失敗(標準需人判斷)
+}
+
+// v0.31 桌機實測頁:複製 index.html,加一條可收起的控制列 → preview/perf-test.html(不提交,由使用者在測試機開啟,Claude 不代跑)。
+// 控制列只在按鈕被按時改狀態(跳關、無限命、魔王剩 5%、特攻充滿、換武器),不改繪製;開啟時強制高畫質。
+// F4 收起/打開控制列(量測時收起);B 魔王剩 5%;N 特攻充滿(這兩鍵遊戲本身沒用到)
+function perfpage(file){
+  const src=path.resolve(file||path.join(ROOT,'index.html'));let s=fs.readFileSync(src,'utf8');
+  const ver=(s.match(/VERSION: (v[\d.]+)/)||[])[1]||'?';
+  const btn=(a,t)=>`<button ${a}>${t}</button>`;
+  const bar=`
+<div id="pt" style="position:fixed;left:0;top:0;right:0;z-index:99;background:#0b0f18f0;color:#cfe;font:13px 'Microsoft JhengHei',sans-serif;padding:6px 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
+ <b>桌機實測頁 ${ver}</b>
+ <span>跳到:</span>${btn('data-w="10" data-s="1"','第 10 大關 1-1')}${[1,2,3,4,5,6,7,8,9].map(w=>btn(`data-w="${w}" data-s="5"`,w+' 王')).join('')}${btn('data-w="10" data-s="5"','10 王')}
+ <span>| 武器 Lv4:</span>${btn('data-p="smg"','衝鋒槍')}${btn('data-p="flame"','火焰')}${btn('data-p="shot"','散彈')}
+ ${btn('id="ptInv"','')}${btn('id="ptHp"','魔王剩 5%(B)')}${btn('id="ptSp"','特攻充滿(N)')}
+ <span id="ptSt" style="color:#8ab"></span>
+ <div style="width:100%;color:#9ab;font-size:12px">F4 收起/打開這條控制列(量測時請收起)。F3 效能面板:按一次開始量測,再按一次關掉,重開即從零開始。畫質已固定為高。</div>
+</div>
+<script>
+(()=>{const bar=document.getElementById('pt'),st=document.getElementById('ptSt');let inv=1;
+  FX.q='high';
+  const u0=update;window.update=function(){u0();if(inv&&P.lives<3)P.lives=3;};   // 無限命:命數不低於 3(照常被打、照常無敵閃爍)
+  function jump(w,s){resetRun();G.world=w;G.sub=s;hudEl.style.display='flex';startLevel();if(wep0){wep=wep0;wlvl=4;}}
+  let wep0=null;
+  function hp(){if(boss&&boss.alive&&G.state==='play'){boss.hp=Math.min(boss.hp,Math.ceil(boss.max*0.05));msg('魔王剩 5%');}}
+  function sp(){G.charge=100;msg('特攻充滿');}
+  function msg(t){st.textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>st.textContent='',1500);}
+  function ref(){document.getElementById('ptInv').textContent='無限命:'+(inv?'開':'關');}ref();
+  bar.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;b.blur();
+    if(b.dataset.w){jump(+b.dataset.w,+b.dataset.s);msg('已跳到 '+b.textContent);}
+    else if(b.dataset.p){wep0=b.dataset.p;wep=wep0;wlvl=4;msg(b.textContent+' Lv4');}
+    else if(b.id==='ptInv'){inv^=1;ref();}else if(b.id==='ptHp')hp();else if(b.id==='ptSp')sp();});
+  addEventListener('keydown',e=>{if(e.code==='F4'){e.preventDefault();bar.style.display=bar.style.display==='none'?'flex':'none';}
+    else if(e.code==='KeyB')hp();else if(e.code==='KeyN')sp();});
+})();
+</script>
+`;
+  s=s.replace(/<\/body>/i,bar+'</body>');
+  const out=path.join(ROOT,'preview','perf-test.html');fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,s);
+  console.log('已存',out,'(',ver,')');return 0;
 }
 
 // v0.28.2 魔王死後清場(使用者 11/13 授權 1A):每隻魔王打到場上有敵彈或危險區時擊倒,跑完死亡演出到傳送門出現,
@@ -1299,6 +1427,8 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
   else if(cmd==='wvis')bad=await wvis(a[0]);
+  else if(cmd==='vis')bad=await vis(a[0],a[1]);
+  else if(cmd==='perfpage')bad=perfpage(a[0]);
   else if(cmd==='bclear')bad=await bclear(a[0]);
   else if(cmd==='pstate')bad=await pstate(a[0]);
   else if(cmd==='menu')bad=await menu(a[0]);
