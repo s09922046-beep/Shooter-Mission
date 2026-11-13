@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.33 子彈光暈縮小改八角環(glBul),10 王第 2 段環狀彈本體改亮青加外框(判定不變);前一版 v0.32 6 王光柱內主角疊畫加外框 -->
+<!-- VERSION: v0.34 燃燒剪影只給火團碰到的敵人,判定錐內其餘照常外觀加 1 像素青/黃外框(判定不變);前一版 v0.33 子彈光暈縮小改八角環 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -5645,9 +5645,9 @@ function eFace(e){if(e.type==='drone')return P.x+5<e.x+e.w/2?-1:1; // 無人機�
   if(e.type==='flyer'||e.type==='bee'){             // v0.13:懸停在主角正上方時 e.face 每幀翻轉,畫面改為中央死區 8 像素內維持上次朝向(只存視覺欄位 vf,不改 e.face)
     if(e.vf===undefined)e.vf=e.face>0?1:-1;const d=P.x+5-(e.x+e.w/2);if(d>8)e.vf=1;else if(d<-8)e.vf=-1;return e.vf;}
   return e.face>0?1:-1;}
-function eDraw(e,q,v){                             // v:n 正常、h 受擊、c/y 燃燒剪影(青/黃)
+function eDraw(e,q,v,ox,oy){                       // v:n 正常、h 受擊、c/y 燃燒剪影(青/黃);ox/oy 只供 v0.34 外框位移
   const f=eFace(e),fr=q.fr.length===1?q.fr[0]:(q.d.b?q.fr[Math.floor(e.x/6)&1]:q.fr[(e.t>>2)%q.fr.length]);
-  const x=Math.round(e.x+q.d.ox),y=Math.round(e.y+q.d.oy);
+  const x=Math.round(e.x+q.d.ox)+(ox|0),y=Math.round(e.y+q.d.oy)+(oy|0);
   const o=fr[v][f>0?0:1];ctx.drawImage(EB.atlas,o[0],o[1],fr.W,fr.H,x,y,fr.W,fr.H);PXD=1;
   if((v==='n'||v==='h')&&q.eye&&onScr(e.x,e.y,e.w,e.h))gl(x+(f>0?q.eye[0]:q.w-1-q.eye[0])-1,y+q.eye[1]-1,3,3,EB.eyeC,0.35); // 鏡頭發光(受擊時保留)
 }
@@ -5657,15 +5657,29 @@ function eDraw(e,q,v){                             // v:n 正常、h 受擊、c/
 const SIL_C='#140c12';
 function burnTop(){return wlvl===4;}
 function drawSil(e){const q=eSpr(e);if(q)eDraw(e,q,wlvl>=3?'y':'c');} // v0.12:剪影由精靈輪廓自動產生
+/* v0.34(使用者選 2B,剪影沿用原光帶版設計):v0.30 火團只有判定錐約一半寬,判定錐內的敵人原本一律變剪影,看不出在火焰的哪裡。
+   改為:火團真的碰到(火團方塊範圍與敵人判定框相交,最近 3 幀內碰過,避免火團稀疏時閃爍)才畫原本的剪影;判定錐內、火團外的敵人照常外觀,
+   外加 1 像素剪影外框色(青/黃,取剪影圖四方向位移各貼一次再蓋正常圖)。只讀 FLV.pf,不改火焰與判定;每幀每隻只算一次(e.vbk/e.vbt 為視覺欄位) */
+const FPC={t:-1,L:[]};
+function flamePuffs(){if(FPC.t===G.t)return FPC.L;FPC.t=G.t;const L=FPC.L;L.length=0;const pf=FLV.pf;if(!pf.length)return L;
+  const A=aimVec(),M=muzzle(),Ln=flameRange(),nx=-A[1],ny=A[0];
+  for(const q of pf){if(q.d>Ln)continue;const k=q.t/q.life,r=(1.2+(2.5+q.d*0.15)*0.62)*(0.8+0.4*vHash(q.sd,3))*(k>0.8?1-(k-0.8)*2:1);   // 與 drawFlame 火團大小同式
+    L.push(M[0]+A[0]*q.d+nx*q.s,M[1]+A[1]*q.d+ny*q.s,r);}
+  return L;}
+function burnSil(e){if(e.vbk!==G.t){e.vbk=G.t;const L=flamePuffs();
+    for(let i=0;i<L.length;i+=3){const R=L[i+2];if(L[i]+R>e.x&&L[i]-R<e.x+e.w&&L[i+1]+R>e.y&&L[i+1]-R<e.y+e.h){e.vbt=G.t;break;}}}
+  return e.vbt!==undefined&&G.t-e.vbt<=3;}
+function burnDraw(e){if(burnSil(e)){drawSil(e);return;}const q=eSpr(e);if(!q)return;const v=wlvl>=3?'y':'c';
+  eDraw(e,q,v,-1,0);eDraw(e,q,v,1,0);eDraw(e,q,v,0,-1);eDraw(e,q,v,0,1);eDraw(e,q,'n');}   // 不閃白(火焰燒到的敵人不閃白,v0.5.1 規則;火焰每幀都設受擊)
 function drawEnemies(){
   const top=burnTop();
   for(const e of ens){
-    if(flameHit(e)){if(!top)drawSil(e);continue;}
+    if(flameHit(e)){if(!top)burnDraw(e);continue;}
     const hit=e.fx>0,q=eSpr(e);
     if(q)eDraw(e,q,hit?'h':'n');                  // v0.12 精靈;受擊只白化本體色(v0.16.1 移除 eRects 方塊備援;缺精靈時不畫)
   }
 }
-function drawBurnTop(){if(!burnTop()||P.flameT<=0)return;for(const e of ens)if(flameHit(e))drawSil(e);}
+function drawBurnTop(){if(!burnTop()||P.flameT<=0)return;for(const e of ens)if(flameHit(e))burnDraw(e);}
 /* v0.10 道具精靈(使用者選定):生命 L1 立體心形;武器箱 W1 深灰金屬箱,上緣武器色、黑窗內武器色圖示(SMG 子彈、FLAME 火焰、SHOT 扇形);
    兩者加呼吸式微光(每個道具 1 筆 gl)。王關道具最後 180 幀閃爍(前 2 秒每 8 幀、最後 1 秒每 4 幀切換),閃爍隱藏時仍可拾取。
    全部 10 關共用同一套外觀;精靈在載入時預先畫成小圖,每幀只貼一張。拾取判定 12×12、掉落與存活時間未改。 */
