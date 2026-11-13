@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.30.2 5 王無限大砲等掃描打完才發(掃描警示中不發動,使用者授權);前一版 v0.30.1 墜崖復活 20 幀保護 -->
+<!-- VERSION: v0.31 10 王第 2 段扇形彈本體改亮橘加深色外框(判定不變);前一版 v0.30.2 5 王無限大砲等掃描打完才發 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -4415,7 +4415,7 @@ const B10FP={O:'#07060c',k:'#08070e',D:'#0c0a14',M:'#15131f',N:'#24223a',L:'#6c6
 const B10SH=[['..OOOO...','.OLLNNO..','OLNNMMMO.','ONMMMMDDO','OMMEMDDO.','.OMMDDO..','..ODDO...','...OO....'],
   ['.OOO...','OLNNO..','ONMMMO.','OMMMDDO','.ODDDO.','..ODO..','...O...'],['OOOO..','OLNMO.','ONMDDO','.OMDO.','..OO..']];   // 繞行碎片(臉右側崩缺下來的黑曜塊)
 const B10EYE=[[15,28,8],[16,29,6],[41,28,8],[42,29,6]];   // 眼縫 [x,y,寬](圖內座標;第 28 列亮、第 29 列暗)
-const B10BS=['#5a1a10','#a0301a','#2a1410','#ffa040','#e0501c','#8a2a14','#ffd08a'],B10BC=['#103a3c','#1a7a7a','#0a1c22','#9afff4','#3ad0c8','#1a6a70','#e0fffc'];   // 碎晶彈配色:拖尾暗、拖尾亮、本體、上緣亮、左緣、右下暗、高光
+const B10BS=['#7a2410','#c84a20','#e0501c','#ffb060','#ff7a30','#9a3014','#fff0c0','#140606'],B10BC=['#103a3c','#1a7a7a','#0a1c22','#9afff4','#3ad0c8','#1a6a70','#e0fffc'];   // 碎晶彈配色:拖尾暗、拖尾亮、本體、上緣亮、左緣、右下暗、高光、外框(第 8 色有才畫;v0.31 使用者選 4A:扇形彈本體 #2a1410 在深紫背景幾乎看不見,改亮橘本體加深色外框)
 const B10DIE2=44;                                    // 第 2 段死亡:第 44 幀崩落成碎塊
 let B10FC=null;
 function b10FaceBake(){const R=B10FACE,h=R.length,w=R[0].length,[c,x]=mkCv(w,h),[cw,xw]=mkCv(w,h);
@@ -5757,6 +5757,7 @@ function drawEBulTop(ox,oy){
     if(b.vk==='b10s'||b.vk==='b10c'){const X=Math.round(b.x)+dx,Y=Math.round(b.y)+dy,n=Math.hypot(b.vx,b.vy)||1,ux=b.vx/n,uy=b.vy/n,Q=b.vk==='b10c'?B10BC:B10BS;   // v0.22 10 王第 2 段黑曜碎晶(菱形加短拖尾,判定 r 不變):b10s 扇形彈暗紅偏橘、b10c 環狀彈青色
       const F=(x,y,w,h,c,a)=>{octx.globalAlpha=a;octx.fillStyle=c;octx.fillRect(Math.round(x*k),Math.round(y*kh),Math.round(w*k),Math.round(h*kh));};
       for(let j=2;j>=1;j--)F(Math.round(X-ux*j*2.6)-1,Math.round(Y-uy*j*2.6)-1,2,2,j>1?Q[0]:Q[1],0.8-j*0.2);
+      if(Q[7]){F(X-2,Y-4,4,8,Q[7],1);F(X-4,Y-2,8,4,Q[7],1);F(X-3,Y-3,6,6,Q[7],1);}   // v0.31 外框:菱形外擴 1 像素
       F(X-1,Y-3,2,6,Q[2],1);F(X-3,Y-1,6,2,Q[2],1);F(X-2,Y-2,4,4,Q[2],1);F(X-1,Y-2,2,1,Q[3],1);F(X-2,Y-1,1,2,Q[4],1);F(X+1,Y,1,2,Q[5],1);F(X,Y-1,1,1,Q[6],1);
       octx.globalAlpha=1;continue;}
     if(b.vk==='b10h'){const X=Math.round(b.x)+dx,Y=Math.round(b.y)+dy,n=Math.hypot(b.vx,b.vy)||1,ux=b.vx/n,uy=b.vy/n,Q=B10HB[b.c]||B10HB['#9ad8ff'];   // v0.22 10 王第 3 段:小光球加拖尾(冷青、淡紫、粉紅,判定 r 不變)
