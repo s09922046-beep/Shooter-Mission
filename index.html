@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.35.1 6 王光柱內主角改回泛光前疊畫加外框(被光柱洗成偏白,使用者選);前一版 v0.35 進王關烘焙分幀 -->
+<!-- VERSION: v0.35.2 8 王本體烘焙也拆段(b8Gen,進關暗幕分幀);前一版 v0.35.1 6 王光柱內主角改回泛光前疊畫 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -3547,17 +3547,18 @@ const B8F={
 };
 const B8GEM=['...O...','..OHO..','.OHRRO.','OHRRRrO','ORRRrrO','ORRRrrO','.ORRrO.','.ORRrO.','..OrO..','...O...'];
 let B8C=null;
-function b8Bake(){B8C={};
+function b8Bake(){runG(b8Gen());}   // v0.35.2:可分段版(進關暗幕 WQ 用),直接呼叫時一次做完
+function* b8Gen(){B8C={};
   const PJ=Object.assign({J:B8P.K},B8P);            // 罩袍 K 改名 J 才會被白化(bMat 保留 O E K)
-  for(const k of ['idle','summon','point']){const m=bMat(B8F[k].r.map(r=>r.replace(/K/g,'J')),PJ);B8C[k]={c:b2Two(m.n),w:b2Two(m.w),W:m.W,H:m.H};}
+  for(const k of ['idle','summon','point']){const m=bMat(B8F[k].r.map(r=>r.replace(/K/g,'J')),PJ);B8C[k]={c:b2Two(m.n),w:b2Two(m.w),W:m.W,H:m.H};yield;}
   B8C.lant=B8F.lant.map(r=>bMat(r,B8P));             // .n 正常、.w 受擊(提燈內部 K 保持暗)
   B8C.lantG=bMat(B8F.lant[0],Object.assign({},B8P,{F:'#5a5466',L:'#6e6878',f:'#3c3846'})).n;   // 登場前:未點燃的灰色魂火
-  B8C.dk=b2Two(b2Tint(bMat(B8F.idle.r,B8P).n,'#0c0812'));                                      // 登場:暗影剪影
+  yield;B8C.dk=b2Two(b2Tint(bMat(B8F.idle.r,B8P).n,'#0c0812'));                                      // 登場:暗影剪影
   const pr=B8F.point.r;let tx=1e9,ty=0;pr.forEach((r,y)=>{const i=r.indexOf('W');if(i>=0&&i<tx){tx=i;ty=y;}});B8C.tip=[tx,ty];   // 前指:骨手指尖
   const sr=B8F.summon.r,hy=B8F.summon.h[1],hs=[[0,0,0],[0,0,0]];                                                          // 召喚:兩隻上舉骨手的中心
   sr.forEach((r,y)=>{if(y>=hy)return;for(let i=0;i<r.length;i++)if(r[i]==='W'){const h=hs[i<r.length/2?0:1];h[0]+=i;h[1]+=y;h[2]++;}});
   B8C.hands=hs.map(h=>[Math.round(h[0]/h[2]),Math.round(h[1]/h[2])]);
-  B8C.gem=[0,1,2].map(st=>{const C=BT_CORE[st],hl=['#ffd0d0','#b06a6a',C[3]][st];   // 三狀態 × 呼吸 3 階
+  yield;B8C.gem=[0,1,2].map(st=>{const C=BT_CORE[st],hl=['#ffd0d0','#b06a6a',C[3]][st];   // 三狀態 × 呼吸 3 階
     return [1,2,3].map(l=>bMat(B8GEM,{O:'#14060a',r:C[0],R:C[l],H:hl}).n);});
 }
 function b8Pose(b){                                // 依招式狀態選姿勢(只讀狀態;b.v8 是招式發動時記下的純視覺欄位)
@@ -4747,7 +4748,7 @@ function wqSet(w,seg){WQ.length=0;const A=WQ;A.push(ltBuild);
   if(w===3&&!B3G){A.push(()=>b3Bake(1));A.push((function*(){B3G.eye=yield* b3EyeGen();})());}
   if(w===5){if(!B5BG.ok)A.push(b5BgGen());if(!B5C)A.push(b5Gen());}
   if(w===7&&!B7C)A.push(b7Gen());
-  if(w===8){if(!B8BG)A.push(b8BgGen());if(!B8C)A.push(b8Bake);}
+  if(w===8){if(!B8BG)A.push(b8BgGen());if(!B8C)A.push(b8Gen());}
   if(w===10){if(seg<3){const v=seg===2?2:1;A.push((function*(){if(!B10BG)B10BG={};if(!B10BG[v])B10BG[v]=yield* b10BgGen(v);})());A.push(seg===2?()=>{if(!B10FC)b10FaceBake();}:(function*(){if(!B10C)yield* b10Gen();})());}
     else{if(!B10HC)A.push(b10HeartBake);if(!B10BG3)A.push((function*(){const a=yield* b10Bg3Gen(0),b=yield* b10Bg3Gen(1);if(!B10BG3)B10BG3=[a,b];})());}}}
 function startBoss(retry,seg){
