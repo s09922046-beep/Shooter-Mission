@@ -4,6 +4,7 @@
 //   node tools/harness.js special [檔案]            特攻功能檢查:一般關清空與回充、各魔王扣血、6 王選單、7 王、4 王隱身、登場禁用
 //   node tools/harness.js wvis [檔案]               己方子彈與槍口火光可見性(v0.28.1):每大關衝鋒槍、散彈 1~4 階,比對有無子彈的畫面像素差
 //   node tools/harness.js vis [輸出.png] [檔案]      主角、敵彈、傳送門可見性(11/13):有/無該物件兩次繪製的像素差,存最差 24 格拼圖
+//   node tools/harness.js fsil <輸出.png> [檔案...]   火焰剪影沿射程對照(v0.36):敵人在射程 35%/60%/85%,每幀都畫,多檔並排
 //   node tools/harness.js perfpage [檔案]            產生桌機實測頁 preview/perf-test.html(控制列跳關、無限命、魔王剩 5%、特攻充滿)
 //   node tools/harness.js bench <舊檔> <新檔> [輪數] 繪圖時間相對比較(沙盒數字,非測試機)
 //   node tools/harness.js shot <大關> <小關> <幀數> <輸出.png> [特攻=0/1] [檔案]   截一張遊戲畫面
@@ -261,7 +262,7 @@ async function qcmp(outp,fa,fb){
         else{K.f=1;for(let i=0;i<14;i++){P.inv=999;update();}K.f=0;}HX.warm();
         for(const q of['low','high']){FX.q=q;G.shakeT=0;render();out.push(crop(f));}}
       FX.q='low';
-      for(let lv=1;lv<=4;lv++){setup(3,2,'flame',lv);K.f=1;for(let i=0;i<30;i++){P.inv=999;pin();update();}pin();HX.warm();G.shakeT=0;render();out.push(crop());K.f=0;}
+      for(let lv=1;lv<=4;lv++){setup(3,2,'flame',lv);K.f=1;for(let i=0;i<30;i++){P.inv=999;pin();update();G.shakeT=0;render();}   /* v0.36 修正:火團只在 render 推進,每幀都要畫(原本只畫最後一幀,火身只有第一幀) */pin();HX.warm();G.shakeT=0;render();out.push(crop());K.f=0;}
       return out;});
     await br.close();return [r,errs];};
   const A=await one(fa),B=fb?await one(fb):null;
@@ -274,6 +275,30 @@ async function qcmp(outp,fa,fb){
     return c.toDataURL();},[A[0],B&&B[0]]);
   fs.writeFileSync(outp,Buffer.from(png.split(',')[1],'base64'));await br.close();
   const e=A[1].concat(B?B[1]:[]);console.log('已存',outp);console.log('錯誤',e.length?e.slice(0,5):'無');return e.length;
+}
+
+// 火焰剪影沿射程對照(v0.36):火焰 Lv1~4,3 隻敵人固定在射程 35%、60%、85% 處(地面同高),噴 30 幀後截槍口到射程末端 240×80 放大 2 倍;
+// 列為等級,欄為各檔案(可給多個),用來看火身尾段會不會蓋住剪影
+async function fsil(outp,files){
+  const cells=[];
+  for(const f of files){const {br,pg,errs}=await open(f,{width:512,height:288});
+    const r=await pg.evaluate(()=>{const out=[];
+      for(let lv=1;lv<=4;lv++){Math.random=(()=>{let z=12345;return()=>(z=(z*16807)%2147483647)/2147483647;})();HX.go(3,2);HX.run(20);HX.crowd();HX.run(40);
+        P.x=Math.max(40,P.x);P.face=1;wep='flame';wlvl=lv;G.shakeT=0;const L=flameRange();
+        const pin=()=>{const m=muzzle();let k=0;for(const e of ens){if(k>=3)break;e.x=m[0]+L*[0.35,0.6,0.85][k]-e.w/2;e.y=P.y+P.h-e.h;e.vx=0;e.vy=0;e.hp=999;k++;}};
+        K.f=1;for(let i=0;i<30;i++){P.inv=999;pin();update();G.shakeT=0;render();}pin();HX.warm();G.shakeT=0;render();K.f=0;   // 火團只在 render 推進(drawFlame),每幀都要畫
+        const c=document.createElement('canvas');c.width=480;c.height=160;const x=c.getContext('2d');x.imageSmoothingEnabled=false;const k=cv.width/W;
+        const cx=Math.max(0,Math.min(W-240,Math.round(muzzle()[0]-cam.x-12))),cy=Math.max(0,Math.min(H-80,Math.round(P.y-cam.y-50)));
+        x.drawImage(cv,cx*k,cy*k,240*k,80*k,0,0,480,160);out.push(c.toDataURL());}
+      return out;});
+    cells.push([path.basename(f),r,errs]);await br.close();}
+  const {br,pg}=await open(files[0],{width:512,height:288});
+  const png=await pg.evaluate(async C=>{const c=document.createElement('canvas');c.width=C.length*484;c.height=4*178;const x=c.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);
+    const ld=u=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=u;});
+    for(let j=0;j<C.length;j++)for(let i=0;i<4;i++){const im=await ld(C[j][1][i]);x.drawImage(im,j*484,i*178+16);x.fillStyle='#fff';x.font='13px sans-serif';x.fillText(C[j][0]+' 火焰 Lv'+(i+1),j*484+2,i*178+13);}
+    return c.toDataURL();},cells.map(q=>[q[0],q[1]]));
+  fs.writeFileSync(outp,Buffer.from(png.split(',')[1],'base64'));await br.close();
+  const e=[].concat(...cells.map(q=>q[2]));console.log('已存',outp);console.log('錯誤',e.length?e.slice(0,5):'無');return e.length;
 }
 
 // v0.31 新舊版放大對照(11/13):10 王第 2 段扇形彈、6 王光柱內的主角;各取 128×72 放大 4 倍,給兩個檔案時左右並排(A 左、B 右)
@@ -1552,6 +1577,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='entry')bad=await entry(a[0]);
   else if(cmd==='b5mx')bad=await b5mx(a[0],a[1]);
   else if(cmd==='qcmp')bad=await qcmp(a[0],a[1],a[2]);
+  else if(cmd==='fsil')bad=await fsil(a[0],a.slice(1).length?a.slice(1):[path.join(ROOT,'index.html')]);
   else if(cmd==='vcmp')bad=await vcmp(a[0],a[1],a[2]);
   else if(cmd==='bakems')bad=await bakems(a[0]);
   else if(cmd==='bakecmp')bad=await bakecmp(a[0],a[1]);
