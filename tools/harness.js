@@ -128,6 +128,47 @@ async function pstate(file){
   console.log(r[0].join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return r[1]+errs.length;
 }
 
+// v0.29 選單鍵盤操作(使用者 11/13 指定):以模擬按鍵走過標題、選關、進關選彈種、撿武器箱、死亡畫面、6 王特攻選單
+async function menu(file){
+  const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;
+    const key=(c,rep)=>{dispatchEvent(new KeyboardEvent('keydown',{code:c,repeat:!!rep}));dispatchEvent(new KeyboardEvent('keyup',{code:c}));};
+    const step=n=>{for(let i=0;i<n;i++){update();render();}};
+    const ck=(nm,ok,info)=>{if(!ok)bad++;o.push(`${ok?'OK':'錯'} ${nm}${info?' ('+info+')':''}`);};
+    toTitle();step(2);key('KeyZ');step(1);ck('標題按 Z 進選關',G.state==='levelselect');
+    key('KeyZ');ck('選關開啟 20 幀內按 Z 不作用',G.state==='levelselect');
+    step(25);key('ArrowDown');key('ArrowRight');key('ArrowDown');key('ArrowUp');key('ArrowUp');key('ArrowDown');key('ArrowRight');
+    ck('選關游標移動',G.mc===3,'游標 '+G.mc);key('KeyZ',true);ck('按住連發不確認',G.state==='levelselect');
+    key('KeyZ');ck('選關按 Z 從 3-1 開始',G.world===3&&G.sub===1&&G.state==='intro',G.world+'-'+G.sub+' '+G.state);
+    toTitle();step(2);key('Enter');step(26);key('KeyZ');ck('選關游標預設正常遊玩',G.world===1&&G.state==='intro');
+    debugStartWorld(7);step(90);const ch=G.modal&&G.modal.choose;ck('7-1 出現選彈種',!!ch);
+    key('ArrowRight');key('KeyZ');ck('選彈種按右再 Z',ch&&!G.modal&&wep===ch[1]&&wlvl===2&&!K.f,wep+' Lv'+wlvl);
+    HX.go(3,1);wep='smg';wlvl=1;G.modal={wt:'flame'};step(1);key('KeyZ');ck('武器箱開啟立刻按 Z 不作用(防誤按)',!!G.modal&&wep==='smg');
+    step(25);key('KeyZ');ck('武器箱按 Z 替換',!G.modal&&wep==='flame'&&!K.f,wep+' Lv'+wlvl);
+    G.modal={wt:'shot'};step(25);key('ArrowRight');key('KeyZ');ck('武器箱按右再 Z 取消',!G.modal&&wep==='flame');
+    G.modal={wt:'shot'};step(2);key('Escape');ck('武器箱 Esc 取消',!G.modal&&wep==='flame'&&!G.paused);
+    HX.go(2,2);G.state='over';G.sT=0;G.overBoss=false;step(60);key('KeyZ');ck('死亡畫面 90 幀前按 Z 不作用',G.state==='over');
+    step(60);key('KeyZ');ck('死亡畫面按 Z 接續',G.state==='intro'&&G.world===2&&G.sub===1);
+    HX.go(2,2);G.state='over';G.sT=0;step(120);key('ArrowRight');key('KeyZ');ck('死亡畫面按右再 Z 回標題',G.state==='title');
+    HX.go(6,5);HX.run(320);G.charge=100;HX.press();const sp=!!(G.modal&&G.modal.spPick);step(25);const k0=boss.kh,c0=boss.ch;
+    key('ArrowRight');key('KeyZ');HX.run(400);ck('6 王選單按右再 Z 打詠嘆者',sp&&!G.modal&&boss.ch<c0&&boss.kh===k0);
+    G.charge=100;HX.press();step(25);key('ArrowDown');key('KeyZ');ck('6 王選單按下再 Z 取消',!G.modal&&G.charge===100);
+    G.charge=100;HX.press();step(25);key('Digit3');HX.run(5);ck('6 王選單數字鍵照常',!G.modal&&G.charge<100);
+    o.push(`未通過 ${bad} 項`);return [o,bad];});
+  console.log(r[0].join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return r[1]+errs.length;
+}
+
+async function mshot(pre,file){   // v0.29 各選單截圖:<前綴>-title/ls/choose/wt/over/sp.png
+  const {br,pg,errs}=await open(file,{width:1024,height:576});
+  const S={title:()=>{toTitle();},ls:()=>{toTitle();G.state='levelselect';G.mk=null;mSel();G.mc=7;},
+    choose:()=>{debugStartWorld(7);HX.run(70);mSel();G.mc=1;},wt:()=>{HX.go(3,1);G.modal={wt:'flame'};HX.run(1);},
+    over:()=>{HX.go(2,2);G.state='over';G.sT=95;G.overBoss=false;},sp:()=>{HX.go(6,5);HX.run(320);G.charge=100;HX.press();mSel();G.mc=1;}};
+  for(const k in S){
+    await pg.evaluate(src=>{(0,eval)('('+src+')')();HX.warm();render();},S[k].toString());
+    await pg.waitForTimeout(300);await pg.evaluate(()=>render());await pg.screenshot({path:`${pre}-${k}.png`});}
+  console.log('已存',pre+'-*.png','錯誤',errs.length?errs:'無');await br.close();
+}
+
 async function benchOne(file,rounds){
   const {br,pg,errs}=await open(file);
   const r=await pg.evaluate(R=>{let tu=0,tr=0,n=0;
@@ -1216,6 +1257,8 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='wvis')bad=await wvis(a[0]);
   else if(cmd==='bclear')bad=await bclear(a[0]);
   else if(cmd==='pstate')bad=await pstate(a[0]);
+  else if(cmd==='menu')bad=await menu(a[0]);
+  else if(cmd==='mshot')await mshot(a[0]||'menu',a[1]);
   else if(cmd==='bench')await bench(a[0],a[1],+a[2]||1);
   else if(cmd==='shot')await shot(a[0],a[1],a[2],a[3],a[4]||0,a[5]);
   else if(cmd==='sheet')await sheet(a[0],a[1]||'low',a[2],a[3]||undefined,a[4]);

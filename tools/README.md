@@ -11,6 +11,8 @@
 | `node tools/harness.js wvis` | 己方子彈與槍口火光可見性(v0.28.1):每大關衝鋒槍、散彈 1~4 階開槍,比對有子彈與清空子彈兩次繪製的輸出畫面像素差,並計繪製呼叫次數。改動 render 或武器視覺後必跑 |
 | `node tools/harness.js bclear` | 魔王死後清場(v0.28.2):10 隻魔王在場上有敵彈或危險區時擊倒,檢查傳送門出現時的殘留,以及之後 300 幀主角是否被扣命 |
 | `node tools/harness.js pstate` | 暫停狀態(v0.28.2):遊玩中、進關開場、勝利演出、死亡畫面各按 P,只有遊玩中能暫停;暫停中進關須解除 |
+| `node tools/harness.js menu` | 選單鍵盤操作(v0.29):以模擬按鍵走過標題、選關、選彈種、武器箱(含開啟 20 幀內防誤按)、死亡畫面、6 王特攻選單,共 18 項 |
+| `node tools/harness.js mshot [前綴]` | 各選單截圖(v0.29):前綴-title/ls/choose/wt/over/sp.png |
 | `node tools/harness.js bench <舊檔> <新檔> [輪數]` | 繪圖時間相對比較(沙盒數字,不能代替測試機) |
 | `node tools/harness.js shot <大關> <小關> <幀數> <輸出.png> [特攻 0/1]` | 截一張遊戲畫面(截圖前先把可見地面烘完,v0.10 修正:只跑 `update` 時地面快取來不及烘焙) |
 | `node tools/harness.js sheet <小關> <low/high> <輸出.png> [檔案] [FX設定]` | 10 大關同一小關拼成 5×2 對照圖(每格 512×288);FX 設定如 `q=high`,用於預覽期切換方案;`seed=N` 固定亂數,新舊版可用同一批地圖對照 |
