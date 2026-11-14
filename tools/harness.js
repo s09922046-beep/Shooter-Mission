@@ -122,6 +122,46 @@ async function tshot(pre,file){
   console.log('已存',pre+'-main/shine/ls.png','錯誤',errs.length?errs:'無');await br.close();return errs.length+(ok?0:1);
 }
 
+// v0.42 玩家資訊:七則當下提示的觸發、攻略燈泡的出現與歸零規則、面板開著時完全暫停、7 王字幕順序;另存四張截圖
+async function pinfo(pre,file){
+  const {br,pg,errs}=await open(file,{width:1024,height:576});pre=pre||path.join(ROOT,'preview','pinfo');
+  const r=await pg.evaluate(()=>{const o=[];const ck=(n,ok,x)=>o.push((ok?'OK  ':'錯誤 ')+n+(x!==undefined?' ['+x+']':''));
+    const item=(kind,wt)=>{items.push({kind,wt,x:P.x,y:P.y,vy:0,t:0});HX.run(2);};
+    HX.go(1,1);HX.run(5);ens=[];wep='smg';wlvl=3;G.hintT=0;item('wep','smg');ck('H1 滿階(前六關)',G.hint.includes('Lv3 已達上限(第 7 關起可升 Lv4)')&&G.hintT>0&&wlvl===3,G.hint);
+    wlvl=2;G.hintT=0;G.hint='';item('wep','smg');ck('未滿階不提示、照常升階',!(G.hintT>0)&&wlvl===3&&G.msg.includes('Lv3'));
+    HX.go(7,1);HX.run(5);ens=[];wep='smg';wlvl=4;G.hintT=0;item('wep','smg');ck('H2 滿階(七關後)',G.hint.endsWith('Lv4 已達上限')&&G.hintT>0,G.hint);
+    HX.go(1,1);HX.run(5);G.hintT=0;G.charge=95;const e0=ens[0];e0.noDrop=true;killEnemy(e0,0);ck('H3 特攻充滿',G.charge===100&&G.hint==='特攻就緒：按C以施放'&&G.hintT>0,G.hint);
+    G.hintT=0;G.hint='';G.charge=100;{const e1=ens[0];e1.noDrop=true;killEnemy(e1,0);}ck('已滿時再擊殺不重複提示',!(G.hintT>0));
+    G.hintT=0;items.push({kind:'life',x:P.x,y:P.y,vy:0,t:0});P.lives=8;updateItems();ck('H5 生命上限',G.hint==='生命已達上限'&&G.hintT>0);
+    HX.go(2,5);wep='flame';wlvl=2;portal=null;G.hintT=0;nextLevel();ck('H6 進新大關武器重置',G.world===3&&G.sub===1&&wep==='smg'&&wlvl===1&&G.hint.includes('武器重置')&&G.hintT>170,G.hint);
+    HX.go(2,5);wep='smg';wlvl=1;G.hintT=0;G.hint='';nextLevel();ck('H6 原本就是初始武器不提示',!(G.hintT>0));
+    HX.go(10,5);startBoss(0,2);G.state='play';HX.run(185);G.charge=100;G.hintT=0;fireSpecial();ck('H4 禁用處按特攻',G.hint==='此處無法使用特攻'&&G.hintT>0&&!plane);
+    // 7 王:施放分身時上方「假象」;誤觸時下方提示、上方「共鳴引爆預兆」
+    HX.go(7,5);HX.run(320);let n=0;while(!boss.decoys.length&&n++<900)HX.run(1);ck('7 王施放分身時上方字幕「假象」',boss.decoys.length===3&&G.msg==='假象'&&G.msgT>0,G.msg);
+    G.hintT=0;G.charge=50;bossDamage(bossParts().find(q=>q.key==='f0'),1);ck('7 王誤觸:下方提示、上方「共鳴引爆預兆」、能量 -15',G.hint==='誤觸假象:特攻能量-15%'&&G.msg==='共鳴引爆預兆'&&G.charge===35,G.msg+'/'+G.hint);
+    // 攻略燈泡
+    const die=()=>{P.inv=0;P.lives=1;hurtPlayer();};
+    HX.go(2,5);HX.run(320);die();ck('陣亡 1 次不出現',G.state==='over'&&TIPN.n===1&&!tipOn());
+    overRetry();HX.run(200);die();overRetry();HX.run(200);ck('陣亡 2 次重新挑戰中不出現',TIPN.n===2&&!tipOn());
+    die();ck('陣亡 3 次:GAME OVER 畫面出現',TIPN.n===3&&tipOn());
+    overRetry();HX.run(200);ck('重新挑戰中仍在',G.state==='play'&&tipOn());
+    const t0=G.t,x0=boss.x,st0=boss.stT;dispatchEvent(new KeyboardEvent('keydown',{code:'KeyT'}));for(let i=0;i<60;i++)update();
+    ck('按 T 開啟且完全暫停',G.tip===1&&G.t===t0&&boss.x===x0);
+    dispatchEvent(new KeyboardEvent('keydown',{code:'KeyT'}));update();ck('再按 T 關閉並繼續',!G.tip&&G.t===t0+1);
+    bossDie();ck('打倒後歸零',TIPN.n===0&&!tipOn());
+    HX.go(3,5);HX.run(320);die();overRetry();HX.run(200);die();overRetry();HX.run(200);die();toTitle();ck('回標題歸零',TIPN.n===0);
+    HX.go(10,5);HX.run(320);TIPN.w=10;TIPN.n=3;TIPN.seg=1;const a=tipLines(452).length;TIPN.seg=2;const b=tipLines(452);ck('10 王:只到第 1 段給一段、到過後段給全部',a<b.length&&b[0]==='【第 1 階段】',a+'/'+b.length);
+    for(let w=1;w<=9;w++){TIPN.w=w;const L=tipLines(452);if(!L.length||L.some(l=>pfW(l)>470)||L.join('').includes('?'))ck(w+' 王攻略排版',false,L.join('|'));}
+    TIPN.n=0;return o;});
+  r.forEach(l=>console.log(l));const bad=r.filter(l=>l.startsWith('錯誤')).length;
+  const one=async(n,fn)=>{await pg.evaluate(fn);await pg.evaluate(()=>{for(let i=0;i<4;i++)render();});await pg.waitForTimeout(350);await pg.evaluate(()=>render());await pg.screenshot({path:pre+'-'+n+'.png'});};
+  await one('hint',()=>{HX.go(1,1);HX.run(30);hint('衝鋒槍 Lv3 已達上限(第 7 關起可升 Lv4)');HX.run(40);});
+  await one('fight',()=>{HX.go(8,5);HX.run(330);TIPN.w=8;TIPN.n=3;TIPN.seg=1;hint('特攻就緒：按C以施放');HX.run(40);});
+  await one('tip',()=>{G.tip=1;});
+  await one('over',()=>{G.tip=0;G.state='over';G.sT=95;G.overBoss=true;});
+  console.log('已存',pre+'-hint/fight/tip/over.png','錯誤',errs.length?errs:'無');await br.close();return errs.length+bad;
+}
+
 // v0.41 選關頁:截選關頁(游標在第 3 格)與標題頁各一張,檢查 10 格縮圖與編號都已烘焙、分頁小圖示已設定
 async function lsshot(pre,file){
   const {br,pg,errs}=await open(file,{width:1024,height:576});pre=pre||path.join(ROOT,'preview','ls41');
@@ -1688,6 +1728,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='perfpage')bad=perfpage(a[0]);
   else if(cmd==='bigtxt')bad=await bigtxt(a[0],a[1]);
   else if(cmd==='lsshot')bad=await lsshot(a[0],a[1]);
+  else if(cmd==='pinfo')bad=await pinfo(a[0],a[1]);
   else if(cmd==='entry')bad=await entry(a[0]);
   else if(cmd==='b5mx')bad=await b5mx(a[0],a[1]);
   else if(cmd==='qcmp')bad=await qcmp(a[0],a[1],a[2]);
