@@ -443,6 +443,56 @@ async function vcmp(outp,fa,fb){   // v0.33 加環狀彈;v0.37 加 7 王、10 �
   const e=A[1].concat(B?B[1]:[]);console.log('已存',outp);console.log('錯誤',e.length?e.slice(0,5):'無');return e.length;
 }
 
+// v0.43 魔王戰火焰對照圖:列為 1~9 王與 10 王三段,欄為各檔案(可給新舊版並排);火焰用該大關最高階(1~6 關 Lv3、7~10 關 Lv4),
+// 主角固定在魔王判定部件左(或右)方、火焰射程 55% 處,每幀都畫(火團只在 render 推進),截火焰一帶放大 2 倍。
+// 輸出 <前綴>-1.png ~ -3.png(每張 4 列);另統計每格火身範圍內的外框色像素數(v0.43 起應大於 0,魔王身形完全在火身外時除外)
+async function bflame(pre,files){
+  const cols=[];let bad=0;
+  for(const f of files){const {br,pg,errs}=await open(f,{width:1024,height:576});
+    const r=await pg.evaluate(async()=>{const out=[];
+      for(const [w,g] of [[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[7,1],[8,1],[9,1],[10,1],[10,2],[10,3]]){
+        Math.random=(()=>{let z=12345;return()=>(z=(z*16807)%2147483647)/2147483647;})();
+        HX.go(w,5);if(g>1){startBoss(0,g);G.state='play';}
+        wep='flame';wlvl=w>=7?4:3;items.length=0;HX.run(g>1?190:330);
+        for(let i=0;i<4;i++)render();await new Promise(r=>setTimeout(r,400));   // 內嵌圖非同步載入
+        const L=flameRange();let tx=0,ty=0;
+        const pin=()=>{const ps=bossParts(),p=ps.find(q=>q.key==='core')||ps[0];tx=p.x+p.w/2;ty=p.y+p.h/2;
+          const lx=tx-L*0.55-12;P.face=lx>4?1:-1;P.x=P.face>0?lx:tx+L*0.55+2;P.y=ty-6;P.vx=0;P.vy=0;P.climb=false;};
+        for(let i=0;i<45;i++){pin();for(const q in K)K[q]=0;K.f=1;P.inv=999;P.lives=5;update();if(boss&&boss.alive)boss.hp=boss.max;pin();P.flameT=4;render();}
+        const c=document.createElement('canvas');c.width=320;c.height=192;const x=c.getContext('2d',{willReadFrequently:true});x.imageSmoothingEnabled=false;const k=cv.width/W;
+        const mx=(P.x+5+tx)/2-cam.x,cx=Math.max(0,Math.min(W-160,Math.round(mx-80))),cy=Math.max(0,Math.min(H-96,Math.round(ty-cam.y-48)));
+        x.drawImage(cv,cx*k,cy*k,160*k,96*k,0,0,320,192);
+        const d=x.getImageData(0,0,320,192).data;let n=0;for(let i=0;i<d.length;i+=4)if(d[i]>235&&d[i+1]>190&&d[i+1]<232&&d[i+2]<110)n++;   // 接近 #ffd23a 的像素
+        out.push([w+(w===10?'-'+g:'')+' 王 Lv'+(w>=7?4:3),c.toDataURL(),n]);}
+      return out;});
+    await br.close();cols.push(r);bad+=errs.length;if(errs.length)console.log('錯誤',f,errs.slice(0,5));}
+  for(let i=0;i<12;i++)console.log(cols[0][i][0].padEnd(12),'外框色像素',cols.map(c=>String(c[i][2]).padStart(5)).join(' '));
+  const o=await open();
+  for(let n=0;n<3;n++){
+    const png=await o.pg.evaluate(async([C,n])=>{const c=document.createElement('canvas');c.width=C.length*324;c.height=4*212;const x=c.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,c.width,c.height);
+      const ld=u=>new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.src=u;});
+      for(let i=0;i<4;i++)for(let j=0;j<C.length;j++){const q=C[j][n*4+i],im=await ld(q[1]);x.drawImage(im,j*324,i*212+18);x.fillStyle='#fff';x.font='13px sans-serif';x.fillText(q[0]+' ('+'ABCDEF'[j]+')',j*324+2,i*212+13);}
+      return c.toDataURL();},[cols,n]);
+    fs.writeFileSync(pre+'-'+(n+1)+'.png',Buffer.from(png.split(',')[1],'base64'));console.log('已存',pre+'-'+(n+1)+'.png');}
+  await o.br.close();
+  console.log('錯誤',bad?bad:'無');return bad;
+}
+// v0.43.1 載入順序:字型與內嵌圖資料在第二個 script 區塊。在兩個區塊之間插入一個延遲 1.5 秒才回應的外部 script(只在測試頁,模擬網路上檔案後段較晚到),
+// 統計這段期間與之後的執行錯誤數(修正前每一幀都出錯),並確認資料到齊後標題頁有畫出來(B10BG、PFA 已建立)
+async function loadgap(file){
+  const src=path.resolve(file||path.join(ROOT,'index.html'));let s=fs.readFileSync(src,'utf8');
+  const i=s.indexOf('</script>')+9;s=s.slice(0,i)+'\n<script src="http://gap.test/x.js"></script>'+s.slice(i);
+  const tmp=path.join(ROOT,'preview','_loadgap.html');fs.mkdirSync(path.dirname(tmp),{recursive:true});fs.writeFileSync(tmp,s);
+  const br=await chromium.launch({executablePath:CHROME,args:['--no-sandbox']});const pg=await br.newPage();
+  const errs=[];pg.on('pageerror',e=>errs.push(e.message));
+  await pg.route('http://gap.test/**',async r=>{await new Promise(z=>setTimeout(z,1500));await r.fulfill({contentType:'text/javascript',body:''});});
+  await pg.goto(url(tmp));await pg.waitForTimeout(800);
+  const r=await pg.evaluate(()=>({st:G.state,bg:!!(typeof B10BG!=='undefined'&&B10BG&&B10BG[1]),font:!!PFA,ttl:!!(typeof TTL!=='undefined'&&TTL)}));
+  await br.close();fs.unlinkSync(tmp);
+  const ok=!errs.length&&r.st==='title'&&r.bg&&r.font;
+  console.log('延遲期間與之後的執行錯誤',errs.length,errs.length?'(第一則:'+errs[0]+')':'');console.log('資料到齊後',JSON.stringify(r));console.log(ok?'OK':'錯誤');return ok?0:1;
+}
+
 // v0.31 桌機實測頁:複製 index.html,加一條可收起的控制列 → preview/perf-test.html(不提交,由使用者在測試機開啟,Claude 不代跑)。
 // 控制列只在按鈕被按時改狀態(跳關、無限命、魔王剩 5%、特攻充滿、換武器),不改繪製;開啟時強制高畫質。
 // F4 收起/打開控制列(量測時收起);B 魔王剩 5%;N 特攻充滿(這兩鍵遊戲本身沒用到)
@@ -1726,6 +1776,8 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='wkeep')bad=await wkeep(a[0]);
   else if(cmd==='vis')bad=await vis(a[0],a[1]);
   else if(cmd==='perfpage')bad=perfpage(a[0]);
+  else if(cmd==='bflame')bad=await bflame(a[0]||'bflame',a.slice(1).length?a.slice(1):[path.join(ROOT,'index.html')]);
+  else if(cmd==='loadgap')bad=await loadgap(a[0]);
   else if(cmd==='bigtxt')bad=await bigtxt(a[0],a[1]);
   else if(cmd==='lsshot')bad=await lsshot(a[0],a[1]);
   else if(cmd==='pinfo')bad=await pinfo(a[0],a[1]);
