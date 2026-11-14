@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.38 介面文字全部改像素字(俐方體 11 號點陣內嵌),上方狀態列改畫在畫布;前一版 v0.37 7 王、10 王第 2 段光柱內主角疊畫加外框 -->
+<!-- VERSION: v0.38.1 撿武器箱選「不替換」時武器箱留在原地(小跳落地,離開後再碰才再問);王關進關 X-5 大字與 WARNING 錯開;前一版 v0.38 介面文字全部改像素字、上方狀態列改畫在畫布 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -157,7 +157,8 @@ function overRetry(){
   }
 }
 function chPick(w){wep=w;wlvl=2;G.msg=WNAME[wep]+' Lv2';G.msgT=70;G.modal=null;}
-function wtYes(){wep=G.modal.wt;wlvl=(wep==='smg')?2:1;G.msg=WNAME[wep]+' Lv'+wlvl;G.msgT=70;G.modal=null;}
+function wtYes(){const j=items.indexOf(G.modal.it);if(j>=0)items.splice(j,1);wep=G.modal.wt;wlvl=(wep==='smg')?2:1;G.msg=WNAME[wep]+' Lv'+wlvl;G.msgT=70;G.modal=null;}
+function wtNo(){const it=G.modal.it;if(it){it.no=24;it.vy=-3;}G.modal=null;}   // v0.38.1(使用者授權):不替換時武器箱留在原地,小跳一下(約 16 像素)再落地;主角離開後再碰才會再問
 function menuKey(code,rep){
   const a=MKD[code],k=mKey();if(!a||k===null)return false;
   let c=mSel();const ok=a==='z'&&!rep&&G.t-G.mt>=MK_GUARD;
@@ -173,10 +174,10 @@ function menuKey(code,rep){
   const m=G.modal;
   if(k==='over'||m.choose||m.wt){                   // 左右兩個按鈕
     if(a==='l')G.mc=0;else if(a==='r')G.mc=1;
-    if(a==='x'&&m&&m.wt){G.modal=null;return true;}
+    if(a==='x'&&m&&m.wt){wtNo();return true;}
     if(ok){if(k==='over'){if(G.mc===0)overRetry();else toTitle();}
       else if(m.choose)chPick(m.choose[G.mc]);
-      else if(G.mc===0)wtYes();else G.modal=null;}
+      else if(G.mc===0)wtYes();else wtNo();}
     return a!=='x';
   }
   if(m.spPick){                                     // 上排 0~2(騎士、詠嘆者、平均),下排 3 取消
@@ -250,7 +251,7 @@ document.getElementById('wrap').addEventListener('pointerdown',e=>{
     const by=H/2+6,bw=64,bh=22,yesX=W/2-80,noX=W/2+16;
     if(gy>=by&&gy<=by+bh){
       if(gx>=yesX&&gx<=yesX+bw){wtYes();return;}
-      if(gx>=noX&&gx<=noX+bw){G.modal=null;return;}
+      if(gx>=noX&&gx<=noX+bw){wtNo();return;}
     }
     return;
   }
@@ -840,7 +841,9 @@ function updateItems(){
     const it=items[i];it.t++;
     it.vy=(it.vy||0)+0.28;it.y+=it.vy;
     if(hitSolid(it.x,it.y,12,12)||tileKind(it.x,it.y+2,12,12,3)&&it.vy>0){it.y-=it.vy;it.vy=0;}
-    if(aabb(playerBox(),{x:it.x,y:it.y,w:12,h:12})){
+    const touch=aabb(playerBox(),{x:it.x,y:it.y,w:12,h:12});
+    if(it.no){if(it.no>1)it.no--;else if(!touch)it.no=0;}   // v0.38.1:選了不替換的武器箱,小跳落地且主角離開後才恢復可撿
+    if(touch&&!it.no){
       if(it.kind==='life'){P.lives=Math.min(8,P.lives+1);G.score+=200;burst(it.x+6,it.y+6,'#ff6688',8);}
       else{
         if(it.wt===wep){
@@ -850,7 +853,7 @@ function updateItems(){
           G.msg=WNAME[wep]+' Lv'+wlvl;G.msgT=70;
         }else if(hasUpgrade()){
           // 目前已是強化狀態,換成不同武器需要玩家確認,避免非自願被替換
-          G.modal={wt:it.wt};items.splice(i,1);continue;
+          G.modal={wt:it.wt,it};continue;   // v0.38.1:先不移除,選替換才移除(wtYes),選不替換留在原地(wtNo)
         }else{
           wep=it.wt;wlvl=1;
           G.score+=300;burst(it.x+6,it.y+6,WCOL[it.wt],8);
@@ -5909,7 +5912,8 @@ function drawOverlays(){
   // 魔王警示 / 登場
   if(boss&&boss.alive&&boss.introT>0){
     const t=300-boss.introT;
-    if(t<120){ if(((t>>2)&1)){ctx.globalAlpha=.30;px(0,0,W,H,'#ff2a3a');ctx.globalAlpha=1;}
+    if(G.state==='intro'){}                     // v0.38.1:進關暗幕(X-5 大字)期間不畫 WARNING,暗幕收掉後才出現(登場計時本來就在暗幕後才開始走,WARNING 仍完整 120 幀)
+    else if(t<120){ if(((t>>2)&1)){ctx.globalAlpha=.30;px(0,0,W,H,'#ff2a3a');ctx.globalAlpha=1;}
       txt('WARNING',W/2,H/2-10,'#ff4a5a',26,'center',1);}
     else if(t>=BT_IN_CARD){                     // v0.17:出場動畫結束才打出字卡(與血條填充同時)
       const k=clamp((t-BT_IN_CARD)/8,0,1);

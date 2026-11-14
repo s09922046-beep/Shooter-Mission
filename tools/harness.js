@@ -2,6 +2,7 @@
 // 需要:Node 18+、playwright 套件、Chrome。在 repo 根目錄執行:
 //   node tools/harness.js smoke [檔案]              50 小關 × 三種武器各跑一段,檢查執行錯誤
 //   node tools/harness.js special [檔案]            特攻功能檢查:一般關清空與回充、各魔王扣血、6 王選單、7 王、4 王隱身、登場禁用
+//   node tools/harness.js wkeep [檔案]              撿武器箱選「不替換」留在原地、王關 X-5 大字與 WARNING 錯開(v0.38.1)
 //   node tools/harness.js wvis [檔案]               己方子彈與槍口火光可見性(v0.28.1):每大關衝鋒槍、散彈 1~4 階,比對有無子彈的畫面像素差
 //   node tools/harness.js vis [輸出.png] [檔案]      主角、敵彈、傳送門可見性(11/13):有/無該物件兩次繪製的像素差,存最差 24 格拼圖
 //   node tools/harness.js fsil <輸出.png> [檔案...]   火焰剪影沿射程對照(v0.36):敵人在射程 35%/60%/85%,每幀都畫,多檔並排
@@ -80,6 +81,32 @@ async function special(file){
     HX.go(3,5);HX.run(10);G.charge=100;HX.press();o.push(`登場期間施放:${plane?'有反應(錯誤)':'無反應(正確)'}`);
     return o;});
   console.log(out.join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return errs.length;
+}
+
+// v0.38.1 撿武器箱選「不替換」留在原地、王關進關 X-5 大字與 WARNING 錯開
+async function wkeep(file){
+  const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;const ck=(ok,s)=>{o.push((ok?'OK  ':'錯誤 ')+s);if(!ok)bad++;};
+    HX.go(1,1);HX.run(20);ens.length=0;items.length=0;wep='smg';wlvl=3;const px0=P.x;
+    items.push({kind:'wep',wt:'shot',x:P.x,y:P.y,vy:0,t:0});HX.run(1);
+    ck(G.modal&&G.modal.wt==='shot'&&items.length===1,'碰到不同武器箱跳出詢問,武器箱仍在場上('+items.length+')');
+    wtNo();const it=items[0];ck(!G.modal&&items.length===1&&wep==='smg'&&wlvl===3,'不替換:武器箱留著,武器維持 '+wep+' Lv'+wlvl);
+    let top=1e9,again=0;const y0=it.y;for(let i=0;i<90;i++){HX.run(1);top=Math.min(top,it.y);if(G.modal)again++;}
+    ck(again===0,'主角站在原地 90 幀不再跳出詢問');ck(y0-top>8&&y0-top<24,'小跳高度 '+(y0-top).toFixed(1)+' 像素');
+    ck(Math.abs(it.y-y0)<3,'落回原處(高度差 '+(it.y-y0).toFixed(1)+')');
+    P.x=px0+40;HX.run(3);ck(!G.modal&&it.no===0,'主角離開後恢復可撿');
+    P.x=px0;HX.run(2);ck(G.modal&&G.modal.it===it,'走回來再碰,再次詢問');
+    wtYes();ck(items.length===0&&wep==='shot'&&wlvl===1,'替換:武器箱消失,武器 '+wep+' Lv'+wlvl);
+    items.push({kind:'wep',wt:'flame',x:P.x,y:P.y,vy:0,t:0});HX.run(1);menuKey('Escape',false);
+    ck(!G.modal&&items.length===1&&items[0].no>0,'Esc 取消同樣留在原地');
+    items.length=0;items.push({kind:'wep',wt:'shot',x:P.x,y:P.y,vy:0,t:0});HX.run(1);ck(!G.modal&&items.length===0&&wlvl===2,'同種武器箱照常升級 Lv'+wlvl);
+    // WARNING:暗幕期間不畫,進入遊玩後畫滿 120 幀
+    const f=txt;let nw=0;window.txt=function(a){if(a==='WARNING')nw++;return f.apply(this,arguments);};
+    for(const w of[1,5,9]){resetRun();G.world=w;G.sub=5;startLevel();G.modal=null;let a=0,b=0,n=0;
+      for(let i=0;i<700;i++){P.inv=999;update();if(G.state!=='intro'&&!(boss.introT>0))break;nw=0;render();if(G.state==='intro'){a+=nw;n++;}else b+=nw;}   // 照實際順序:先 update 再 render
+      ck(a===0&&b===120,w+'-5 暗幕 '+n+' 幀內 WARNING 畫 '+a+' 次(應 0),暗幕後畫 '+b+' 幀(應 120)');}
+    window.txt=f;return {o,bad};});
+  console.log(r.o.join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return r.bad+errs.length;
 }
 
 // v0.28.1 己方子彈與槍口火光可見性:v0.18~v0.28 這兩個繪製呼叫被誤併入註解,10 版測試都沒抓到。
@@ -1611,6 +1638,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
   else if(cmd==='wvis')bad=await wvis(a[0]);
+  else if(cmd==='wkeep')bad=await wkeep(a[0]);
   else if(cmd==='vis')bad=await vis(a[0],a[1]);
   else if(cmd==='perfpage')bad=perfpage(a[0]);
   else if(cmd==='entry')bad=await entry(a[0]);
