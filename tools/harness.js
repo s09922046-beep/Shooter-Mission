@@ -122,6 +122,25 @@ async function tshot(pre,file){
   console.log('已存',pre+'-main/shine/ls.png','錯誤',errs.length?errs:'無');await br.close();return errs.length+(ok?0:1);
 }
 
+// v0.40 手繪大字:進關數字(含 BOSS)、WARNING、VICTORY、GAME OVER、GAME FINISH 各截一張,並檢查 50 個關卡編號都烘得出來、寬度不超出畫面
+async function bigtxt(pre,file){
+  const {br,pg,errs}=await open(file,{width:1024,height:576});pre=pre||path.join(ROOT,'preview','big');
+  const one=async(n,fn)=>{await pg.evaluate(fn);await pg.evaluate(()=>{for(let i=0;i<4;i++)render();});await pg.waitForTimeout(350);await pg.evaluate(()=>render());await pg.screenshot({path:pre+'-'+n+'.png'});};
+  await one('num',()=>{HX.go(10,5);HX.run(2);render();resetRun();G.world=10;G.sub=5;startLevel();G.modal=null;});
+  await one('num1',()=>{resetRun();G.world=1;G.sub=1;startLevel();G.modal=null;});
+  await one('warn',()=>{HX.go(1,5);HX.run(62);});
+  await one('win',()=>{HX.go(1,5);HX.run(320);bossDie();HX.run(130);});
+  await one('over',()=>{HX.go(2,2);G.state='over';G.sT=95;G.overBoss=false;G.score=45200;});
+  await one('fin',()=>{toTitle();G.state='finish';G.sT=0;G.score=123400;});
+  const r=await pg.evaluate(()=>{let bad=0,mx=0;BGC.clear();
+    for(let w=1;w<=10;w++)for(let u=1;u<=5;u++){bgDraw(w+'-'+u,'num','n',W/2,100);const e=BGC.get('numn'+w+'-'+u);if(!e||e.w>W)bad++;else mx=Math.max(mx,e.w);}
+    for(const [t,c] of [['WARNING','r'],['VICTORY','g'],['GAME OVER','r'],['GAME FINISH','g']]){bgDraw(t,'big',c,W/2,100);const e=BGC.get('big'+c+t);if(!e||e.w>W)bad++;else mx=Math.max(mx,e.w);}
+    const t0=performance.now();for(let i=0;i<2000;i++){bgHaz(100);bgHaz(170);bgDraw('WARNING','big','r',W/2,116);}
+    return {bad,mx,n:BGC.size,ms:(performance.now()-t0)/2000};});
+  console.log((r.bad?'錯誤':'OK ')+' 大字 '+r.n+' 組已烘焙,最寬 '+r.mx+' 像素(畫面 512);WARNING 每幀繪製 '+r.ms.toFixed(4)+' ms');
+  console.log('已存',pre+'-num/num1/warn/win/over/fin.png','錯誤',errs.length?errs:'無');await br.close();return errs.length+r.bad;
+}
+
 // v0.28.1 己方子彈與槍口火光可見性:v0.18~v0.28 這兩個繪製呼叫被誤併入註解,10 版測試都沒抓到。
 // 每大關、衝鋒槍與散彈各 1~4 階,開槍後同一幀畫兩次(有子彈/暫時清空子彈),比對遊戲畫面像素差;另計 drawBulletV、drawMuzzle 呼叫次數
 async function wvis(file){
@@ -1655,6 +1674,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='wkeep')bad=await wkeep(a[0]);
   else if(cmd==='vis')bad=await vis(a[0],a[1]);
   else if(cmd==='perfpage')bad=perfpage(a[0]);
+  else if(cmd==='bigtxt')bad=await bigtxt(a[0],a[1]);
   else if(cmd==='entry')bad=await entry(a[0]);
   else if(cmd==='b5mx')bad=await b5mx(a[0],a[1]);
   else if(cmd==='qcmp')bad=await qcmp(a[0],a[1],a[2]);

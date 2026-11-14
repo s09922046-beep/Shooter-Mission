@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.39.2 傳送門階梯貼地(最下緣接地、各階相連伸縮);前一版 v0.39.1 按 Z 閃白強度減半;v0.39 標題頁:手繪像素標誌(冷鋼斜體)、10 王裂月場景加鏡面倒影、插地步槍綁圍巾、標誌光澤、遠景轟炸機、按 Z 閃白 -->
+<!-- VERSION: v0.40 手繪大字:進關數字、BOSS、WARNING(加黃黑警示帶)、VICTORY、GAME OVER、GAME FINISH 改與標題同一套冷鋼斜體、各字換色;前一版 v0.39.2 傳送門階梯貼地(最下緣接地、各階相連伸縮);前一版 v0.39.1 按 Z 閃白強度減半;v0.39 標題頁:手繪像素標誌(冷鋼斜體)、10 王裂月場景加鏡面倒影、插地步槍綁圍巾、標誌光澤、遠景轟炸機、按 Z 閃白 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -5857,7 +5857,7 @@ function ttlPoly(m,w,h,p,v){for(let y=0;y<h;y++){const yc=y+0.5,xs=[];
     for(let i=0;i<p.length;i++){const [x1,y1]=p[i],[x2,y2]=p[(i+1)%p.length];if((y1<=yc&&y2>yc)||(y2<=yc&&y1>yc))xs.push(x1+(yc-y1)*(x2-x1)/(y2-y1));}
     xs.sort((a,b)=>a-b);for(let i=0;i+1<xs.length;i+=2)for(let x=Math.max(0,Math.ceil(xs[i]-0.5));x<=Math.min(w-1,Math.floor(xs[i+1]-0.5));x++)m[y*w+x]=v;}}
 function ttlGlyph(ch,w,h,t,c){                     // 回傳 {w,add,sub}:w 字寬、t 筆畫粗、c 切角
-  const R=(x,y,a,b)=>[[x,y],[x+a,y],[x+a,y+b],[x,y+b]],m=Math.round(h*0.5),bh=Math.round(h*0.56),tt=Math.round(t*1.25);
+  const R=(x,y,a,b)=>[[x,y],[x+a,y],[x+a,y+b],[x,y+b]],m=Math.round(h*0.5),bh=Math.round(h*0.56),tt=Math.round(t*1.25),Y1=m-(t/2|0),K=Math.round(h*0.07),HO=()=>[R(t,t,w-2*t,Y1-t),R(t,Y1+t,w-2*t,h-Y1-2*t)];   // v0.40:Y1 中橫筆上緣、K 筆畫端點留長、HO 上下兩個內孔
   const oct=(x,y,a,b,k)=>[[x+k,y],[x+a-k,y],[x+a,y+k],[x+a,y+b-k],[x+a-k,y+b],[x+k,y+b],[x,y+b-k],[x,y+k]];
   const dg=(ax,ay,bx,by)=>[[ax,ay],[ax+tt,ay],[bx+tt,by],[bx,by]],bowl=[[0,0],[w-c,0],[w,c],[w,bh-c],[w-c,bh],[0,bh]];
   switch(ch){
@@ -5874,6 +5874,28 @@ function ttlGlyph(ch,w,h,t,c){                     // 回傳 {w,add,sub}:w 字�
     case'C':{const g=Math.round(h*0.12);return{w,add:[oct(0,0,w,h,c)],sub:[R(t,t,w-2*t,h-2*t),R(w-t,t+g,t,h-2*t-2*g)]};}
     case'S':{const y1=m-(t/2|0),k=Math.round(h*0.07);return{w,add:[oct(0,0,w,y1+t,c),oct(0,y1,w,h-y1,c)],
       sub:[R(t,t,w-2*t,y1-t),R(t,y1+t,w-2*t,h-y1-2*t),R(w-t,t+k,t,y1-t-k),R(0,y1+t,t,h-y1-2*t-k)]};}
+    // v0.40 手繪大字補齊的字形(A B G H M N V W Y、數字、連字號)
+    case'A':return{w,add:[[[c,0],[w-c,0],[w,c],[w,h],[0,h],[0,c]]],sub:[R(t,t,w-2*t,Y1-t),R(t,Y1+t,w-2*t,h-Y1-t)]};
+    case'B':return{w,add:[[[0,0],[w-c,0],[w,c],[w,m-3],[w-3,m],[w,m+3],[w,h-c],[w-c,h],[0,h]]],sub:HO()};
+    case'G':{const g=Math.round(h*0.12),bw=Math.round(w*0.5),bt=Math.max(3,Math.round(t*0.7));
+      return{w,add:[oct(0,0,w,h,c),R(w-bw,m,bw,bt)],sub:[R(t,t,w-2*t,m-t),R(t,m+bt,w-2*t,h-t-m-bt),R(t,m,w-bw-t,bt),R(w-t,t+g,t,m-t-g)]};}
+    case'H':return{w,add:[R(0,0,t,h),R(w-t,0,t,h),R(0,Y1,w,t)],sub:[]};
+    case'M':{w=Math.round(w*1.3);const cx=(w-tt)/2,by=Math.round(h*0.62);return{w,add:[R(0,0,t,h),R(w-t,0,t,h),dg(0,0,cx,by),dg(w-tt,0,cx,by)],sub:[]};}
+    case'N':return{w,add:[R(0,0,t,h),R(w-t,0,t,h),dg(0,0,w-tt,h)],sub:[]};
+    case'V':{const cx=(w-tt)/2;return{w,add:[dg(0,0,cx,h),dg(w-tt,0,cx,h)],sub:[]};}
+    case'W':{w=Math.round(w*1.45);const a=Math.round((w-tt)*0.25),cx=(w-tt)/2,ty=Math.round(h*0.3);return{w,add:[dg(0,0,a,h),dg(cx,ty,a,h),dg(cx,ty,w-tt-a,h),dg(w-tt,0,w-tt-a,h)],sub:[]};}
+    case'Y':{const cx=(w-tt)/2;return{w,add:[dg(0,0,cx,m),dg(w-tt,0,cx,m),R((w-t)/2|0,m-2,t,h-m+2)],sub:[]};}
+    case'0':return{w,add:[oct(0,0,w,h,c)],sub:[R(t,t,w-2*t,h-2*t)]};
+    case'1':{const fl=Math.round(t*0.55),fh=Math.round(t*0.7);w=t+fl;return{w,add:[[[0,0],[w,0],[w,h],[w-t,h],[w-t,fh],[0,fh]]],sub:[]};}   // 左上小勾縮短(使用者 11/14:斜體下原本的長勾像 7)
+    case'2':return{w,add:[oct(0,0,w,Y1+t,c),R(0,Y1,w,h-Y1)],sub:[...HO(),R(0,t+K,t,Y1-t-K),R(w-t,Y1+t,t,h-Y1-2*t)]};
+    case'3':return{w,add:[oct(0,0,w,Y1+t,c),oct(0,Y1,w,h-Y1,c)],sub:[...HO(),R(0,t+K,t,Y1-t-K),R(0,Y1+t,t,h-Y1-2*t-K)]};
+    case'4':return{w,add:[R(w-t,0,t,h),R(0,0,t,Y1+t),R(0,Y1,w,t)],sub:[]};
+    case'5':return{w,add:[R(0,0,w,Y1+t),oct(0,Y1,w,h-Y1,c)],sub:[...HO(),R(w-t,t,t,Y1-t),R(0,Y1+t,t,h-Y1-2*t-K)]};
+    case'6':return{w,add:[oct(0,0,w,h,c)],sub:[...HO(),R(w-t,t+K,t,Y1-t-K)]};
+    case'7':return{w,add:[R(0,0,w,t),dg(w-tt,0,Math.round(w*0.2),h)],sub:[]};
+    case'8':return{w,add:[[[c,0],[w-c,0],[w,c],[w,m-3],[w-2,m],[w,m+3],[w,h-c],[w-c,h],[c,h],[0,h-c],[0,m+3],[2,m],[0,m-3],[0,c]]],sub:HO()};
+    case'9':return{w,add:[oct(0,0,w,h,c)],sub:[...HO(),R(0,Y1+t,t,h-Y1-2*t-K)]};
+    case'-':{const p=Math.round(t*0.3);w=Math.round(w*0.5)+2*p;return{w,add:[R(p,Y1,w-2*p,t)],sub:[]};}   // 兩側留白,斜體下不與數字的陰影相連
     default:return{w:Math.round(w*0.45),add:[],sub:[]};
   }}
 function ttlMask(s,o){const gs=[...s].map(ch=>ttlGlyph(ch,o.w,o.h,o.t,o.c));let tw=0;gs.forEach((g,i)=>tw+=g.w+(i?o.gap:0));
@@ -5883,10 +5905,10 @@ function ttlMask(s,o){const gs=[...s].map(ch=>ttlGlyph(ch,o.w,o.h,o.t,o.c));let 
     gx+=g.w+o.gap;}
   return{m,w,h,P,gh:o.h};}
 function ttlPaint(x,xm,M,ox,oy,st){const {m,w,h,P,gh}=M,at=(a,b)=>a>=0&&b>=0&&a<w&&b<h&&m[b*w+a],put=(a,b,c)=>{x.fillStyle=c;x.fillRect(ox+a,oy+b,1,1);};
-  for(let b=0;b<h;b++)for(let a=0;a<w;a++)if(at(a,b))put(a+st.so,b+st.so,'#8e1c2c');          // 深緋紅陰影(圍巾色)
+  for(let b=0;b<h;b++)for(let a=0;a<w;a++)if(at(a,b))put(a+st.so,b+st.so,st.shc||'#8e1c2c');          // 深緋紅陰影(圍巾色)
   for(let b=-1;b<=h;b++)for(let a=-1;a<=w;a++){if(at(a,b))continue;let n=0;for(let dy=-1;dy<=1&&!n;dy++)for(let dx=-1;dx<=1;dx++)if(at(a+dx,b+dy)){n=1;break;}if(n)put(a,b,'#05060a');}
-  xm.fillStyle='#ffffff';
-  for(let b=0;b<h;b++)for(let a=0;a<w;a++)if(at(a,b)){let c=st.fill((b-P)/gh,a,b);if(st.bev){if(!at(a,b-1))c='#ffffff';else if(!at(a,b+1))c='#1c2a52';}put(a,b,c);xm.fillRect(ox+a,oy+b,1,1);}}
+  if(xm)xm.fillStyle='#ffffff';
+  for(let b=0;b<h;b++)for(let a=0;a<w;a++)if(at(a,b)){let c=st.fill((b-P)/gh,a,b);if(st.bev){if(!at(a,b-1))c=st.bt===undefined?'#ffffff':st.bt||c;else if(!at(a,b+1))c=st.bb||'#1c2a52';}put(a,b,c);if(xm)xm.fillRect(ox+a,oy+b,1,1);}}   // v0.40:shc 陰影色、bt/bb 上下緣倒角色可換(預設為標題原色;bt 給 0 不畫上緣),xm 可省略
 function ttlBake(){
   const big=ttlMask('STRIKE FORCE',{w:27,h:36,t:8,c:4,gap:3,sh:0.2}),sm=ttlMask('PIXEL',{w:13,h:15,t:4,c:2,gap:2,sh:0.2});
   const lw=big.w+4,lh=big.h+19,[lc,lx]=mkCv(lw,lh),[mc,mx]=mkCv(lw,lh),[sc,sx]=mkCv(lw,lh),[bc]=mkCv(W,H);
@@ -5895,6 +5917,22 @@ function ttlBake(){
   ttlPaint(lx,mx,sm,10,0,{so:1,fill:f=>f<.55?'#f4f8ff':'#aebcd8'});
   TTL={lc,mc,sc,sx,lw,lh,bc,ok:-1};
 }
+/* ---- v0.40 手繪大字(使用者 11/14 選 A:與標題同一套冷鋼斜體,各字換色;純視覺):進關數字冷鋼、WARNING 與 GAME OVER 紅、VICTORY 與 GAME FINISH 金、BOSS 小字平塗紅斜體。
+   每個字串第一次用到時烘成小畫布(BGC 快取),之後每幀只貼一張圖;WARNING 上下的黃黑斜紋警示帶也只烘一次、每幀貼兩次。 */
+function bgBand(band){return (f,a,b)=>{let i=0;while(f>=band[i][0])i++;if(i<8&&band[i][0]-f<0.035&&((a+b)&1)&&i!==3&&i!==4)i++;return band[i][1];};}
+const BGST={
+  n:{so:3,bev:1,fill:bgBand([[.14,'#f4f8ff'],[.30,'#cfe0fa'],[.44,'#9ab4e6'],[.50,'#5a78c0'],[.56,'#16204a'],[.66,'#33488c'],[.80,'#5a78c0'],[.92,'#9ab4e6'],[2,'#cfe0fa']])},   // 冷鋼(同標題)
+  r:{so:3,bev:1,shc:'#16204a',bb:'#2a0408',fill:bgBand([[.14,'#ffe4dc'],[.30,'#ffa090'],[.44,'#ff4a5a'],[.50,'#c81e34'],[.56,'#3a0610'],[.66,'#7a1020'],[.80,'#c81e34'],[.92,'#ff4a5a'],[2,'#ffa090']])},
+  g:{so:3,bev:1,bb:'#2a1804',fill:bgBand([[.14,'#fff8dc'],[.30,'#ffe9a0'],[.44,'#f0c050'],[.50,'#b07a20'],[.56,'#3a2408'],[.66,'#7a5214'],[.80,'#b07a20'],[.92,'#f0c050'],[2,'#ffe9a0']])},
+  b:{so:1,bev:1,shc:'#05060a',bt:0,bb:'#7a1020',fill:f=>f<0.5?'#ff6a78':'#d82a3c'}};   // BOSS 小字:平塗紅(鉻面在 16 像素高會糊)
+const BGSZ={num:{w:34,h:48,t:10,c:5,gap:4,sh:0.2},big:{w:27,h:36,t:8,c:4,gap:3,sh:0.2},sm:{w:13,h:16,t:3,c:2,gap:2,sh:0.2}},BGC=new Map();
+function bgDraw(s,size,col,cx,top){const key=size+col+s;let e=BGC.get(key);   // cx 水平中心、top 字面上緣
+  if(!e){const M=ttlMask(s,BGSZ[size]),[c,x]=mkCv(M.w+6,M.h+6);ttlPaint(x,null,M,1,1,BGST[col]);e={c,w:M.w+6};BGC.set(key,e);}
+  ctx.drawImage(e.c,Math.round(cx-e.w/2)+1,top-7);PXD=1;}
+let BGHZ=null;
+function bgHaz(y){                                  // 黃黑斜紋警示帶(使用者 11/14 指定黃黑):高 7、橫跨畫面、每 2 幀左右捲 1 像素
+  if(!BGHZ){const [c,x]=mkCv(W+16,7);x.fillStyle='#05060a';x.fillRect(0,0,W+16,7);x.fillStyle='#ffd23a';for(let r=0;r<5;r++)for(let i=-8;i<W+24;i+=8)x.fillRect(i-r,1+r,4,1);BGHZ=c;}
+  ctx.drawImage(BGHZ,-8+((G.t>>1)&7),y-1);PXD=1;}
 function ttlBg(){                                   // 背景:10 王第 1 段天空、裂月、廢墟(共用 B10BG 快取),下方自畫黑曜鏡面與倒影;廢墟圖載入後重烘一次
   if(!B10BG)B10BG={};const o=B10BG[1]||(B10BG[1]=b10BgBuild(1));if(TTL.ok===o.ok)return;TTL.ok=o.ok;
   const x=TTL.bc.getContext('2d'),gy=224;x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.drawImage(o.c,0,0);
@@ -5956,12 +5994,12 @@ function drawOverlays(){
   }
   if(G.state==='intro'){
     ctx.globalAlpha=.86;px(0,0,W,H,'#05060a');ctx.globalAlpha=1;
-    if(!(boss&&boss.seg>1)){txt(G.world+'-'+G.sub,W/2,H/2-30,'#ffffff',52,'center');   // v0.22:10 王第 2、3 段只留暗幕
-    if(G.sub===5)txt('BOSS',W/2,H/2+30,'#ff4a5a',14,'center');}
+    if(!(boss&&boss.seg>1)){bgDraw(G.world+'-'+G.sub,'num','n',W/2,H/2-60);   // v0.22:10 王第 2、3 段只留暗幕
+    if(G.sub===5)bgDraw('BOSS','sm','b',W/2,H/2+10);}   // v0.40 手繪大字
   }
   if(G.state==='over'){
     ctx.globalAlpha=.8;px(0,0,W,H,'#05060a');ctx.globalAlpha=1;
-    txt('GAME OVER',W/2,H/2-52,'#ff4a5a',30,'center');
+    bgDraw('GAME OVER','big','r',W/2,62);   // v0.40 手繪大字;左下角留給 v0.42 的 Tips 圖標
     txt('SCORE '+G.score,W/2,H/2-8,'#d8e2f4',10,'center');
     if(G.sT>=90){
       const q=G.overBoss?'是否從王關接續挑戰?':('是否從 '+G.world+'-1 接續挑戰?');
@@ -5977,12 +6015,12 @@ function drawOverlays(){
     px(0,0,W,H,'#05060a');
     for(let i=0;i<50;i++){const a=(i*0.4+G.t*0.02),r=40+((i*37)%150);
       px(W/2+Math.cos(a)*r,H/2+Math.sin(a)*r*0.6,3,3,pick(['#7affd0','#ffe9a0','#ff6ad0']));}
-    txt('GAME FINISH',W/2,H/2-26,'#ffe9a0',34,'center');
+    bgDraw('GAME FINISH','big','g',W/2,H/2-52);
     txt('FINAL SCORE '+G.score,W/2,H/2+22,'#d8e2f4',12,'center');
   }
   if(G.state==='win'){
     if(BT.flT>0){ctx.globalAlpha=0.6*BT.flT/40;px(0,0,W,H,'#ffffff');ctx.globalAlpha=1;} // v0.17:單次閃光淡出(原脈衝閃有光敏風險)
-    if(G.sT>=BT_DIE_HIDE&&G.sT<BT_TXT_END&&!bSegMid()){txt('VICTORY',W/2,90,'#ffe9a0',30,'center',1);
+    if(G.sT>=BT_DIE_HIDE&&G.sT<BT_TXT_END&&!bSegMid()){bgDraw('VICTORY','big','g',W/2,72);
     txt(BOSSES[G.world-1].name+' 擊破',W/2,130,'#d8e2f4',12,'center',1);}
   }
   // 魔王警示 / 登場
@@ -5990,7 +6028,7 @@ function drawOverlays(){
     const t=300-boss.introT;
     if(G.state==='intro'){}                     // v0.38.1:進關暗幕(X-5 大字)期間不畫 WARNING,暗幕收掉後才出現(登場計時本來就在暗幕後才開始走,WARNING 仍完整 120 幀)
     else if(t<120){ if(((t>>2)&1)){ctx.globalAlpha=.30;px(0,0,W,H,'#ff2a3a');ctx.globalAlpha=1;}
-      txt('WARNING',W/2,H/2-10,'#ff4a5a',26,'center',1);}
+      bgHaz(H/2-43);bgHaz(H/2+26);bgDraw('WARNING','big','r',W/2,H/2-28);}   // v0.40 手繪大字加黃黑警示帶
     else if(t>=BT_IN_CARD){                     // v0.17:出場動畫結束才打出字卡(與血條填充同時)
       const k=clamp((t-BT_IN_CARD)/8,0,1);
       ctx.globalAlpha=.55*k;px(0,H/2-34,W,58,'#05070e');ctx.globalAlpha=1;
