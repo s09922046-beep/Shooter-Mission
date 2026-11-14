@@ -3,6 +3,7 @@
 //   node tools/harness.js smoke [檔案]              50 小關 × 三種武器各跑一段,檢查執行錯誤
 //   node tools/harness.js special [檔案]            特攻功能檢查:一般關清空與回充、各魔王扣血、6 王選單、7 王、4 王隱身、登場禁用
 //   node tools/harness.js wkeep [檔案]              撿武器箱選「不替換」留在原地、王關 X-5 大字與 WARNING 錯開(v0.38.1)
+//   node tools/harness.js tshot [前綴] [檔案]        標題頁截圖(v0.39):主畫面、標誌光澤、按 Z 閃白
 //   node tools/harness.js wvis [檔案]               己方子彈與槍口火光可見性(v0.28.1):每大關衝鋒槍、散彈 1~4 階,比對有無子彈的畫面像素差
 //   node tools/harness.js vis [輸出.png] [檔案]      主角、敵彈、傳送門可見性(11/13):有/無該物件兩次繪製的像素差,存最差 24 格拼圖
 //   node tools/harness.js fsil <輸出.png> [檔案...]   火焰剪影沿射程對照(v0.36):敵人在射程 35%/60%/85%,每幀都畫,多檔並排
@@ -107,6 +108,18 @@ async function wkeep(file){
       ck(a===0&&b===120,w+'-5 暗幕 '+n+' 幀內 WARNING 畫 '+a+' 次(應 0),暗幕後畫 '+b+' 幀(應 120)');}
     window.txt=f;return {o,bad};});
   console.log(r.o.join('\n'));console.log('錯誤',errs.length?errs.slice(0,5):'無');await br.close();return r.bad+errs.length;
+}
+
+// v0.39 標題頁截圖:<前綴>-main.png(轟炸機經過月面)、-shine.png(光澤掃到字面)、-ls.png(按 Z 後第 4 幀的閃白)
+async function tshot(pre,file){
+  const {br,pg,errs}=await open(file,{width:1024,height:576});
+  const one=async(n,fn)=>{await pg.evaluate(fn);await pg.waitForTimeout(300);await pg.evaluate(()=>render());await pg.screenshot({path:pre+'-'+n+'.png'});};
+  await one('main',()=>{toTitle();G.t=1100+275;render();});
+  await one('shine',()=>{toTitle();G.t=260*5+12;render();});
+  await one('ls',()=>{toTitle();anyTap=true;for(let i=0;i<4;i++)update();render();});
+  const ok=await pg.evaluate(()=>{toTitle();render();anyTap=true;update();return G.state==='levelselect'&&!!TTL&&TTL.lw>300;});
+  console.log(ok?'OK  標誌已烘焙,按 Z 當幀進選關':'錯誤 標題頁狀態不對');
+  console.log('已存',pre+'-main/shine/ls.png','錯誤',errs.length?errs:'無');await br.close();return errs.length+(ok?0:1);
 }
 
 // v0.28.1 己方子彈與槍口火光可見性:v0.18~v0.28 這兩個繪製呼叫被誤併入註解,10 版測試都沒抓到。
@@ -1638,6 +1651,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   if(cmd==='smoke')bad=await smoke(a[0]);
   else if(cmd==='special')bad=await special(a[0]);
   else if(cmd==='wvis')bad=await wvis(a[0]);
+  else if(cmd==='tshot')bad=await tshot(a[0]||'preview/title',a[1]);
   else if(cmd==='wkeep')bad=await wkeep(a[0]);
   else if(cmd==='vis')bad=await vis(a[0],a[1]);
   else if(cmd==='perfpage')bad=perfpage(a[0]);
