@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.39.1 按 Z 閃白強度減半;前一版 v0.39 標題頁:手繪像素標誌(冷鋼斜體)、10 王裂月場景加鏡面倒影、插地步槍綁圍巾、標誌光澤、遠景轟炸機、按 Z 閃白 -->
+<!-- VERSION: v0.39.2 傳送門階梯貼地(最下緣接地、各階相連伸縮);前一版 v0.39.1 按 Z 閃白強度減半;v0.39 標題頁:手繪像素標誌(冷鋼斜體)、10 王裂月場景加鏡面倒影、插地步槍綁圍巾、標誌光澤、遠景轟炸機、按 Z 閃白 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -4314,10 +4314,12 @@ function b10DieDraw(b,o,C,t){                      // 跪地期間的裂縫(紅�
   const n=clamp((t-12)/44,0,1),e=t>56?0.5+0.5*Math.sin(t*0.6):0;
   for(const l of B10C.cr){const L=Math.round(l.length*n);for(let i=0;i<L;i++){const [x,y]=l[i],X=o.X+(o.fl?C.W-1-x:x);px(X,o.Y+y,1,1,i<L-1?'#8a1a28':'#ff6a6a');}}
   if(n>0){const m=b10Mir(b,'kneel');gl(m.x-2-n*2,m.y-2-n*2,7+n*4,7+n*4,'#ff3a3a',0.12+0.12*n+0.1*e);}}
+/* v0.39.2 傳送門階梯(一般與暗紅共用,純視覺):最下緣固定貼地(y+30),相鄰兩階共用同一條邊界(取整數後相減),所以永遠相連、不重疊;頂端伸縮 ±2,越往下越小。原本五階各自整組浮動 ±2,離地 2~6 像素 */
+function ptStep(x,y,i,s,c){const B=k=>Math.round(y+10+k*4+s*2*(5-k)/5),t=B(i);px(x+8-i*2,t,12+i*4,B(i+1)-t,c);}
 /* ---- 暗紅傳送門(第 1、2 段打倒後):原形狀,暗紅加裂紋、由地面緩慢升起、緩慢脈動 ---- */
 function b10Portal(p){const x=p.x,y=p.y,rise=Math.min(1,p.t/50),s=Math.sin(p.t*0.03),base=y+34,top=Math.round(base-(46*rise));
   ctx.save();ctx.beginPath();ctx.rect(x-12,top,56,base-top+1);ctx.clip();
-  for(let i=0;i<5;i++){ctx.globalAlpha=.25+i*0.12;px(x+8-i*2,y+6+i*4+s*2,12+i*4,4,'#5a0e18');}ctx.globalAlpha=1;
+  for(let i=0;i<5;i++){ctx.globalAlpha=.25+i*0.12;ptStep(x,y,i,s,'#5a0e18');}ctx.globalAlpha=1;
   px(x+10,y+2,10,28,'#6a1420');px(x+11,y+2,1,28,'#8a2030');
   for(let j=0;j<28;j++){const cx=x+14+((j>>2)&1?1:0)+(j%7===3?1:0);px(cx,y+2+j,1,1,'#1a0306');if(j%5===1)px(cx+1,y+2+j,1,1,'#2a0408');}   // 裂紋
   ctx.globalAlpha=0.35+0.25*(0.5+0.5*s);for(let j=0;j<28;j+=2){const cx=x+15+((j>>2)&1?1:0);px(cx,y+2+j,1,1,'#d04050');}ctx.globalAlpha=1;
@@ -5710,7 +5712,7 @@ function drawMisc(){
   if(portal&&portal.seg)b10Portal(portal);   // v0.22 暗紅傳送門正式外觀
   else if(portal){const x=portal.x,y=portal.y,s=Math.sin(portal.t*0.08),c1=portal.seg?'#8a1a24':'#7affd0',c2=portal.seg?'#d04050':'#d0fff0'; // v0.22 暗紅傳送門(暫用換色)
     for(let i=0;i<5;i++){ctx.globalAlpha=.25+i*0.12;
-      px(x+8-i*2,y+6+i*4+s*2,12+i*4,4,c1);ctx.globalAlpha=1;}
+      ptStep(x,y,i,s,c1);ctx.globalAlpha=1;}
     px(x+10,y+2,10,28,c2);
     for(let i=0;i<5;i++)px(x+13-i,y-12+i*2,2+i*2,2,c1); // 箭頭改像素三角形(v0.3):寬 2~10、高 10,位置同原 ▲ 字元
   }
