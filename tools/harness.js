@@ -122,6 +122,18 @@ async function tshot(pre,file){
   console.log('已存',pre+'-main/shine/ls.png','錯誤',errs.length?errs:'無');await br.close();return errs.length+(ok?0:1);
 }
 
+// v0.41 選關頁:截選關頁(游標在第 3 格)與標題頁各一張,檢查 10 格縮圖與編號都已烘焙、分頁小圖示已設定
+async function lsshot(pre,file){
+  const {br,pg,errs}=await open(file,{width:1024,height:576});pre=pre||path.join(ROOT,'preview','ls41');
+  await pg.evaluate(()=>{toTitle();G.t=100;render();});await pg.waitForTimeout(400);await pg.evaluate(()=>render());await pg.screenshot({path:pre+'-title.png'});
+  const r=await pg.evaluate(()=>{anyTap=true;for(let i=0;i<30;i++)update();render();render();
+    const l=document.querySelector('link[rel=icon]');return {st:G.state,th:LST.filter(Boolean).length,nm:LSN.filter(Boolean).length,fav:!!l&&l.href.startsWith('data:image/png')};});
+  await pg.screenshot({path:pre+'-ls.png'});
+  const ok=r.st==='levelselect'&&r.th===10&&r.nm===10&&r.fav;
+  console.log((ok?'OK ':'錯誤')+' 縮圖 '+r.th+'/10 編號 '+r.nm+'/10 分頁小圖示 '+(r.fav?'已設定':'缺'));
+  console.log('已存',pre+'-title/ls.png','錯誤',errs.length?errs:'無');await br.close();return errs.length+(ok?0:1);
+}
+
 // v0.40 手繪大字:進關數字(含 BOSS)、WARNING、VICTORY、GAME OVER、GAME FINISH 各截一張,並檢查 50 個關卡編號都烘得出來、寬度不超出畫面
 async function bigtxt(pre,file){
   const {br,pg,errs}=await open(file,{width:1024,height:576});pre=pre||path.join(ROOT,'preview','big');
@@ -1675,6 +1687,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='vis')bad=await vis(a[0],a[1]);
   else if(cmd==='perfpage')bad=perfpage(a[0]);
   else if(cmd==='bigtxt')bad=await bigtxt(a[0],a[1]);
+  else if(cmd==='lsshot')bad=await lsshot(a[0],a[1]);
   else if(cmd==='entry')bad=await entry(a[0]);
   else if(cmd==='b5mx')bad=await b5mx(a[0],a[1]);
   else if(cmd==='qcmp')bad=await qcmp(a[0],a[1],a[2]);

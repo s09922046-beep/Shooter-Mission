@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.40 手繪大字:進關數字、BOSS、WARNING(加黃黑警示帶)、VICTORY、GAME OVER、GAME FINISH 改與標題同一套冷鋼斜體、各字換色;前一版 v0.39.2 傳送門階梯貼地(最下緣接地、各階相連伸縮);前一版 v0.39.1 按 Z 閃白強度減半;v0.39 標題頁:手繪像素標誌(冷鋼斜體)、10 王裂月場景加鏡面倒影、插地步槍綁圍巾、標誌光澤、遠景轟炸機、按 Z 閃白 -->
+<!-- VERSION: v0.41 選關格改場景縮圖加左上角編號、標題 PIXEL 小字加高削細(P 有中空)、分頁小圖示(主角頭像);前一版 v0.40 手繪大字:進關數字、BOSS、WARNING(加黃黑警示帶)、VICTORY、GAME OVER、GAME FINISH 改與標題同一套冷鋼斜體、各字換色;前一版 v0.39.2 傳送門階梯貼地(最下緣接地、各階相連伸縮);前一版 v0.39.1 按 Z 閃白強度減半;v0.39 標題頁:手繪像素標誌(冷鋼斜體)、10 王裂月場景加鏡面倒影、插地步槍綁圍巾、標誌光澤、遠景轟炸機、按 Z 閃白 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -5886,14 +5886,14 @@ function ttlGlyph(ch,w,h,t,c){                     // 回傳 {w,add,sub}:w 字�
     case'W':{w=Math.round(w*1.45);const a=Math.round((w-tt)*0.25),cx=(w-tt)/2,ty=Math.round(h*0.3);return{w,add:[dg(0,0,a,h),dg(cx,ty,a,h),dg(cx,ty,w-tt-a,h),dg(w-tt,0,w-tt-a,h)],sub:[]};}
     case'Y':{const cx=(w-tt)/2;return{w,add:[dg(0,0,cx,m),dg(w-tt,0,cx,m),R((w-t)/2|0,m-2,t,h-m+2)],sub:[]};}
     case'0':return{w,add:[oct(0,0,w,h,c)],sub:[R(t,t,w-2*t,h-2*t)]};
-    case'1':{const fl=Math.round(t*0.55),fh=Math.round(t*0.7);w=t+fl;return{w,add:[[[0,0],[w,0],[w,h],[w-t,h],[w-t,fh],[0,fh]]],sub:[]};}   // 左上小勾縮短(使用者 11/14:斜體下原本的長勾像 7)
+    case'1':{const fl=Math.max(2,Math.round(t*0.55)),fh=Math.max(2,Math.round(t*0.7));w=t+fl;return{w,add:[[[0,0],[w,0],[w,h],[w-t,h],[w-t,fh],[0,fh]]],sub:[]};}   // 左上小勾縮短(使用者 11/14:斜體下原本的長勾像 7)
     case'2':return{w,add:[oct(0,0,w,Y1+t,c),R(0,Y1,w,h-Y1)],sub:[...HO(),R(0,t+K,t,Y1-t-K),R(w-t,Y1+t,t,h-Y1-2*t)]};
     case'3':return{w,add:[oct(0,0,w,Y1+t,c),oct(0,Y1,w,h-Y1,c)],sub:[...HO(),R(0,t+K,t,Y1-t-K),R(0,Y1+t,t,h-Y1-2*t-K)]};
     case'4':return{w,add:[R(w-t,0,t,h),R(0,0,t,Y1+t),R(0,Y1,w,t)],sub:[]};
     case'5':return{w,add:[R(0,0,w,Y1+t),oct(0,Y1,w,h-Y1,c)],sub:[...HO(),R(w-t,t,t,Y1-t),R(0,Y1+t,t,h-Y1-2*t-K)]};
     case'6':return{w,add:[oct(0,0,w,h,c)],sub:[...HO(),R(w-t,t+K,t,Y1-t-K)]};
     case'7':return{w,add:[R(0,0,w,t),dg(w-tt,0,Math.round(w*0.2),h)],sub:[]};
-    case'8':return{w,add:[[[c,0],[w-c,0],[w,c],[w,m-3],[w-2,m],[w,m+3],[w,h-c],[w-c,h],[c,h],[0,h-c],[0,m+3],[2,m],[0,m-3],[0,c]]],sub:HO()};
+    case'8':{const d=Math.min(2,t-1);return{w,add:[[[c,0],[w-c,0],[w,c],[w,m-3],[w-d,m],[w,m+3],[w,h-c],[w-c,h],[c,h],[0,h-c],[0,m+3],[d,m],[0,m-3],[0,c]]],sub:HO()};}   // 腰部凹口深度不超過筆畫(v0.41:筆畫 2 時原本凹穿,8 讀成 3)
     case'9':return{w,add:[oct(0,0,w,h,c)],sub:[...HO(),R(0,Y1+t,t,h-Y1-2*t-K)]};
     case'-':{const p=Math.round(t*0.3);w=Math.round(w*0.5)+2*p;return{w,add:[R(p,Y1,w-2*p,t)],sub:[]};}   // 兩側留白,斜體下不與數字的陰影相連
     default:return{w:Math.round(w*0.45),add:[],sub:[]};
@@ -5910,10 +5910,10 @@ function ttlPaint(x,xm,M,ox,oy,st){const {m,w,h,P,gh}=M,at=(a,b)=>a>=0&&b>=0&&a<
   if(xm)xm.fillStyle='#ffffff';
   for(let b=0;b<h;b++)for(let a=0;a<w;a++)if(at(a,b)){let c=st.fill((b-P)/gh,a,b);if(st.bev){if(!at(a,b-1))c=st.bt===undefined?'#ffffff':st.bt||c;else if(!at(a,b+1))c=st.bb||'#1c2a52';}put(a,b,c);if(xm)xm.fillRect(ox+a,oy+b,1,1);}}   // v0.40:shc 陰影色、bt/bb 上下緣倒角色可換(預設為標題原色;bt 給 0 不畫上緣),xm 可省略
 function ttlBake(){
-  const big=ttlMask('STRIKE FORCE',{w:27,h:36,t:8,c:4,gap:3,sh:0.2}),sm=ttlMask('PIXEL',{w:13,h:15,t:4,c:2,gap:2,sh:0.2});
-  const lw=big.w+4,lh=big.h+19,[lc,lx]=mkCv(lw,lh),[mc,mx]=mkCv(lw,lh),[sc,sx]=mkCv(lw,lh),[bc]=mkCv(W,H);
+  const big=ttlMask('STRIKE FORCE',{w:27,h:36,t:8,c:4,gap:3,sh:0.2}),sm=ttlMask('PIXEL',{w:15,h:18,t:3,c:2,gap:3,sh:0.2});   // v0.41(使用者選 P2):字高 15→18、筆畫 4→3、字距 2→3,P 的圈內才有中空(原本剩 0 像素)
+  const lw=big.w+4,lh=big.h+22,[lc,lx]=mkCv(lw,lh),[mc,mx]=mkCv(lw,lh),[sc,sx]=mkCv(lw,lh),[bc]=mkCv(W,H);
   const band=[[.14,'#f4f8ff'],[.30,'#cfe0fa'],[.44,'#9ab4e6'],[.50,'#5a78c0'],[.56,'#16204a'],[.66,'#33488c'],[.80,'#5a78c0'],[.92,'#9ab4e6'],[2,'#cfe0fa']];   // 鉻面:上半天空、中間地平線暗帶、下半反光
-  ttlPaint(lx,mx,big,0,17,{so:3,bev:1,fill:(f,a,b)=>{let i=0;while(f>=band[i][0])i++;if(i<8&&band[i][0]-f<0.035&&((a+b)&1)&&i!==3&&i!==4)i++;return band[i][1];}});
+  ttlPaint(lx,mx,big,0,20,{so:3,bev:1,fill:(f,a,b)=>{let i=0;while(f>=band[i][0])i++;if(i<8&&band[i][0]-f<0.035&&((a+b)&1)&&i!==3&&i!==4)i++;return band[i][1];}});
   ttlPaint(lx,mx,sm,10,0,{so:1,fill:f=>f<.55?'#f4f8ff':'#aebcd8'});
   TTL={lc,mc,sc,sx,lw,lh,bc,ok:-1};
 }
@@ -5952,7 +5952,8 @@ function ttlScarf(t){{const X=150,gy=224;                   // 槍口朝下插�
       px(X,gy-17,2,17,'#1c2030');px(X-1,gy-27,4,11,'#3a4052');px(X-1,gy-27,1,11,'#5a6480');px(X-2,gy-33,5,7,'#262a3a');px(X-2,gy-33,5,1,'#4a5270');px(X+2,gy-22,2,3,'#262a3a');
       ttlRibbon(X+1,gy-25,30,t,1);ctx.restore();}ctx.globalAlpha=1;}}   // 使用者 11/14 選定;未採用:掛在殘柱、隨風飄過
 function ttlDraw(){
-  if(!TTL)ttlBake();ttlBg();const t=G.t,L=TTL,lx=Math.round(W/2-L.lw/2)+1,ly=91;
+  if(!TTL)ttlBake();ttlBg();const t=G.t,L=TTL,lx=Math.round(W/2-L.lw/2)+1,ly=88;   // v0.41:PIXEL 加高 3,標誌圖上移 3,STRIKE FORCE 位置不變
+ 
   ctx.drawImage(L.bc,0,0);gl(B10MX-30,B10MY-30,60,60,'#8a96c8',0.07);PXD=1;
   const pt=t%1100;if(pt<560){const X=Math.round(-24+pt),Y=Math.round(52-pt*0.02);      // 遠景轟炸機:深色小剪影自左向右橫越,經過月面時最明顯
     px(X,Y,13,2,'#0a0c18');px(X+4,Y-1,5,4,'#0a0c18');px(X,Y-2,2,2,'#0a0c18');px(X+12,Y,2,1,'#0a0c18');px(X+5,Y,3,1,'#8e1c2c');px(X-1,Y,1,1,(t>>2)&1?'#ff9a3a':'#ffd070');}
@@ -5966,6 +5967,29 @@ function ttlDraw(){
   if((t>>4)&1)txt('按 Z 開始',W/2,236,'#ffe9a0',12,'center',1);
   txt('方向鍵 移動   Z 射擊   X 跳躍   C 特攻',W/2,266,'#7a88a8',9,'center',1);
 }
+/* ---- v0.41 選關格(使用者 11/14 選 C1,純視覺):每格是該大關的場景縮圖(天空、光源、遠景、中景、地面,顏色取自 THEME 與 LIT),左上角放平塗白的斜體關卡編號,外框用該關主題光色。
+   縮圖與編號各烘一次,每幀每格貼兩張圖。光源一律放右半邊,避開左上角的編號(第 2、5、6、8、10 關因此與實際位置不同)。 */
+const LST=[],LSN=[];
+function lsThumb(i,w,h){if(LST[i])return LST[i];const [c,x]=mkCv(w,h),T=THEME[i],L=LIT[i],s0=L.sky?L.sky[0]:T.sky,s1=L.sky?L.sky[1]:T.far,gy=h-12;
+  x.fillStyle=s0;x.fillRect(0,0,w,h);x.fillStyle=s1;
+  for(let y=8;y<gy;y++)for(let X=0;X<w;X++)if(BAYER[(y&3)*4+(X&3)]<(y-8)*14/(gy-8))x.fillRect(X,y,1,1);        // 天空往地平線抖色漸層
+  if(L.star){x.fillStyle=L.star;for(let k=0;k<9;k++)x.fillRect((k*37+i*13)%w,(k*11+i*5)%14+1,1,1);}
+  const l0=Math.round(L.gx/512*w),lx=l0<30?w-l0:Math.max(l0,60),ly=Math.min(gy-6,Math.round(L.gy/288*h)+3),r=Math.max(3,Math.round(L.gr/9));
+  const disc=(R,a)=>{x.globalAlpha=a;for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++)if(dx*dx+dy*dy<=R*R+R*0.5)x.fillRect(lx+dx,ly+dy,1,1);x.globalAlpha=1;};
+  x.fillStyle=L.c;disc(r+2,0.22);disc(r,0.9);
+  x.fillStyle=T.far;for(let X=0;X<w;X++){const hh=3+(((X/6|0)*53+i*29)%7);x.fillRect(X,gy-hh,1,hh);}               // 遠景剪影
+  x.fillStyle=T.mid;for(let X=0;X<w;X++){const hh=1+(((X/9|0)*31+i*17)%5);x.fillRect(X,gy-hh,1,hh);}               // 中景剪影
+  x.fillStyle=T.gr;x.fillRect(0,gy,w,2);x.fillStyle=T.gr2;x.fillRect(0,gy+2,w,h);                                   // 地面:表層加本體
+  x.globalAlpha=0.3;x.fillStyle='#05060a';for(let X=((i*5)%11);X<w;X+=11)x.fillRect(X,gy+2,1,h);x.fillRect(0,gy+7,w,1);x.globalAlpha=1;
+  return LST[i]=c;}
+function lsCell(i,bx,by,bw,bh){ctx.drawImage(lsThumb(i,bw,bh),bx,by);
+  let e=LSN[i];if(!e){const M=ttlMask((i+1)+'-1',{w:9,h:12,t:2,c:2,gap:2,sh:0.2}),[c,x]=mkCv(M.w+4,M.h+4);   // 字高 12、筆畫 2;這個尺寸做鉻面會糊,用平塗
+    ttlPaint(x,null,M,1,1,{so:1,shc:'#05060a',bev:1,bt:0,bb:'#5a78c0',fill:f=>f<.5?'#f4f8ff':'#aebcd8'});e=LSN[i]=c;}
+  ctx.drawImage(e,bx-3,by-3);PXD=1;                  // 字面左上在格內 (4,4)
+  ctx.lineWidth=1;ctx.strokeStyle='#05060a';ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);ctx.strokeStyle=LIT[i].c;ctx.strokeRect(bx-.5,by-.5,bw+1,bh+1);}
+/* v0.41 分頁小圖示(使用者選 1:主角頭像加深藍底與藍框):由主角精靈在載入時產生 32×32 圖(16×16 放大 2 倍),不載入任何外部檔案 */
+(()=>{const [c,x]=mkCv(32,32);x.imageSmoothingEnabled=false;x.fillStyle='#5a78c0';x.fillRect(0,0,32,32);x.fillStyle='#0c1228';x.fillRect(2,2,28,28);
+  x.drawImage(PSPR.idle[0][0],2,8,12,12,4,4,24,24);const l=document.createElement('link');l.rel='icon';l.href=c.toDataURL();document.head.appendChild(l);})();
 function drawOverlays(){
   const mc=mSel();   // v0.29 目前選單的游標(切換選單時重設)
   if(G.state==='title'){
@@ -5984,9 +6008,7 @@ function drawOverlays(){
     for(let i=0;i<10;i++){
       const col=i%cols,row=Math.floor(i/cols);
       const bx=x0+col*(bw+gap),by=y0+row*(bh+gap);
-      px(bx,by,bw,bh,'#152238');ctx.strokeStyle='#5a7aa8';ctx.lineWidth=1;ctx.strokeRect(bx+.5,by+.5,bw-1,bh-1);
-      txt('從 '+(i+1)+'-1',bx+bw/2,by+8,'#ffffff',12,'center'); // v0.38 像素字:兩行各 11 高、間隔 5,框高 46 內垂直置中
-      txt('開始',bx+bw/2,by+24,'#9fb0d0',12,'center');
+      lsCell(i,bx,by,bw,bh);   // v0.41 場景縮圖加左上角關卡編號(原:深藍底加「從 X-1 開始」兩行字)
       mMark(bx,by,bw,bh,mc===i+1);
     }
     mHint(y0+2*bh+gap+16);

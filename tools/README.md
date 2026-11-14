@@ -11,6 +11,7 @@
 | `node tools/harness.js wkeep` | 撿武器箱選「不替換」留在原地(留著、小跳、離開後再碰才再問、Esc 同樣)、王關進關暗幕期間不畫 WARNING(v0.38.1)。改動道具拾取或進關字幕後必跑 |
 | `node tools/harness.js tshot [前綴]` | 標題頁截圖(v0.39):主畫面(轟炸機經過月面)、標誌光澤、按 Z 後的閃白,並檢查標誌已烘焙、按 Z 當幀進選關。改動標題頁後必跑 |
 | `node tools/harness.js bigtxt [前綴]` | 手繪大字截圖(v0.40):進關數字(10-5 含 BOSS、1-1)、WARNING、VICTORY、GAME OVER、GAME FINISH,並檢查 50 個關卡編號與四個大字都烘得出來、寬度不超出畫面。改動大字或 ttlGlyph 後必跑 |
+| `node tools/harness.js lsshot [前綴]` | 選關頁與標題頁截圖(v0.41),並檢查 10 格場景縮圖與關卡編號都已烘焙、分頁小圖示已設定。改動選關頁、標題標誌或 ttlGlyph 後必跑 |
 | `node tools/harness.js wvis` | 己方子彈與槍口火光可見性(v0.28.1):每大關衝鋒槍、散彈 1~4 階開槍,比對有子彈與清空子彈兩次繪製的輸出畫面像素差,並計繪製呼叫次數。改動 render 或武器視覺後必跑 |
 | `node tools/harness.js vis [輸出.png]` | 主角、敵彈、傳送門可見性(11/13):每大關 1~4 小關、各王(10 王三段)取樣,同一幀畫兩次(有該物件/拿掉)比對輸出畫面的像素差,RGB 距離 >12 算畫到、>=64 算清楚;主角站在危險區裡被蓋住另計;給輸出檔名時存最差 24 格放大拼圖。只回報不判失敗 |
 | `node tools/harness.js perfpage` | 產生桌機實測頁 preview/perf-test.html(不提交):控制列可跳到第 10 大關或各王、無限命、魔王剩 5%(B)、特攻充滿(N)、換 Lv4 武器,F4 收起,固定高畫質 |
