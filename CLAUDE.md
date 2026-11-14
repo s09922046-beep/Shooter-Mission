@@ -37,7 +37,7 @@
 - `design-decisions.md`、`CLAUDE.md`、`claude/`、`tools/` 都要納入版控。它們就是長期記憶,不在 git 裡就沒有備份。
 - 每個版本提交後打 tag `vX.Y`,方便退版。
 - 不得 force push,不得改寫 `dev` 或 `main` 的歷史,不刪除遠端分支(需要刪時請使用者在 GitHub 操作)。
-- `main` 是發佈分支,只在使用者明確說「發佈」時把 `dev` 合併進去,平時不碰。使用者已決定:全部工作項目做完才發佈,中途不發佈。目前 `main` 仍是 9/29 視覺升級前的舊版。
+- `main` 是發佈分支,只在使用者明確說「發佈」時把 `dev` 合併進去,平時不碰。11/14 已發佈 v0.43。根目錄另有 `index-original.html`(9/29 視覺升級前的原版,名稱後加註 (original),與新版平行發佈,不再修改;「單一檔案」規則指的是 `index.html` 本身)。
 - 未定案的預覽與實驗推到 `wip/...` 分支,不推 `dev`;定案後再以正式版本提交 `dev`。用完的 `wip` 分支請使用者刪除。
 - 生成圖原檔放 `art-src/` 並提交,`index.html` 只含縮小後的 base64。
 - `.gitignore` 要包含 `node_modules/` 與 `preview/`,這兩個資料夾不提交。
