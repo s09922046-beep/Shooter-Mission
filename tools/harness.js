@@ -37,7 +37,7 @@ async function open(file,vp){
   // 共用輔助:進關、推進幀(主角無敵)、按一次特攻、移到敵人最密段
   await pg.evaluate(()=>{
     window.HX={
-      go(w,s){resetRun();G.world=w;G.sub=s;startLevel();G.modal=null;G.state='play';},
+      go(w,s){resetRun();G.world=w;G.sub=s;startLevel();if(window.lvGenG)wqFlush();G.modal=null;G.state='play';},   // v0.45 小關生成改在暗幕分幀,直接進遊玩前先做完
       // v0.22:10 王第 n 段(新版三段分開打用 startBoss(0,n);v0.21 以前用血量觸發型態切換)。回傳時登場已結束
       p3(){if(BOSSES[9].segs){HX.go(10,5);startBoss(0,3);G.state='play';HX.run(185);}else{HX.go(10,5);HX.run(320);boss.ph=2;boss.hp=boss.max*0.3;HX.run(2);}},
       run(n,draw){for(let i=0;i<n;i++){P.inv=999;P.lives=5;update();if(draw)render();}},
@@ -1646,6 +1646,95 @@ async function b1reach(file){const {br,pg,errs}=await open(file);
       out[lab]={'左鐵鍊跳中間平台':ok+'/'+tot,'可起跳的主角高度 y(37=鍊頂,數字越大越低)':okH.length?okH[0]+'~'+low+'(共 '+okH.length+' 檔/26)':'無','中間平台跳上方平台':up+'/'+upT,'可起跳的 x':upX.length?upX[0]+'~'+upX[upX.length-1]:'無'};}
     return out;});
   console.log(JSON.stringify(r,null,1),'錯誤',errs.length?errs:'無');await br.close();return errs.length;}
+/* v0.45 主角移動抽成 pPhys 後行為不變:舊版產生的 40 張地圖、同一串隨機按鍵(另一輪加傳送帶推力),新舊版逐幀比對主角 x、y、vx、vy、攀爬、著地、朝向 */
+async function physeq(fa,fb){
+  const SEED=`window.SEEDF=k=>{let a=k*2654435761>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};};`;
+  const A=await open(fa),B=await open(fb);await A.pg.evaluate(SEED);await B.pg.evaluate(SEED);
+  const maps=await A.pg.evaluate(()=>{const o=[];for(let w=1;w<=10;w++)for(let s=1;s<=4;s++){Math.random=SEEDF(w*10+s);HX.go(w,s);o.push({w:map.w,d:Array.from(map.d),sy:P.y});}return o;});
+  const run=pg=>pg.evaluate(M=>{const out=[];
+    for(let i=0;i<M.length;i++)for(const cv of [0,-0.84]){const m=M[i];newMap(m.w);map.d.set(m.d);ens=[];items=[];ebul=[];hazs=[];boss=null;G.state='play';G.modal=null;G.invertT=0;
+      Object.assign(P,{x:32,y:m.sy,vx:0,vy:0,climb:false,onG:false,fl:0,face:1,safeX:32,safeY:m.sy});const r=SEEDF(i*7+(cv?3:1));let hold={l:0,r:0,u:0,d:0,j:0},tr='';
+      for(let f=0;f<1500;f++){for(const k in hold)if(--hold[k]<=0){K[k]=r()<(k==='r'?0.55:k==='j'?0.25:0.3)?1:0;hold[k]=1+Math.floor(r()*(k==='j'?12:30));}
+        G.conveyor=cv;P.inv=999;P.lives=5;edges();updatePlayer();tr+=[P.x,P.y,P.vx,P.vy,+P.climb,+P.onG,P.face].join(',')+';';}
+      out.push(tr);}
+    for(const k in K)K[k]=0;G.conveyor=0;return out;},maps);
+  const ta=await run(A.pg),tb=await run(B.pg);let diff=0,first='',clim=0;
+  for(let i=0;i<ta.length;i++){clim+=(ta[i].match(/,1,[01],-?1;/g)||[]).length;if(ta[i]!==tb[i]){diff++;if(!first){const x=ta[i].split(';'),y=tb[i].split(';');const f=x.findIndex((v,j)=>v!==y[j]);first=`地圖 ${i>>1} 傳送帶 ${i&1} 第 ${f} 幀:舊 ${x[f]} 新 ${y[f]}`;}}}
+  console.log(`physeq ${ta.length} 段 × 1500 幀(其中攀爬 ${clim} 幀):不同 ${diff} 段`+(first?'\n首個差異 '+first:''));
+  console.log('錯誤',A.errs.concat(B.errs).length?A.errs.concat(B.errs).slice(0,3):'無');await A.br.close();await B.br.close();return diff+A.errs.length+B.errs.length;
+}
+/* v0.45 小關可通關檢查:
+   1 故意卡關圖:手工建的地圖(寬坑無平台、高牆無繩、高台拿掉繩)檢查器必須判「過不去」,補上元件後必須判「過得去」;
+     另以遊戲本身的 updatePlayer 按鍵暴力測同一批圖(各起跳點、起跳時機、按住右、抓繩),核對與檢查器一致。
+   2 統計:每大關 1~4 小關各 N 個種子實際進關,回報整張重抽、分段重抽、改放平地、耗時、獎勵高台。
+   3 獨立複驗(第 1 個種子):成品地圖從出生點跑全圖搜尋;每塊平台、每條繩拿掉後再跑全圖,仍過得去即為多餘(獎勵高台另驗上得去、拿掉繩上不去)。 */
+async function lvreach(n,file){
+  const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(N=>{const o={demo:[],brute:[],stat:{},bad:[]};
+    const seed=k=>{let a=k*2654435761>>>0;Math.random=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};};
+    const groundAt=()=>{const c=[];for(let x=0;x<map.w;x++)for(let y=0;y<GH;y++)if(T(x,y)===1){c.push({x,y});break;}return c;};
+    const spawn=()=>{const b=lvBody(32,(gyStart(groundAt().filter(c=>c.x>=1))-1)*TS);for(let i=0;i<12&&!b.onG;i++)pPhys(b,0,0,0,0,0,0,0);return b;};
+    const fullOK=(lim)=>{const L0=LV.lim;LV.lim=lim||LV.lim;const R={n:0};const ok=lvSearch(spawn(),lvGoal(),0,R);LV.lim=L0;return {ok,n:R.n,over:!!R.over};};
+    // 1 故意卡關圖(地面第 12 列;起點在第 2 欄)
+    const W=60,mk=f=>{newMap(W);fillR(0,0,0,GH-1,1);fillR(W-1,0,W-1,GH-1,1);f();};
+    const CASES=[
+      ['寬坑 6 格(第 20~25 欄),沒有平台',()=>{fillR(1,12,19,GH-1,1);fillR(26,12,58,GH-1,1);},0],
+      ['同上,第 22 欄第 10 列加 1 塊平台',()=>{fillR(1,12,19,GH-1,1);fillR(26,12,58,GH-1,1);setT(22,10,3);},1],
+      ['寬坑 4 格(第 20~23 欄),沒有平台',()=>{fillR(1,12,19,GH-1,1);fillR(24,12,58,GH-1,1);},-1],
+      ['高牆 4 格(第 20 欄起頂面第 8 列),沒有繩',()=>{fillR(1,12,19,GH-1,1);fillR(20,8,58,GH-1,1);},0],
+      ['同上,第 19 欄加繩(第 7~11 列)',()=>{fillR(1,12,19,GH-1,1);fillR(20,8,58,GH-1,1);vineAt(19,7,11);},1],
+      ['矮牆 3 格(頂面第 9 列),沒有繩',()=>{fillR(1,12,19,GH-1,1);fillR(20,9,58,GH-1,1);},-1],
+      ['高台主路線:第 8 列第 19~21 欄高台、坑第 20~25 欄,沒有繩',()=>{fillR(1,12,19,GH-1,1);fillR(26,12,58,GH-1,1);fillR(19,8,21,8,3);},0],
+      ['同上,第 19 欄加繩(第 7~11 列)',()=>{fillR(1,12,19,GH-1,1);fillR(26,12,58,GH-1,1);fillR(19,8,21,8,3);vineAt(19,7,11);},1],
+      ['同上但坑加寬到第 20~26 欄(高台末端到對岸 5 格,極限距離)',()=>{fillR(1,12,19,GH-1,1);fillR(27,12,58,GH-1,1);fillR(19,8,21,8,3);vineAt(19,7,11);},-1],
+      ['尖刺 4 格(第 20~23 欄)接寬坑 3 格',()=>{fillR(1,12,19,GH-1,1);fillR(20,13,23,GH-1,1);fillR(20,12,23,12,5);fillR(27,12,58,GH-1,1);},-1]];
+    for(const [lab,f,exp] of CASES){mk(f);const q=fullOK();o.demo.push({lab,exp,got:q.ok?1:0,n:q.n});if(exp>=0&&(q.ok?1:0)!==exp)o.bad.push('卡關圖判斷錯誤:'+lab);
+      // 遊戲本身暴力測:起點第 10~19 欄每 4 像素、按住右、第 k 幀按跳(k=-1 不跳、0~40 每 2 幀),落地後第 d 幀再跳(d=0/4/8/14/不再跳);另一輪跳後按住上(抓到繩就爬到頂再按右);站上第 27 欄以後即過關
+      let ok=0,tot=0;const goal=()=>P.onG&&P.x>27*TS;
+      for(let sx=10*TS;sx<=19*TS+8;sx+=4)for(let k=-1;k<=40;k+=2)for(const up of [0,1])for(const d of [0,4,8,14,-1]){mk(f);ens=[];items=[];boss=null;G.state='play';G.modal=null;G.conveyor=0;
+        Object.assign(P,{x:sx,y:12*TS-P.h,vx:0,vy:0,climb:false,onG:true,fl:0,inv:999,safeX:sx,safeY:12*TS-P.h});for(const kk in K)K[kk]=0;edges();
+        let win=0,ct=0,lt=-1;for(let t=0;t<300&&!win;t++){if(k>=0&&t>k+2&&P.onG&&lt<0)lt=t;K.r=1;K.j=t===k||(d>=0&&lt>=0&&t===lt+d)?1:0;if(K.j&&t!==k)lt=-2;K.u=up&&t>k+3?1:0;if(P.climb){ct++;K.r=0;K.u=1;}else if(ct)K.u=0;
+          P.inv=999;edges();updatePlayer();if(P.y>map.h*TS||P.lives<5&&false)break;if(!P.climb&&tileKind(P.x,P.y+2,P.w,P.h,5))break;if(goal())win=1;}
+        tot++;ok+=win;}
+      for(const kk in K)K[kk]=0;
+      o.brute.push({lab,ok,tot});if(exp===0&&ok>0)o.bad.push('檢查器判過不去,但遊戲按鍵過得去:'+lab);if(q.ok&&ok===0)o.bad.push('(提醒)檢查器判過得去,暴力按鍵組沒有成功:'+lab);}
+    // 2 統計
+    const ST={lv:0,tries:0,multi:0,rr:0,fb:0,tail:0,slice:0,ms:0,msMax:0,msMaxAt:'',fail:0,rw:0,n:0,why:{}};const PW={};
+    for(let k=1;k<=N;k++)for(let w=1;w<=10;w++)for(let s=1;s<=4;s++){seed(k*1000+w*10+s);HX.go(w,s);const q=LV.st;
+      ST.lv++;ST.tries+=q.tries;if(q.tries>1)ST.multi++;ST.rr+=q.rr;ST.fb+=q.fb;ST.tail+=q.tail||0;ST.slice=Math.max(ST.slice,q.slice||0);ST.ms+=q.ms;if(q.ms>ST.msMax){ST.msMax=q.ms;ST.msMaxAt=w+'-'+s+' 種子'+k;}ST.n+=q.n;if(!q.ok){ST.fail++;o.bad.push(`${w}-${s} 種子${k} 全圖不通(重抽 ${q.tries} 次後仍不通)`);}if(q.rw)ST.rw++;
+      for(const y of q.why)ST.why[y]=(ST.why[y]||0)+1;
+      const p=PW[w]||(PW[w]={lv:0,rr:0,ms:0});p.lv++;p.rr+=q.rr;p.ms+=q.ms;}
+    o.stat={...ST,PW};
+    // 3 獨立複驗(種子 1):全圖搜尋 + 每個元件拿掉後全圖搜尋
+    const chk={lv:0,el:0,need:0,extra:[],rwOK:0,rwT:0,over:0};
+    for(let w=1;w<=10;w++)for(let s=1;s<=4;s++){seed(1000+w*10+s);HX.go(w,s);chk.lv++;
+      const base=fullOK(4e6);if(!base.ok)o.bad.push(`${w}-${s} 複驗:全圖不通`);
+      const els=[];const seen=new Set();
+      for(let x=1;x<map.w-1;x++)for(let y=0;y<GH;y++){const t=T(x,y),k=x+','+y;if(seen.has(k))continue;
+        if(t===3&&!vinePass(x,y)){const c=[];let xx=x;while(T(xx,y)===3){c.push([xx,y]);seen.add(xx+','+y);xx++;}els.push({t:'平台',c,x,y});}
+        else if(t===2){const c=[];let yy=y;while(T(x,yy)===2||vinePass(x,yy)){if(T(x,yy)===2)c.push([x,yy]);seen.add(x+','+yy);yy++;}els.push({t:'繩',c,x,y});}}
+      const it=items.find(i=>i.vy===0&&i.t===0);   // 獎勵道具(生成時 vy=0)
+      const isRw=e=>it&&e.c.some(([cx,cy])=>Math.abs(cx*TS+8-(it.x+6))<40&&(e.t==='平台'?cy*TS===it.y+12:true));
+      for(const e of els){if(isRw(e))continue;chk.el++;const q=lvWithout(e.c,()=>fullOK(4e6));if(q.over)chk.over++;
+        if(q.ok){let m=`${w}-${s} ${e.t} 第 ${e.x} 欄第 ${e.y} 列(下圖第 ${e.x-18}~${e.x+8} 欄、第 1~13 列;X 實心 = 平台 ~ 繩 * 尖刺)`;if(chk.extra.length<4)for(let y=1;y<14;y++){m+='\n   '+String(y).padStart(2)+' ';for(let x=e.x-18;x<=e.x+8;x++)m+='.X~=w*'[T(x,y)];}chk.extra.push(m);}else chk.need++;}
+      if(it){chk.rwT++;const row=(it.y+12)/TS;const rg=q=>q.onG&&Math.floor((q.y+q.h+1)/TS)===row&&Math.abs(q.x+5-(it.x+6))<24;
+        const L0=LV.lim;LV.lim=4e6;const up=lvSearch(spawn(),rg,0,{n:0});
+        const vn=els.find(e=>e.t==='繩'&&isRw(e));const noV=vn?lvWithout(vn.c,()=>lvSearch(spawn(),rg,0,{n:0})):true;LV.lim=L0;
+        if(up&&!noV)chk.rwOK++;else o.bad.push(`${w}-${s} 獎勵高台:上得去 ${up} 拿掉繩仍上得去 ${noV}`);}}
+    if(chk.extra.length)o.bad.push('多餘元件 '+chk.extra.length+' 個');
+    o.chk=chk;return o;},+n||5);
+  console.log('== 1 故意卡關圖(檢查器 / 遊戲本身 updatePlayer 暴力按鍵) ==');
+  r.demo.forEach((d,i)=>{const b=r.brute[i];console.log(`${d.got?'過得去':'過不去'}${d.exp<0?'':d.exp===d.got?'(符合預期)':'(與預期不符)'}  遊戲按鍵 ${b.ok}/${b.tot} 組成功  ${d.lab}  [模擬 ${d.n} 步]`);});
+  const s=r.stat;console.log(`== 2 統計 ${s.lv} 張(每大關 1~4 小關 × ${s.lv/40} 種子) ==`);
+  console.log(`整張重抽:平均 ${(s.tries/s.lv-1).toFixed(3)} 次/張(有重抽的 ${s.multi} 張),全圖仍不通 ${s.fail} 張`);
+  console.log(`分段重抽:平均 ${(s.rr/s.lv).toFixed(2)} 次/張;6 次都不合格改放平地 ${s.fb} 段;關尾空間不足改放平地 ${s.tail} 段(不算重抽);原因 ${JSON.stringify(s.why)}`);
+  console.log(`生成耗時(沙盒,含檢查):平均 ${(s.ms/s.lv).toFixed(1)} ms,最長 ${s.msMax.toFixed(1)} ms(${s.msMaxAt});最長單次分幀 ${s.slice.toFixed(1)} ms;平均模擬 ${Math.round(s.n/s.lv)} 步/張;有獎勵高台 ${s.rw} 張`);
+  console.log('各大關平均(分段重抽 / ms):'+Object.entries(s.PW).map(([w,p])=>`${w}:${(p.rr/p.lv).toFixed(1)}/${(p.ms/p.lv).toFixed(0)}`).join('  '));
+  const c=r.chk;console.log(`== 3 獨立複驗 ${c.lv} 張 == 元件 ${c.el} 個,拿掉後全圖過不去 ${c.need} 個,多餘 ${c.extra.length} 個(搜尋超過步數上限 ${c.over} 次);獎勵高台 ${c.rwOK}/${c.rwT} 合格`);
+  if(c.extra.length)console.log(c.extra.slice(0,20).join('\n'));
+  console.log(r.bad.length?'未通過:\n'+r.bad.slice(0,30).join('\n'):'全部通過');
+  console.log('錯誤',errs.length?errs.slice(0,3):'無');await br.close();return r.bad.length+errs.length;
+}
 // v0.26 9 王:核對兩項授權(本體碰撞 150×120、左繩梯第 21 欄、死後傳送帶停止)、翻轉後畫面同步與招式數字;場景、各招特效、翻轉預告、登場、死亡逐格截圖(2 欄)
 async function b9fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
   await pg.evaluate(async()=>{HX.go(9,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,500));});   // 內嵌圖非同步載入
@@ -1857,6 +1946,8 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b4reach')bad=await b4reach(a[0]);
   else if(cmd==='b1reach')bad=await b1reach(a[0]);
   else if(cmd==='chgkeep')bad=await chgkeep(a[0]);
+  else if(cmd==='lvreach')bad=await lvreach(a[0],a[1]);
+  else if(cmd==='physeq')bad=await physeq(a[0],a[1]);
   else if(cmd==='b4fx')bad=await b4fx(a[0]||'b4fx.png',a[1]);
   else if(cmd==='b9fx')bad=await b9fx(a[0]||'b9fx.png',a[1]);
   else if(cmd==='b9perf')await b9perf(a[0]);
