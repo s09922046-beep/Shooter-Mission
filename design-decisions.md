@@ -50,7 +50,7 @@ PIXEL STRIKE FORCE (PC) 設計決定文件
 單一檔案 index.html,託管於 GitHub Pages。執行時不從任何外部網址載入資源(字型、圖片、程式庫皆不外連)。
 發佈位置:repo s09922046-beep/Shooter-Mission(公開),main 分支根目錄,網址 https://s09922046-beep.github.io/Shooter-Mission/。
 工作正本:dev 分支。本機 clone 直接修改,完成後 commit(訊息開頭寫版本號)並 push 到 dev。本文件、CLAUDE.md、claude/、tools/ 一併版控。每版打 tag vX.Y(使用者 11/3 同意)。生成圖原檔放 art-src/(使用者 11/3 同意)。
-發佈只在使用者明確說「發佈」時進行:把 dev 合併到 main,main 不直接修改。使用者 11/3 決定:全部工作項目做完才發佈。11/14 使用者指示發佈 v0.43,並保留原版平行發佈:根目錄 index.html 為新版,index-original.html 為 9/29 視覺升級前的原版(取自發佈前的 main,只改兩處名稱:分頁標題與標題畫面遊戲名稱後加註「(original)」,其餘不動、不再維護)。原版網址 https://s09922046-beep.github.io/Shooter-Mission/index-original.html。
+發佈只在使用者明確說「發佈」時進行:把 dev 合併到 main,main 不直接修改。使用者 11/3 決定:全部工作項目做完才發佈。11/14 使用者指示發佈 v0.43,並保留原版平行發佈:根目錄 index.html 為新版,index-original.html 為 9/29 視覺升級前的原版(取自發佈前的 main,只改兩處名稱:分頁標題與標題畫面遊戲名稱後加註「(original)」,其餘不動、不再維護)。原版網址 https://s09922046-beep.github.io/Shooter-Mission/index-original.html。11/15 使用者指示發佈 v0.44(取代 11/3「全部做完才發佈」:發佈後的調整逐版由使用者決定是否發佈)。
 未定案的工作版推到暫存分支(如 wip/...),不推 dev。Claude 不刪除遠端分支,需刪除時由使用者在 GitHub 分支頁操作。
 邏輯座標維持 512×288,圖磚 16 像素。所有碰撞與位置計算不得改動,視覺放大只發生在顯示層。
 檔案內自行擁有所有素材,精靈以程式或像素矩陣定義。
