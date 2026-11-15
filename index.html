@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.43 魔王戰火焰:噴火時火身範圍內的魔王輪廓加一圈對比色外框、疊在火焰上層(取代原本畫在魔王層的火焰色燒邊);載入修正:字型與內嵌圖資料到齊後才開始迴圈;前一版 v0.42 玩家資訊:當下提示(畫面左下)、魔王攻略 Tips(同一王關陣亡 3 次後出現燈泡,按 T 開關,開著時完全暫停);前一版 v0.41 選關格改場景縮圖加左上角編號、標題 PIXEL 小字加高削細(P 有中空)、分頁小圖示(主角頭像);前一版 v0.40 手繪大字:進關數字、BOSS、WARNING(加黃黑警示帶)、VICTORY、GAME OVER、GAME FINISH 改與標題同一套冷鋼斜體、各字換色;前一版 v0.39.2 傳送門階梯貼地(最下緣接地、各階相連伸縮);前一版 v0.39.1 按 Z 閃白強度減半;v0.39 標題頁:手繪像素標誌(冷鋼斜體)、10 王裂月場景加鏡面倒影、插地步槍綁圍巾、標誌光澤、遠景轟炸機、按 Z 閃白 -->
+<!-- VERSION: v0.44 兩項機制修正(使用者授權):1 王中間平台左端加長 2 格(第 9 列第 10~15 欄,原 12~15),從左鐵鍊跳得上去;王關接續挑戰時特攻量還原成進王關那一刻的數值(原本維持陣亡當下);前一版 v0.43 魔王戰火焰:噴火時火身範圍內的魔王輪廓加一圈對比色外框、疊在火焰上層(取代原本畫在魔王層的火焰色燒邊);載入修正:字型與內嵌圖資料到齊後才開始迴圈;前一版 v0.42 玩家資訊:當下提示(畫面左下)、魔王攻略 Tips(同一王關陣亡 3 次後出現燈泡,按 T 開關,開著時完全暫停);前一版 v0.41 選關格改場景縮圖加左上角編號、標題 PIXEL 小字加高削細(P 有中空)、分頁小圖示(主角頭像);前一版 v0.40 手繪大字:進關數字、BOSS、WARNING(加黃黑警示帶)、VICTORY、GAME OVER、GAME FINISH 改與標題同一套冷鋼斜體、各字換色;前一版 v0.39.2 傳送門階梯貼地(最下緣接地、各階相連伸縮);前一版 v0.39.1 按 Z 閃白強度減半;v0.39 標題頁:手繪像素標誌(冷鋼斜體)、10 王裂月場景加鏡面倒影、插地步槍綁圍巾、標誌光澤、遠景轟炸機、按 Z 閃白 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -149,7 +149,7 @@ function mSel(){const k=mKey();if(k!==G.mk){G.mk=k;G.mc=0;G.mt=G.t;G.mcol=0;}ret
 function overRetry(){
   if(G.overBoss&&bossSnapshot){
     G.world=bossSnapshot.world;G.sub=bossSnapshot.sub;G.score=bossSnapshot.score;
-    P.lives=bossSnapshot.lives;wep=bossSnapshot.wep;wlvl=bossSnapshot.wlvl;
+    P.lives=bossSnapshot.lives;wep=bossSnapshot.wep;wlvl=bossSnapshot.wlvl;G.charge=bossSnapshot.charge;   // v0.44 使用者授權:特攻量也還原成進王關那一刻的數值
     hudEl.style.display='flex';G.paused=false;startBoss(1);G.state='intro';G.sT=0;
   }else{
     G.sub=1;P.lives=5;wep='smg';wlvl=1;G.charge=0;
@@ -1563,7 +1563,7 @@ function b1Wreck(t){const o=B1G,f=clamp(0.2*(t-B1SP)*(t-B1SP),0,70),e=f/70,py=13
 const B1={
   name:'赫利俄斯殘骸',en:'HELIOS WRECK',tag:'GALACTIC / 無人戰艦',
   arena(){bossArena(()=>{gnd(13);vineAt(7,3,12);vineAt(18,3,12);   // v0.25 使用者授權:右鐵鍊由第 22 欄移到第 18 欄(原本攀爬路徑穿過艦體)
-    fillR(12,9,15,9,3);fillR(17,6,20,6,3);});},
+    fillR(10,9,15,9,3);fillR(17,6,20,6,3);});},   // v0.44 使用者授權:中間平台左端加長 2 格(原第 12~15 欄),從左鐵鍊跳得上去
   init(b){b.x=340;b.y=26;b.w=160;b.h=112;b.plates=[1400,1400,1400];b.core=false;b.exposedT=0;b1Load();},
   ownFlash:true,
   coreGa:0.8,
@@ -4770,7 +4770,7 @@ function startBoss(retry,seg){
   if(P.lives<=4)items.push({kind:'life',x:120,y:60,vy:0,t:0});
   if(wlvl<3)dropCrate(200,60);
   if(P.lives<=2)items.push({kind:'life',x:280,y:60,vy:0,t:0});
-  bossSnapshot={world:G.world,sub:G.sub,score:G.score,lives:P.lives,wep,wlvl}; // 供陣亡後「從王關接續挑戰」還原
+  bossSnapshot={world:G.world,sub:G.sub,score:G.score,lives:P.lives,wep,wlvl,charge:G.charge}; // 供陣亡後「從王關接續挑戰」還原
 }
 /* ========== 主題色 ========== */
 const THEME=[

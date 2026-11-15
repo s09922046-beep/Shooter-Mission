@@ -1614,6 +1614,38 @@ async function b4reach(file){const {br,pg,errs}=await open(file);
       out[lab]=ok+'/'+tot+(how.length?'('+how.slice(0,4).join('、')+(how.length>4?'…':'')+')':'');}
     return out;});
   console.log(JSON.stringify(r,null,1),'錯誤',errs.length?errs:'無');await br.close();return errs.length;}
+// v0.44 王關接續挑戰的特攻量(使用者授權):進王關當下的特攻量存進 bossSnapshot,不論陣亡幾次、陣亡當下是多少,接續後都還原成那個數值;小關陣亡接續照舊歸零
+async function chgkeep(file){const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const o=[];let bad=0;const ck=(n,ok,v)=>{o.push(`${ok?'OK':'NG'} ${n}${v!==undefined?'('+v+')':''}`);if(!ok)bad++;};
+    for(const w of [1,6,10]){resetRun();G.world=w;G.sub=5;G.charge=35;startLevel();G.modal=null;G.state='play';HX.run(320);
+      const got=[];for(const c of [80,0,100,15]){G.charge=c;G.state='over';G.sT=100;G.overBoss=true;overRetry();got.push(G.charge);G.state='play';HX.run(130);}
+      ck(w+' 王:陣亡當下 80、0、100、15,接續後都回到 35',got.every(v=>v===35),got.join('/'));}
+    resetRun();G.world=1;G.sub=5;G.charge=100;startLevel();G.modal=null;G.state='play';HX.run(320);G.charge=0;G.state='over';G.overBoss=true;overRetry();ck('進王關時滿的,用掉後陣亡,接續回到 100',G.charge===100,G.charge);
+    HX.go(2,3);G.charge=60;G.state='over';G.overBoss=false;overRetry();ck('小關陣亡接續照舊歸零、回第 1 小關',G.charge===0&&G.sub===1,G.charge+'/'+G.sub);
+    return {o,bad};});
+  console.log(r.o.join('\n'),'\n錯誤',errs.length?errs:'無');await br.close();return errs.length+r.bad;}
+// 1 王中間平台(第 9 列)可達性:各欄位方案下,從左鐵鍊(第 7 欄)不同高度起跳能否站上中間平台、從中間平台能否跳上上方平台(第 6 列 17~20 欄)
+async function b1reach(file){const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(()=>{const out={};
+    const CF={'v0.43 原版 12~15 欄':[12,15],'A 左移 1 格 11~14 欄':[11,14],'B 左移 2 格 10~13 欄':[10,13],'C 左端加長 1 格 11~15 欄':[11,15],'D 左端加長 2 格 10~15 欄(v0.44 定案)':[10,15]};
+    HX.go(1,5);HX.run(320);{let s='';for(let c=8;c<=16;c++)s+=T(c,9)===3?'#':'.';out['受測檔第 9 列第 8~16 欄(定案應為 ..######.)']=s;}
+    const z=()=>{ebul.length=0;hazs.length=0;ens.length=0;boss.cd=9999;};
+    for(const [lab,[c0,c1]] of Object.entries(CF)){
+      const set=()=>{HX.go(1,5);HX.run(320);for(let c=8;c<=16;c++)setT(c,9,c>=c0&&c<=c1?3:0);K.l=K.r=K.u=K.d=K.j=0;};
+      let ok=0,tot=0,low=-1;const okH=[];
+      for(let py=37;py<=190;py+=6){let any=0;
+        for(const jh of [1,6,20]){set();P.x=7*16+3;P.y=py;P.vy=0;P.vx=0;P.climb=true;z();HX.run(2);
+          K.r=1;K.j=1;let hit=0;for(let i=0;i<90;i++){if(i===jh)K.j=0;z();HX.run(1);if(P.onG&&Math.abs(P.y+14-144)<1){hit=1;break;}if(P.onG)break;}
+          tot++;if(hit){ok++;any=1;}}
+        if(any){okH.push(py);low=py;}}
+      let up=0,upT=0;const upX=[];
+      for(let sx=c0*16;sx<=c1*16+12;sx+=4)for(const dl of [0,3,6]){set();P.x=sx;P.y=144-14;P.vy=0;P.vx=0;P.climb=false;for(let i=0;i<6;i++){z();HX.run(1);}
+        if(!(P.onG&&Math.abs(P.y+14-144)<1))continue;
+        K.r=1;for(let i=0;i<dl;i++){z();HX.run(1);}K.j=1;let hit=0;for(let i=0;i<70;i++){if(i===20)K.j=0;z();HX.run(1);if(P.onG&&Math.abs(P.y+14-96)<1){hit=1;break;}}
+        upT++;if(hit){up++;if(!upX.includes(sx))upX.push(sx);}}
+      out[lab]={'左鐵鍊跳中間平台':ok+'/'+tot,'可起跳的主角高度 y(37=鍊頂,數字越大越低)':okH.length?okH[0]+'~'+low+'(共 '+okH.length+' 檔/26)':'無','中間平台跳上方平台':up+'/'+upT,'可起跳的 x':upX.length?upX[0]+'~'+upX[upX.length-1]:'無'};}
+    return out;});
+  console.log(JSON.stringify(r,null,1),'錯誤',errs.length?errs:'無');await br.close();return errs.length;}
 // v0.26 9 王:核對兩項授權(本體碰撞 150×120、左繩梯第 21 欄、死後傳送帶停止)、翻轉後畫面同步與招式數字;場景、各招特效、翻轉預告、登場、死亡逐格截圖(2 欄)
 async function b9fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
   await pg.evaluate(async()=>{HX.go(9,5);HX.run(130,true);await new Promise(ok=>setTimeout(ok,500));});   // 內嵌圖非同步載入
@@ -1823,6 +1855,8 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b6hit')await b6hit(a[0],a[1]);
   else if(cmd==='b6fx')bad=await b6fx(a[0]||'b6fx.png',a[1]);
   else if(cmd==='b4reach')bad=await b4reach(a[0]);
+  else if(cmd==='b1reach')bad=await b1reach(a[0]);
+  else if(cmd==='chgkeep')bad=await chgkeep(a[0]);
   else if(cmd==='b4fx')bad=await b4fx(a[0]||'b4fx.png',a[1]);
   else if(cmd==='b9fx')bad=await b9fx(a[0]||'b9fx.png',a[1]);
   else if(cmd==='b9perf')await b9perf(a[0]);
