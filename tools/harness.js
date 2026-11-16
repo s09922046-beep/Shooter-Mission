@@ -504,25 +504,33 @@ function perfpage(file){
 <div id="pt" style="position:fixed;left:0;top:0;right:0;z-index:99;background:#0b0f18f0;color:#cfe;font:13px 'Microsoft JhengHei',sans-serif;padding:6px 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
  <b>桌機實測頁 ${ver}</b>
  <span>跳到:</span>${btn('data-w="10" data-s="1"','第 10 大關 1-1')}${[1,2,3,4,5,6,7,8,9].map(w=>btn(`data-w="${w}" data-s="5"`,w+' 王')).join('')}${btn('data-w="10" data-s="5"','10 王')}
+ <span>| 小關:</span><select id="ptW">${[1,2,3,4,5,6,7,8,9,10].map(w=>'<option value="'+w+'"'+(w===6?' selected':'')+'>第 '+w+' 大關</option>').join('')}</select>${[1,2,3,4].map(k=>btn('data-k="'+k+'"','第 '+k+' 小關')).join('')}
  <span>| 武器 Lv4:</span>${btn('data-p="smg"','衝鋒槍')}${btn('data-p="flame"','火焰')}${btn('data-p="shot"','散彈')}
- ${btn('id="ptInv"','')}${btn('id="ptHp"','魔王剩 5%(B)')}${btn('id="ptSp"','特攻充滿(N)')}
+ ${btn('id="ptInv"','')}${btn('id="ptHp"','魔王剩 5%(B)')}${btn('id="ptSp"','特攻充滿(N)')}${btn('id="ptQ"','')}
+ <span id="ptGen" style="color:#ffd23a"></span>
  <span id="ptSt" style="color:#8ab"></span>
- <div style="width:100%;color:#9ab;font-size:12px">F4 收起/打開這條控制列(量測時請收起)。F3 效能面板:按一次開始量測,再按一次關掉,重開即從零開始。畫質已固定為高。</div>
+ <div style="width:100%;color:#9ab;font-size:12px">F4 收起/打開這條控制列(量測時請收起)。F3 效能面板:按一次開始量測,再按一次關掉,重開即從零開始。畫質預設高,可按按鈕或 F2 切換(按鈕文字在按 F2 後不會更新)。小關:選大關後按第幾小關直接進入(每按一次重新生成地圖),黃字為該次進關的地形生成耗時。</div>
 </div>
 <script>
 (()=>{const bar=document.getElementById('pt'),st=document.getElementById('ptSt');let inv=1;
   FX.q='high';
+  const gen=document.getElementById('ptGen');let fl=0;   // v0.46:進關地形生成耗時(本機實際)與暗幕結束時一次補做的時間
+  if(window.wqFlush){const f0=wqFlush;window.wqFlush=function(){const n=WQ.length,t=performance.now();f0();if(n)fl=performance.now()-t;};}
+  const r0=render;let seen=null;window.render=function(){r0();if(typeof LV!=='undefined'&&LV.st&&LV.st!==seen&&LV.st.ms&&G.state!=='intro'){seen=LV.st;gen.textContent='上次進關 '+G.world+'-'+G.sub+':地形生成 '+LV.st.ms.toFixed(0)+' ms,暗幕結束時一次補做 '+fl.toFixed(0)+' ms';fl=0;}};
   const u0=update;window.update=function(){u0();if(inv&&P.lives<3)P.lives=3;};   // 無限命:命數不低於 3(照常被打、照常無敵閃爍)
   function jump(w,s){resetRun();G.world=w;G.sub=s;hudEl.style.display='flex';startLevel();if(wep0){wep=wep0;wlvl=4;}}
   let wep0=null;
   function hp(){if(boss&&boss.alive&&G.state==='play'){boss.hp=Math.min(boss.hp,Math.ceil(boss.max*0.05));msg('魔王剩 5%');}}
   function sp(){G.charge=100;msg('特攻充滿');}
   function msg(t){st.textContent=t;clearTimeout(msg.t);msg.t=setTimeout(()=>st.textContent='',1500);}
-  function ref(){document.getElementById('ptInv').textContent='無限命:'+(inv?'開':'關');}ref();
+  function ref(){document.getElementById('ptInv').textContent='無限命:'+(inv?'開':'關');document.getElementById('ptQ').textContent='畫質:'+(FX.q==='high'?'高':'低');}ref();
   bar.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;b.blur();
-    if(b.dataset.w){jump(+b.dataset.w,+b.dataset.s);msg('已跳到 '+b.textContent);}
+    if(b.dataset.k){fl=0;jump(+document.getElementById('ptW').value,+b.dataset.k);msg('已跳到 '+document.getElementById('ptW').value+'-'+b.dataset.k);}
+    else if(b.id==='ptQ'){toggleQuality();ref();}   // 與 F2 相同(會重建特效畫布)
+    else if(b.dataset.w){jump(+b.dataset.w,+b.dataset.s);msg('已跳到 '+b.textContent);}
     else if(b.dataset.p){wep0=b.dataset.p;wep=wep0;wlvl=4;msg(b.textContent+' Lv4');}
     else if(b.id==='ptInv'){inv^=1;ref();}else if(b.id==='ptHp')hp();else if(b.id==='ptSp')sp();});
+  document.getElementById('ptW').addEventListener('change',e=>e.target.blur());   // 選完就離開選單,方向鍵才回到遊戲
   addEventListener('keydown',e=>{if(e.code==='F4'){e.preventDefault();bar.style.display=bar.style.display==='none'?'flex':'none';}
     else if(e.code==='KeyB')hp();else if(e.code==='KeyN')sp();});
 })();
