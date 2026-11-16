@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-<!-- VERSION: v0.45 小關地形必要性規則與自動可通關檢查(使用者授權):平台、繩都必須有功能(寬坑才放平台、橋每塊必要、高牆才放繩、塔台改爬繩才上得去的高台:主路線版與獎勵版),每段生成後以主角實際移動程式 pPhys 模擬檢查,不合格重抽該段,整張再驗一次;生成在進關暗幕期間分幀執行;前一版 v0.44 兩項機制修正:1 王中間平台左端加長 2 格、王關接續挑戰特攻量還原;更早 v0.43 魔王戰火焰:噴火時火身範圍內的魔王輪廓加一圈對比色外框、疊在火焰上層(取代原本畫在魔王層的火焰色燒邊);載入修正:字型與內嵌圖資料到齊後才開始迴圈;前一版 v0.42 玩家資訊:當下提示(畫面左下)、魔王攻略 Tips(同一王關陣亡 3 次後出現燈泡,按 T 開關,開著時完全暫停);前一版 v0.41 選關格改場景縮圖加左上角編號、標題 PIXEL 小字加高削細(P 有中空)、分頁小圖示(主角頭像);前一版 v0.40 手繪大字:進關數字、BOSS、WARNING(加黃黑警示帶)、VICTORY、GAME OVER、GAME FINISH 改與標題同一套冷鋼斜體、各字換色;前一版 v0.39.2 傳送門階梯貼地(最下緣接地、各階相連伸縮);前一版 v0.39.1 按 Z 閃白強度減半;v0.39 標題頁:手繪像素標誌(冷鋼斜體)、10 王裂月場景加鏡面倒影、插地步槍綁圍巾、標誌光澤、遠景轟炸機、按 Z 閃白 -->
+<!-- VERSION: v0.46 小關新地形與變化頻率(使用者授權):新增跳島、石柱過坑、平台階梯上高地、下降平台、上層獎勵長廊(依大關逐步開放),平地縮短、同一種地形至少相隔 32 格;獎勵改為中繼平台才拿得到,長廊上層至少連跳 2 次;敵人三項修正(小關巡邏敵人站上單向平台、尖刺段不出生敵人、繩梯底端不放定點敵人);前一版 v0.45 小關地形必要性規則與自動可通關檢查(使用者授權):平台、繩都必須有功能(寬坑才放平台、橋每塊必要、高牆才放繩、塔台改爬繩才上得去的高台:主路線版與獎勵版),每段生成後以主角實際移動程式 pPhys 模擬檢查,不合格重抽該段,整張再驗一次;生成在進關暗幕期間分幀執行;前一版 v0.44 兩項機制修正:1 王中間平台左端加長 2 格、王關接續挑戰特攻量還原;更早 v0.43 魔王戰火焰:噴火時火身範圍內的魔王輪廓加一圈對比色外框、疊在火焰上層(取代原本畫在魔王層的火焰色燒邊);載入修正:字型與內嵌圖資料到齊後才開始迴圈;前一版 v0.42 玩家資訊:當下提示(畫面左下)、魔王攻略 Tips(同一王關陣亡 3 次後出現燈泡,按 T 開關,開著時完全暫停);前一版 v0.41 選關格改場景縮圖加左上角編號、標題 PIXEL 小字加高削細(P 有中空)、分頁小圖示(主角頭像);前一版 v0.40 手繪大字:進關數字、BOSS、WARNING(加黃黑警示帶)、VICTORY、GAME OVER、GAME FINISH 改與標題同一套冷鋼斜體、各字換色;前一版 v0.39.2 傳送門階梯貼地(最下緣接地、各階相連伸縮);前一版 v0.39.1 按 Z 閃白強度減半;v0.39 標題頁:手繪像素標誌(冷鋼斜體)、10 王裂月場景加鏡面倒影、插地步槍綁圍巾、標誌光澤、遠景轟炸機、按 Z 閃白 -->
 <!-- 前版: v0.25 魔王 1 赫利俄斯殘骸:GPT 艦體縮圖壓色(艦首方正填滿判定框、往上往右延伸出畫面),太陽爐核心百葉半亮、裝甲全破百葉打開露出熾核;裝甲座焦黑骨架、復原前 120 幀掃描線投影;機庫艙門召喚前亮燈;接地電極加單股粗電流鋸齒;熾白芯燃燒彈、落地貼地衝擊爆加焦痕餘燼與火焰;受損火花黑煙失火;GPT 飛艇墳場加遠景巨艦、左上月亮、吊鉤鐵鍊;殘骸重啟登場、斷兩截墜地死亡留殘骸;使用者授權:砲彈飛行 77 幀真的落地、艦體碰撞 160×112、右鐵鍊移到第 18 欄、無人機上限 10 -->
 <!-- 前版: v0.23 魔王 5 機械蜂巢母體 奧米茄巢:六角蜂巢母艦、連續雷射環、半圓防護罩、衝撞預兆框、程式畫高科技密室;判定框未改 -->
 <!-- 前版: v0.18 魔王共用工具 1b:藤蔓觸手共用繪製與倒影;判定框與行為不變 -->
@@ -780,8 +780,12 @@ function updateEnemies(){
         if(hitSolid(nx,e.y,e.w,e.h)||!groundAhead(aheadX,e.y,e.h,4)){e.dir*=-1;}
         else e.x=nx;
         e.face=e.dir;
-        e.vy=(e.vy||0)+0.36;e.y+=e.vy;
+        const pf=e.y+e.h;e.vy=(e.vy||0)+0.36;e.y+=e.vy;
         if(hitSolid(e.x,e.y,e.w,e.h)){e.y-=e.vy;e.vy=0;}
+        else if(G.sub<5&&e.vy>0){   // v0.46 授權 1A:一般小關下落時站上單向平台(腳底由平台上緣以上越過才算,與主角相同);王關維持原行為
+          const nf=e.y+e.h;for(let r=Math.ceil(pf/TS-0.001);r*TS<=nf;r++){let on=false;
+            for(let tx=Math.floor(e.x/TS);tx<=Math.floor((e.x+e.w-1)/TS);tx++)if(T(tx,r)===3)on=true;
+            if(on){e.y=r*TS-e.h;e.vy=0;break;}}}
       }else if(e.type==='turret'){
         e.face=dx<0?-1:1;
         if(e.t%150<3&&e.t%150>0&&Math.abs(dx)<240){
@@ -1078,7 +1082,9 @@ function updatePortal(){
    分岔出原地跳、助跑跳、空中轉向、走下邊緣、按住上抓繩、按住下穿過單向平台;抓到繩後每 8 像素往上下爬並分岔跳出、爬出頂端、爬出底端。
    落地或抓到繩就成為新的節點,搜到終點為止。墜崖、碰到尖刺(灼燒格)的軌跡視為失敗。
    必要性:把某塊平台或某條繩拿掉再搜一次,仍過得去就代表它沒有功能,這段地形重抽(分段重抽,使用者 11/15 選 4A)。 */
-const LV={st:null,lim:250000};   // st:最近一次生成的統計(harness lvreach 讀);lim:單次搜尋步數上限(超過視為不通)
+const LV={st:null,lim:250000,all:0,off:null};   // st:最近一次生成的統計(harness lvreach 讀);lim:單次搜尋步數上限(超過視為不通);all、off 只供預覽頁(新地形全開、個別關閉)
+let LV_NR=32;   // v0.46 同一種地形上次結束後至少隔幾格才能再出現(32 格 = 一個畫面寬;Claude 取值,預覽可調)
+const LVK_W={hops:2,pillars:3,gallery:4,stairs:5,descend:6};   // v0.46 新地形從第幾大關開放(問卷 2B,Claude 取值)
 function lvGoal(){const {tx,ty}=portalAt(),b={x:tx*TS-12,y:ty*TS-36,w:40,h:40};return q=>q.onG&&aabb(q,b);}   // 終點:站著碰得到傳送門(與 updatePortal 同一個框)
 function lvBody(x,y){return {x,y,vx:0,vy:0,w:P.w,h:P.h,onG:false,climb:false,face:1,anim:0};}
 function lvCl(o){return {x:o.x,y:o.y,vx:o.vx,vy:o.vy,w:o.w,h:o.h,onG:o.onG,climb:o.climb,face:o.face,anim:0};}
@@ -1180,7 +1186,8 @@ function* lvSegOKG(sg,x0,gy0,S){
   else S.why.push(sg.k+' 過不去');
   if(ok&&sg.rw){const w=sg.rw,rg=o=>o.onG&&Math.floor((o.y+o.h+1)/TS)===w.row&&o.x+o.w>w.c0*TS&&o.x<(w.c1+1)*TS;
     if(!(yield* go(rg))){ok=false;S.why.push(sg.k+' 獎勵上不去');}
-    else if(yield* lvWoG(w.vine,()=>go(rg))){ok=false;S.why.push(sg.k+' 不必爬繩');}}
+    else if(yield* lvWoG(w.vine,()=>go(rg))){ok=false;S.why.push(sg.k+' 不必爬繩');}
+    else for(const e of w.need||[])if(yield* lvWoG(e,()=>go(rg))){ok=false;S.why.push(sg.k+' 中繼平台多餘');break;}}   // v0.46:中繼平台與長廊各段,拿掉任一塊須上不去
   S.n+=R.n;if(R.over)S.over++;
   return ok;
 }
@@ -1193,7 +1200,7 @@ function* lvSegOKG(sg,x0,gy0,S){
 function lvSegGen(k,x,gy,comp,ground){
   const els=[],cells=(x0,y0,x1,y1)=>{const a=[];for(let yy=y0;yy<=y1;yy++)for(let xx=x0;xx<=x1;xx++)a.push([xx,yy]);return a;};
   const vine=(vx,y0,y1)=>{const a=[];for(let yy=y0;yy<=y1;yy++)if(T(vx,yy)===0){setT(vx,yy,2);a.push([vx,yy]);}return a;};
-  if(k==='flat'){const L=ri(4,8);ground(x,L,gy);return {x:x+L,gy,ex:x,ey:gy,els,easy:1};}
+  if(k==='flat'){const L=ri(2,5);ground(x,L,gy);return {x:x+L,gy,ex:x,ey:gy,els,easy:1};}   // v0.46 問卷 3B:平地原 4~8 格
   if(k==='step'){
     const dy=ri(1,Math.min(3,1+comp))*(Math.random()<0.5?-1:1);
     const g=clamp(gy+dy,7,12);   // 原本5~14,範圍過大導致有時地面極薄、有時極厚;縮窄為7~12讓畫面比例更平均
@@ -1217,7 +1224,7 @@ function lvSegGen(k,x,gy,comp,ground){
     return {x,gy:ng,ex,ey:ng,els};
   }
   if(k==='trap'){   // 尖刺地板一段,上面站不住,逼玩家跳過(踩到扣血)
-    const L=ri(1,2);ground(x,L,gy+1);fillR(x,gy,x+L-1,gy,5);
+    const L=ri(1,2);fillR(x,gy+1,x+L-1,GH-1,1);fillR(x,gy,x+L-1,gy,5);   // v0.46 授權 2A:尖刺下的地面不列入敵人出生位置(原本用 ground 會列入,敵人出生就疊在尖刺上被判死)
     const L2=ri(3,5);ground(x+L,L2,gy);return {x:x+L+L2,gy,ex:x+L,ey:gy,els};
   }
   if(k==='bridge'){   // 一排單向平台橫跨寬坑,每塊都必要
@@ -1233,16 +1240,55 @@ function lvSegGen(k,x,gy,comp,ground){
     const fx=x+Lg+Wp,L=ri(3,6);ground(fx,L,gy);
     return {x:fx+L,gy,ex:fx,ey:gy,els};
   }
-  // reward:高台獎勵版,地面平坦,爬繩才上得去,上面放道具
-  const L=ri(9,10);ground(x,L,gy);
-  const vc=x+ri(3,4),py=Math.max(3,gy-ri(4,5));   // 離前後地形各 3 格以上,避免從旁邊較高的地形直接跳上去
-  fillR(vc,py,vc+2,py,3);
-  const vn=vine(vc,py-1,gy-1);
-  return {x:x+L,gy,ex:x,ey:gy,els:[],rw:{row:py,c0:vc,c1:vc+2,vine:vn,ix:(vc+1)*TS+8,iy:py*TS-12}};
+  const col=(c0,c1,top)=>fillR(c0,top,c1,GH-1,1);   // v0.46 土柱、石柱(不列入敵人出生地面)
+  if(k==='hops'){   // v0.46 連續跳島:2~3 個跳得過的小坑,中間是 1~2 格寬、高低差 1 格以內的土柱
+    const n=ri(2,3);let c=x,h=gy,pw=9;
+    for(let i=0;i<n;i++){const nh=clamp(h+ri(-1,1),7,12),iw=ri(1,2),gw=iw>1&&(pw===9?nh>=h:pw>=2&&nh>h)?ri(2,3):2;   // 隔 3 格只在:從地面起跳且不往上、或從 2 格寬土柱往下跳,其餘 2 格(2 格寬沒有助跑,平跨 3 格整張複驗抓到過不去)
+      c+=gw;col(c,c+iw-1,nh);c+=iw;h=nh;pw=iw;}
+    const g2=clamp(h+ri(-1,1),7,12),gw=pw>=2&&g2>h?ri(2,3):2,L=ri(3,5);ground(c+gw,L,g2);
+    return {x:c+gw+L,gy:g2,ex:c+gw,ey:g2,els};
+  }
+  if(k==='pillars'){   // v0.46 石柱過坑:寬坑中由坑底升起的實心石柱,每根都必要
+    const n=comp>=3?ri(2,3):ri(1,2);let c=x,h=gy,pw=9;
+    for(let i=0;i<n;i++){const nh=clamp(h+ri(-1,1),7,12),iw=ri(1,2),gw=iw>1&&(pw===9?nh>=h:pw>=2&&nh>h)?3:2;
+      c+=gw;col(c,c+iw-1,nh);els.push(cells(c,nh,c+iw-1,GH-1));c+=iw;h=nh;pw=iw;}
+    const g2=clamp(h+ri(-1,1),7,12),gw=pw>=2&&g2>h?3:2,L=ri(3,5);ground(c+gw,L,g2);
+    return {x:c+gw+L,gy:g2,ex:c+gw,ey:g2,els};
+  }
+  if(k==='stairs'){   // v0.46 平台階梯上高地:同高牆(4~5 格、前面 6~7 格平地),以單向平台取代繩
+    const g=gy<11?ri(11,12):gy,La=ri(6,7);ground(x,La,g);x+=La;
+    const h=ri(4,g-7),top=g-h,L=ri(2,3);
+    fillR(x,top,x+L-1,GH-1,1);for(let i=0;i<L;i++)ground(x+i,1,top);
+    if(h===4){const pw=ri(1,2);fillR(x-pw,g-2,x-1,g-2,3);els.push(cells(x-pw,g-2,x-1,g-2));}   // 高 4 格:牆前 1 塊(離地 2 格,再上 2 格到牆頂)
+    else{fillR(x-2,g-4,x-1,g-4,3);els.push(cells(x-2,g-4,x-1,g-4));fillR(x-6,g-2,x-5,g-2,3);els.push(cells(x-6,g-2,x-5,g-2));}   // 高 5 格:兩塊錯開,低的一塊離牆面 4 格(離 3 格時整張複驗抓到 1 例從低平台直接上牆頂)
+    x+=L;let ng=top;const L2=ri(3,5);ground(x,L2,ng);let ex=x-L;x+=L2;
+    if(Math.random()<0.6){ng=clamp(ng+ri(2,4),7,12);const L3=ri(3,5);ground(x,L3,ng);ex=x;x+=L3;}
+    return {x,gy:ng,ex,ey:ng,els};
+  }
+  if(k==='descend'){   // v0.46 下降平台:寬坑上的單向平台一路往下,落到較低的地面(呼叫端保證 gy<=9)
+    let n=ri(2,3),py=gy+ri(0,1),c=x;
+    for(let i=0;i<n&&py<=11;i++){const iw=ri(1,2),gw=(i&&py>gy)?ri(2,3):2;c+=gw;fillR(c,py,c+iw-1,py,3);els.push(cells(c,py,c+iw-1,py));c+=iw;py++;}
+    const g2=Math.min(12,py-1+ri(1,2)),L=ri(3,5),gw=ri(2,3);ground(c+gw,L,g2);
+    return {x:c+gw+L,gy:g2,ex:c+gw,ey:g2,els};
+  }
+  // reward(獎勵高台)與 gallery(v0.46 上層獎勵長廊):爬繩才上得去,下面是完整平地(沒有坑、沒有尖刺,上層失手只是掉回地面重爬)
+  // v0.46 加難(使用者 11/16 選方案 2):地面太高時先下一階到第 11~12 列(同高牆);繩 4 格到中繼平台(3 格,往右伸),
+  // 再從平台右端跳過 2 格空隙、往上 2 格才到上層;從繩上直接跳過去要橫越 4 格,跳不到。中繼平台與長廊每一段都必須用到(lvSegOKG 檢查)
+  const g=gy<11?ri(11,12):gy,La=ri(4,5);ground(x,La,g);x+=La;
+  const vc=x+ri(2,3),pm=g-4,pr=pm-2,need=[cells(vc,pm,vc+2,pm)];
+  fillR(vc,pm,vc+2,pm,3);const vn=vine(vc,pm-1,g-1);
+  let c=vc+5,row=pr,c0=c,c1=c+2;
+  if(k==='gallery'){   // 長廊:入口 3 格,之後 2~3 個空隙(至少連跳 2 次),中間各段 2 格、高低差 1 格以內(往上只隔 2 格),最後一段 3 格放道具
+    fillR(c,pr,c+2,pr,3);need.push(cells(c,pr,c+2,pr));c+=3;let h=pr;const n=ri(2,3);
+    for(let i=0;i<n;i++){const nh=clamp(h+ri(-1,1),pr-1,pr+1),last=i===n-1,w=last?3:2,gw=nh<h?2:ri(2,3);c+=gw;
+      fillR(c,nh,c+w-1,nh,3);if(last){row=nh;c0=c;c1=c+w-1;}else need.push(cells(c,nh,c+w-1,nh));c+=w;h=nh;}
+  }else{fillR(c,pr,c+2,pr,3);c+=3;}
+  const L=c-x+ri(5,6);ground(x,L,g);   // 上層末端之後再留 5~6 格平地,避免從後面較高的地形直接跳上去
+  return {x:x+L,gy:g,ex:x,ey:g,els:[],rw:{row,c0,c1,vine:vn,need,ix:(k==='gallery'?c1-1:c0+1)*TS+8,iy:row*TS-12}};
 }
 function* lvBuildG(world,comp,wTiles){
   newMap(wTiles);
-  const S={gc:[],rr:0,fb:0,tail:0,n:0,over:0,why:[],rw:null,ok:false};
+  const S={gc:[],rr:0,fb:0,tail:0,n:0,over:0,why:[],rw:null,ok:false,kc:{},pl:[]};   // v0.46 kc 各地形段數、pl 石柱(harness lvreach 複驗)
   const ground=(x0,len,g)=>{for(let i=0;i<len;i++){fillR(x0+i,g,x0+i,GH-1,1);S.gc.push({x:x0+i,y:g});}};
   let gy=12,x=0;
   // 起始安全區
@@ -1251,7 +1297,12 @@ function* lvBuildG(world,comp,wTiles){
 
   const kinds=[];
   const push=(k,n)=>{for(let i=0;i<n;i++)kinds.push(k);};
-  push('flat',Math.max(1,6-comp));
+  const on=k=>!(LV.off&&LV.off[k])&&(LV.all||world>=LVK_W[k]);   // v0.46 新地形依大關開放(問卷 2B);LV.all、LV.off 只供預覽頁切換
+  push('flat',Math.max(1,Math.round((6-comp)/2)));   // v0.46 問卷 3B:平地權重約減半(原 6-comp)
+  if(on('hops'))push('hops',2);
+  if(on('pillars'))push('pillars',Math.max(1,comp-1));
+  if(on('stairs'))push('stairs',Math.max(1,comp-1));
+  if(on('descend'))push('descend',Math.max(1,comp-1));
   push('step',3);
   push('gap',comp);
   push('tower',comp);
@@ -1260,8 +1311,11 @@ function* lvBuildG(world,comp,wTiles){
   push('trap',world>=7?Math.max(1,comp-1):0);   // 世界7+限定:地面尖刺,考驗跳躍時機
   const rwAt=Math.random()<0.5?ri(Math.floor(wTiles*0.25),Math.floor(wTiles*0.65)):-1;   // 獎勵高台:一半的小關有 1 處(問卷 1B)
 
+  const last={};   // 各地形上一次結束的欄
   while(x<wTiles-10){
-    let k=pick(kinds);if(rwAt>=0&&!S.rw&&x>=rwAt)k='reward';
+    const ok=kinds.filter(q=>q==='flat'||!(q in last)||x-last[q]>=LV_NR);   // v0.46 使用者 11/16:同一種地形不在短距離內重複(平地除外)
+    let k=ok.length?pick(ok):'flat';if(rwAt>=0&&!S.rw&&x>=rwAt)k=on('gallery')&&Math.random()<0.5?'gallery':'reward';
+    if(k==='descend'&&gy>9)k='bridge';   // 下降平台要有往下的空間(地面維持第 7~12 列)
     const snap=map.d.slice(),gcN=S.gc.length;let sg=null,tail=false;
     for(let a=0;a<6;a++){
       sg=lvSegGen(k,x,gy,comp,ground);sg.k=k;
@@ -1271,6 +1325,7 @@ function* lvBuildG(world,comp,wTiles){
     }
     if(!sg){if(!tail)S.fb++;const L=ri(4,8);ground(x,L,gy);x+=L;continue;}   // 6 次都不合格:改放平地
     if(sg.rw){S.rw=sg.rw;S.rw.x0=x;S.rw.gy0=gy;S.rw.x1=sg.x;}
+    S.kc[k]=(S.kc[k]||0)+1;last[k]=sg.x;if(k==='pillars')S.pl.push(...sg.els);
     x=sg.x;gy=sg.gy;
   }
   ground(x,wTiles-x,gy);
@@ -1282,7 +1337,7 @@ function* lvBuildG(world,comp,wTiles){
     const w=S.rw,rg=q=>q.onG&&Math.floor((q.y+q.h+1)/TS)===w.row&&q.x+q.w>w.c0*TS&&q.x<(w.c1+1)*TS;
     const st=()=>{const b=lvBody((w.x0-1)*TS+3,w.gy0*TS-P.h);b.onG=true;return b;},a=Math.max(0,(w.x0-10)*TS),b=(w.x1+12)*TS;
     const up=yield* lvSearchG(st(),rg,a,R2,b),noV=up&&(yield* lvWoG(w.vine,()=>lvSearchG(st(),rg,a,R2,b)));S.n+=R2.n;
-    if(!up||noV){for(let c=w.c0;c<=w.c1;c++)map.d[w.row*map.w+c]=0;for(const [cx,cy] of w.vine)map.d[cy*map.w+cx]=0;S.why.push('reward 拿掉');S.rw=null;}}
+    if(!up||noV){for(let c=w.c0;c<=w.c1;c++)map.d[w.row*map.w+c]=0;for(const [cx,cy] of w.vine.concat(...(w.need||[])))map.d[cy*map.w+cx]=0;S.why.push('reward 拿掉');S.rw=null;}}
   return S;
 }
 /* v0.45:生成與檢查放進 WQ(v0.35 進關分幀佇列),在進關暗幕期間每幀做約 6 ms,暗幕結束前沒做完由 wqFlush 一次做完。
@@ -1316,7 +1371,9 @@ function* lvGenG(world,sub){
     else if(G.world>=7&&roll<0.84)type='drone';
     else if(G.world>=7&&roll<0.94)type='mortar';
     let s=pick(spots);let guard=0;
-    while(s&&used[s.x]&&guard++<20)s=pick(spots);
+    const fix=type==='grunt'||type==='turret'||type==='mortar',vb=q=>fix&&[q.x-1,q.x,q.x+1].some(c=>T(c,q.y-1)===2);   // v0.46 授權 3A:定點敵人不出生在繩梯底端左右各 1 格內
+    while(s&&(used[s.x]||vb(s))&&guard++<20)s=pick(spots);
+    if(s&&vb(s))continue;
     if(!s)continue;used[s.x]=1;
     if(type==='flyer'||type==='bee'||type==='drone'){const fy=clamp(s.y-ri(3,6),2,s.y-1);addEnemy(type,s.x*TS,fy*TS);}
     else addEnemy(type,s.x*TS+2,s.y*TS-14);
@@ -1325,7 +1382,7 @@ function* lvGenG(world,sub){
   if(S.rw){const w=S.rw;if(Math.random()<0.7)dropCrate(w.ix,w.iy);else items.push({kind:'life',x:w.ix,y:w.iy,vy:0,t:0});items[items.length-1].vy=0;}   // v0.45 獎勵高台的道具(武器箱 70%、生命 30%)
   P.x=32;P.y=(gyStart(groundCols)-1)*TS;P.vx=0;P.vy=0;P.climb=false;P.fl=0;P.safeX=P.x;P.safeY=P.y;
   cam.x=0;cam.y=-VSHIFT;G.conveyor=0;G.noSpecial=false;endT=0; // v0.9:開場暗幕期間就套用上移
-  LV.st={tries,rr,fb,tail:S.tail,n:sn,nf:S.nf,ok:S.ok,why:S.why.slice(0,60),rw:!!S.rw,ms:0};   // v0.45 統計:整張重抽次數、分段重抽、改放平地、模擬步數、耗時
+  LV.st={tries,rr,fb,tail:S.tail,n:sn,nf:S.nf,ok:S.ok,why:S.why.slice(0,60),rw:!!S.rw,ms:0,kc:S.kc,pl:S.pl,rwi:S.rw&&{row:S.rw.row,c0:S.rw.c0,c1:S.rw.c1,vc:S.rw.vine.length?S.rw.vine[0][0]:-1,need:S.rw.need||[]}};   // v0.45 統計:整張重抽次數、分段重抽、改放平地、模擬步數、耗時
 }
 function gyStart(cols){return cols.length?cols[0].y:12;}
 

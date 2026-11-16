@@ -1703,6 +1703,7 @@ async function lvreach(n,file){
     for(let k=1;k<=N;k++)for(let w=1;w<=10;w++)for(let s=1;s<=4;s++){seed(k*1000+w*10+s);HX.go(w,s);const q=LV.st;
       ST.lv++;ST.tries+=q.tries;if(q.tries>1)ST.multi++;ST.rr+=q.rr;ST.fb+=q.fb;ST.tail+=q.tail||0;ST.slice=Math.max(ST.slice,q.slice||0);ST.ms+=q.ms;if(q.ms>ST.msMax){ST.msMax=q.ms;ST.msMaxAt=w+'-'+s+' 種子'+k;}ST.n+=q.n;if(!q.ok){ST.fail++;o.bad.push(`${w}-${s} 種子${k} 全圖不通(重抽 ${q.tries} 次後仍不通)`);}if(q.rw)ST.rw++;
       for(const y of q.why)ST.why[y]=(ST.why[y]||0)+1;
+      ST.kc=ST.kc||{};for(const kk in q.kc||{})ST.kc[kk]=(ST.kc[kk]||0)+q.kc[kk];   // v0.46 各地形段數
       const p=PW[w]||(PW[w]={lv:0,rr:0,ms:0});p.lv++;p.rr+=q.rr;p.ms+=q.ms;}
     o.stat={...ST,PW};
     // 3 獨立複驗(種子 1):全圖搜尋 + 每個元件拿掉後全圖搜尋
@@ -1713,14 +1714,20 @@ async function lvreach(n,file){
       for(let x=1;x<map.w-1;x++)for(let y=0;y<GH;y++){const t=T(x,y),k=x+','+y;if(seen.has(k))continue;
         if(t===3&&!vinePass(x,y)){const c=[];let xx=x;while(T(xx,y)===3){c.push([xx,y]);seen.add(xx+','+y);xx++;}els.push({t:'平台',c,x,y});}
         else if(t===2){const c=[];let yy=y;while(T(x,yy)===2||vinePass(x,yy)){if(T(x,yy)===2)c.push([x,yy]);seen.add(x+','+yy);yy++;}els.push({t:'繩',c,x,y});}}
+      for(const pc of LV.st.pl||[])els.push({t:'石柱',c:pc,x:pc[0][0],y:pc[0][1]});   // v0.46 石柱(實心,由生成端記錄)
       const it=items.find(i=>i.vy===0&&i.t===0);   // 獎勵道具(生成時 vy=0)
-      const isRw=e=>it&&e.c.some(([cx,cy])=>Math.abs(cx*TS+8-(it.x+6))<40&&(e.t==='平台'?cy*TS===it.y+12:true));
+      const ri_=LV.st.rwi;   // v0.46 獎勵位置由生成端記錄(長廊的道具在遠端,不能用道具距離判斷)
+      const rwN=ri_?[].concat(...(ri_.need||[])):[];   // v0.46 中繼平台與長廊各段
+      const isMid=e=>e.t==='平台'&&e.c.some(([cx,cy])=>rwN.some(([mx,my])=>mx===cx&&my===cy));
+      const isRw=e=>it&&ri_&&(isMid(e)||(e.t==='平台'?e.y===ri_.row&&e.x>=ri_.c0&&e.x<=ri_.c1:e.t==='繩'&&e.x===ri_.vc));
       for(const e of els){if(isRw(e))continue;chk.el++;const q=lvWithout(e.c,()=>fullOK(4e6));if(q.over)chk.over++;
         if(q.ok){let m=`${w}-${s} ${e.t} 第 ${e.x} 欄第 ${e.y} 列(下圖第 ${e.x-18}~${e.x+8} 欄、第 1~13 列;X 實心 = 平台 ~ 繩 * 尖刺)`;if(chk.extra.length<4)for(let y=1;y<14;y++){m+='\n   '+String(y).padStart(2)+' ';for(let x=e.x-18;x<=e.x+8;x++)m+='.X~=w*'[T(x,y)];}chk.extra.push(m);}else chk.need++;}
       if(it){chk.rwT++;const row=(it.y+12)/TS;const rg=q=>q.onG&&Math.floor((q.y+q.h+1)/TS)===row&&Math.abs(q.x+5-(it.x+6))<24;
         const L0=LV.lim;LV.lim=4e6;const up=lvSearch(spawn(),rg,0,{n:0});
-        const vn=els.find(e=>e.t==='繩'&&isRw(e));const noV=vn?lvWithout(vn.c,()=>lvSearch(spawn(),rg,0,{n:0})):true;LV.lim=L0;
-        if(up&&!noV)chk.rwOK++;else o.bad.push(`${w}-${s} 獎勵高台:上得去 ${up} 拿掉繩仍上得去 ${noV}`);}}
+        const vn=els.find(e=>e.t==='繩'&&isRw(e));const noV=vn?lvWithout(vn.c,()=>lvSearch(spawn(),rg,0,{n:0})):true;
+        const nd=ri_&&ri_.need||[],noM=nd.some(e=>lvWithout(e,()=>lvSearch(spawn(),rg,0,{n:0})));LV.lim=L0;chk.mid=(chk.mid||0)+nd.length;
+        if(nd.length>1)chk.gal=(chk.gal||0)+1;
+        if(up&&!noV&&!noM)chk.rwOK++;else o.bad.push(`${w}-${s} 獎勵:上得去 ${up} 拿掉繩仍上得去 ${noV} 拿掉某塊中繼或長廊平台仍上得去 ${noM}`);}}
     if(chk.extra.length)o.bad.push('多餘元件 '+chk.extra.length+' 個');
     o.chk=chk;return o;},+n||5);
   console.log('== 1 故意卡關圖(檢查器 / 遊戲本身 updatePlayer 暴力按鍵) ==');
@@ -1729,11 +1736,41 @@ async function lvreach(n,file){
   console.log(`整張重抽:平均 ${(s.tries/s.lv-1).toFixed(3)} 次/張(有重抽的 ${s.multi} 張),全圖仍不通 ${s.fail} 張`);
   console.log(`分段重抽:平均 ${(s.rr/s.lv).toFixed(2)} 次/張;6 次都不合格改放平地 ${s.fb} 段;關尾空間不足改放平地 ${s.tail} 段(不算重抽);原因 ${JSON.stringify(s.why)}`);
   console.log(`生成耗時(沙盒,含檢查):平均 ${(s.ms/s.lv).toFixed(1)} ms,最長 ${s.msMax.toFixed(1)} ms(${s.msMaxAt});最長單次分幀 ${s.slice.toFixed(1)} ms;平均模擬 ${Math.round(s.n/s.lv)} 步/張;有獎勵高台 ${s.rw} 張`);
+  console.log('各地形段數:'+JSON.stringify(s.kc||{}));
   console.log('各大關平均(分段重抽 / ms):'+Object.entries(s.PW).map(([w,p])=>`${w}:${(p.rr/p.lv).toFixed(1)}/${(p.ms/p.lv).toFixed(0)}`).join('  '));
-  const c=r.chk;console.log(`== 3 獨立複驗 ${c.lv} 張 == 元件 ${c.el} 個,拿掉後全圖過不去 ${c.need} 個,多餘 ${c.extra.length} 個(搜尋超過步數上限 ${c.over} 次);獎勵高台 ${c.rwOK}/${c.rwT} 合格`);
+  const c=r.chk;console.log(`== 3 獨立複驗 ${c.lv} 張 == 元件 ${c.el} 個,拿掉後全圖過不去 ${c.need} 個,多餘 ${c.extra.length} 個(搜尋超過步數上限 ${c.over} 次);獎勵高台 ${c.rwOK}/${c.rwT} 合格(長廊 ${c.gal||0} 處;中繼與長廊平台逐塊拿掉核對 ${c.mid||0} 塊)`);
   if(c.extra.length)console.log(c.extra.slice(0,20).join('\n'));
   console.log(r.bad.length?'未通過:\n'+r.bad.slice(0,30).join('\n'):'全部通過');
   console.log('錯誤',errs.length?errs.slice(0,3):'無');await br.close();return r.bad.length+errs.length;
+}
+// v0.46 敵人三項修正(授權 1A 2A 3A):1 小關巡邏敵人站上單向平台(人工地形:牆頂走下到平台、平台在坑上;王關維持穿過),
+// 實際地圖每隻快跑兵、骷髏單獨跑 1500 幀,統計穿過平台與掉坑;2 出生疊在尖刺上;3 步兵、砲台、迫擊砲出生在繩梯底端左右 1 格內
+async function espawn(n,file){
+  const {br,pg,errs}=await open(file);
+  const r=await pg.evaluate(N=>{const o=[];let bad=0;const ck=(lab,ok,v)=>{o.push(`${ok?'OK':'NG'} ${lab}${v!==undefined?'('+v+')':''}`);if(!ok)bad++;};
+    const seed=k=>{let a=k*2654435761>>>0;Math.random=()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};};
+    const fake=(sub,build,type)=>{HX.go(5,1);G.sub=sub;newMap(60);fillR(0,0,0,GH-1,1);build();ens=[];items=[];const e=addEnemy(type,21*TS+2,7*TS-14);e.dir=-1;P.x=-999;P.y=-999;
+      let first=null;for(let t=0;t<600;t++){cam.x=e.x-W/2;updateEnemies();if(!ens.includes(e))return {gone:1,first};if(e.vy===0&&e.y>7*TS-14+1&&first===null)first=Math.round((e.y+e.h)/TS);}return {gone:0,first};};
+    const stairs=()=>{fillR(1,12,40,GH-1,1);fillR(20,7,40,GH-1,1);fillR(18,9,19,9,3);},pit=()=>{fillR(1,12,10,GH-1,1);fillR(20,7,40,GH-1,1);fillR(18,9,19,9,3);};
+    for(const ty of ['runner','skel']){
+      const a=fake(1,stairs,ty);ck(`小關 ${ty} 從牆頂(第 7 列)走下,先落在第 9 列平台`,!a.gone&&a.first===9,'第一次落腳第 '+a.first+' 列');
+      const b=fake(1,pit,ty);ck(`小關 ${ty} 平台在坑上:不掉出地圖`,!b.gone,b.gone?'掉出':'仍在');
+      const c=fake(5,stairs,ty);ck(`王關 ${ty} 維持原行為(穿過平台落到第 12 列)`,!c.gone&&c.first===12,'第一次落腳第 '+c.first+' 列');}
+    let lv=0,ne=0,sp=0,vb=0,walk=0,thru=0,pitN=0;
+    for(let k=1;k<=N;k++)for(let w=1;w<=10;w++)for(let s=1;s<=4;s++){seed(k*1000+w*10+s);HX.go(w,s);lv++;
+      const all=ens.slice();ne+=all.length;
+      for(const e of all){if(tileKind(e.x,e.y,e.w,e.h,5))sp++;
+        if(['grunt','turret','mortar'].includes(e.type)){const fr=Math.round((e.y+e.h)/TS)-1,c0=Math.floor(e.x/TS),c1=Math.floor((e.x+e.w-1)/TS);let near=false;for(let c=c0-1;c<=c1+1;c++)if(T(c,fr)===2)near=true;if(near)vb++;}}
+      for(const e of all.filter(e=>e.type==='runner'||e.type==='skel')){walk++;ens=[e];P.x=-999;P.y=-999;let th=false;
+        for(let t=0;t<1500;t++){cam.x=e.x-W/2;const fy=e.y+e.h;updateEnemies();if(!ens.includes(e)){pitN++;break;}const ny=e.y+e.h;
+          if(ny>fy+0.001)for(let tx=Math.floor(e.x/TS);tx<=Math.floor((e.x+e.w-1)/TS);tx++)for(let rr=Math.ceil(fy/TS-0.001);rr*TS<ny;rr++)if(rr*TS>=fy-0.001&&T(tx,rr)===3)th=true;}
+        if(th)thru++;}}
+    ck(`${lv} 小關 ${ne} 隻敵人:出生疊在尖刺上 0 隻`,sp===0,sp);
+    ck('步兵、砲台、迫擊砲出生在繩梯底端左右 1 格內 0 隻',vb===0,vb);
+    ck(`快跑兵、骷髏 ${walk} 隻各跑 1500 幀:穿過單向平台 0 隻`,thru===0,thru);
+    o.push(`(參考)快跑兵、骷髏離開地圖 ${pitN} 隻`);
+    return {o,bad};},+n||5);
+  console.log(r.o.join('\n'));console.log('錯誤',errs.length?errs.slice(0,3):'無');await br.close();return r.bad+errs.length;
 }
 // v0.26 9 王:核對兩項授權(本體碰撞 150×120、左繩梯第 21 欄、死後傳送帶停止)、翻轉後畫面同步與招式數字;場景、各招特效、翻轉預告、登場、死亡逐格截圖(2 欄)
 async function b9fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,height:720});
@@ -1947,6 +1984,7 @@ async function b7fx(outp,file){const {br,pg,errs}=await open(file,{width:1280,he
   else if(cmd==='b1reach')bad=await b1reach(a[0]);
   else if(cmd==='chgkeep')bad=await chgkeep(a[0]);
   else if(cmd==='lvreach')bad=await lvreach(a[0],a[1]);
+  else if(cmd==='espawn')bad=await espawn(a[0],a[1]);
   else if(cmd==='physeq')bad=await physeq(a[0],a[1]);
   else if(cmd==='b4fx')bad=await b4fx(a[0]||'b4fx.png',a[1]);
   else if(cmd==='b9fx')bad=await b9fx(a[0]||'b9fx.png',a[1]);
